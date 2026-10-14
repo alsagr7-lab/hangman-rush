@@ -1,6 +1,6 @@
 # Hangman Rush
 
-Multiplayer hangman you play on your phone. Everyone gets the same word at the same moment; fastest solve with the fewest misses wins.
+Multiplayer hangman you play on your phone, in English or Arabic (the words themselves stay English). Everyone gets the same word at the same moment; fastest solve with the fewest misses wins.
 
 - **Rooms:** create a room, share the 4-letter code, and race. Free-for-all or Blue vs Red teams (team score is the members' average, so uneven teams stay fair).
 - **Daily word:** one word a day for everyone (changes at midnight UTC), one attempt, a shared leaderboard and streaks.

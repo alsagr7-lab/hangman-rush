@@ -8,15 +8,23 @@
 <title>Hangman Rush</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Aref+Ruqaa:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: exercise-book page in light, chalk slate in dark. Play area left, live board right (stacked on phones). */
+/* Layout: exercise-book page in light, chalk slate in dark. Play area left, live board right (stacked on phones).
+   Arabic swaps the handwritten face for Ruqaa (everyday Arabic handwriting) and flips the layout; the English word, keyboard and codes stay left-to-right. */
 :root{
   --bg:#eef2f7; --surface:#ffffff; --ink:#1b2333; --muted:#5d6a80; --line:#d3dbe8;
   --accent:#2c56e0; --accent-ink:#ffffff; --hot:#d93c30; --good:#178a5c; --shade:rgba(27,35,51,.55);
-  --f-hand:"Gochi Hand","Comic Sans MS",cursive;
+  --f-latin-hand:"Gochi Hand","Comic Sans MS",cursive;
+  --f-hand:var(--f-latin-hand);
   --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --f-num:var(--f-mono);
+}
+:root[lang="ar"]{
+  --f-hand:"Aref Ruqaa","Gochi Hand",serif;
+  --f-body:"IBM Plex Sans Arabic","Figtree",system-ui,sans-serif;
+  --f-num:"IBM Plex Sans Arabic",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#1a2120; --surface:#232c2a; --ink:#eef1ea; --muted:#9aa69f; --line:#35423e;
@@ -38,24 +46,30 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .btn.ghost{box-shadow:none;border-color:var(--line);background:transparent;padding:8px 12px;font-weight:600}
 .lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
 input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+.ltr{direction:ltr;unicode-bidi:isolate}
+.langbtn{border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 14px;font-weight:700;font-size:14px}
+.langbtn:lang(en){font-family:"IBM Plex Sans Arabic",system-ui,sans-serif}
 
 /* Lobby */
 #lobby{display:grid;gap:18px;max-width:560px;margin:0 auto}
+.lobbytop{display:flex;justify-content:flex-end}
 .brand{display:flex;align-items:center;gap:14px}
-.brand h1{font-family:var(--f-hand);font-weight:400;font-size:clamp(44px,11vw,64px);line-height:1;margin:0;text-wrap:balance}
+.brand h1{font-family:var(--f-hand);font-weight:400;font-size:clamp(44px,11vw,64px);line-height:1.05;margin:0;text-wrap:balance}
+:root[lang="ar"] .brand h1{font-weight:700;font-size:clamp(40px,10vw,58px)}
 .brand svg{flex:none;width:64px;height:72px}
 .tag{margin:6px 0 0;color:var(--muted);font-size:16px;max-width:42ch}
 .card{background:var(--surface);border:2px solid var(--ink);border-radius:14px;padding:18px;display:grid;gap:12px}
-.card h2{font-family:var(--f-hand);font-weight:400;font-size:28px;margin:0;line-height:1.1}
+.card h2{font-family:var(--f-hand);font-weight:400;font-size:28px;margin:0;line-height:1.2}
 .card .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 .daily{border-color:var(--accent);box-shadow:4px 4px 0 var(--accent)}
-.streak{font-family:var(--f-mono);font-weight:700;font-size:13px;color:var(--hot);white-space:nowrap}
+.streak{font-family:var(--f-num);font-weight:700;font-size:13px;color:var(--hot);white-space:nowrap}
 .swatches{display:flex;gap:8px;flex-wrap:wrap}
 .sw{width:34px;height:34px;border-radius:50%;border:3px solid transparent;padding:0}
 .sw[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--surface) inset}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .row>input{flex:1 1 120px}
-#codeIn{text-transform:uppercase;font-family:var(--f-mono);letter-spacing:.2em;max-width:150px}
+#codeIn{text-transform:uppercase;font-family:var(--f-mono);letter-spacing:.2em;max-width:150px;direction:ltr}
+#codeIn::placeholder{font-family:var(--f-body);letter-spacing:.1em}
 .note{font-size:13px;color:var(--muted);margin:0}
 .note.warn{color:var(--hot)}
 .rules{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -67,11 +81,11 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
 .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .chip{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:2px solid var(--line);border-radius:999px;padding:5px 12px;font-weight:600}
 .chip .code{font-family:var(--f-mono);letter-spacing:.18em;font-weight:700}
-.chip button{border:0;background:var(--bg);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600;margin-right:-6px}
+.chip button{border:0;background:var(--bg);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600;margin-inline-end:-6px}
 .net{width:8px;height:8px;border-radius:50%;background:var(--good)}
 .net.off{background:var(--hot)}
 .spacer{flex:1}
-.timer{font-family:var(--f-mono);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;min-width:4ch;text-align:right}
+.timer{font-family:var(--f-mono);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;min-width:4ch;text-align:end}
 .timer.low{color:var(--hot)}
 .roundlbl{font-family:var(--f-hand);font-size:22px}
 
@@ -86,28 +100,29 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
 .gal .part.on{opacity:1;animation:draw .35s ease-out}
 @keyframes draw{from{stroke-dashoffset:120}to{stroke-dashoffset:0}}
 .cat{text-align:center}
-.word{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;min-height:52px}
-.slot{width:clamp(24px,7.5vw,40px);border-bottom:3px solid var(--ink);text-align:center;font-family:var(--f-hand);font-size:clamp(26px,7.5vw,40px);line-height:1.15}
+.word{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;min-height:52px;direction:ltr}
+.slot{width:clamp(24px,7.5vw,40px);border-bottom:3px solid var(--ink);text-align:center;font-family:var(--f-latin-hand);font-size:clamp(26px,7.5vw,40px);line-height:1.15}
 .slot.miss{color:var(--hot)}
 .misses{text-align:center;font-size:13px;color:var(--muted);min-height:20px;font-variant-numeric:tabular-nums}
-.keys{display:grid;gap:6px;user-select:none}
+.keys{display:grid;gap:6px;user-select:none;direction:ltr}
 .krow{display:flex;justify-content:center;gap:5px}
-.key{flex:1 1 0;max-width:44px;min-width:0;height:46px;border:2px solid var(--line);background:var(--bg);border-radius:8px;font-weight:700;font-size:16px;padding:0}
+.key{flex:1 1 0;max-width:44px;min-width:0;height:46px;border:2px solid var(--line);background:var(--bg);border-radius:8px;font-weight:700;font-size:16px;padding:0;font-family:"Figtree",system-ui,sans-serif}
 .key.hit{background:var(--good);border-color:var(--good);color:var(--surface)}
 .key.bad{background:transparent;color:var(--muted);text-decoration:line-through;border-style:dashed}
 .key:disabled{cursor:default}
 
 .overlay{position:absolute;inset:0;background:var(--shade);border-radius:14px;display:flex;align-items:center;justify-content:center;padding:16px;z-index:2}
 .panel{background:var(--surface);border:2px solid var(--ink);border-radius:14px;padding:18px;width:min(390px,100%);display:grid;gap:12px;box-shadow:5px 5px 0 var(--ink);max-height:100%;overflow:auto}
-.panel h2{font-family:var(--f-hand);font-weight:400;font-size:30px;margin:0;line-height:1.1;text-wrap:balance}
+.panel h2{font-family:var(--f-hand);font-weight:400;font-size:30px;margin:0;line-height:1.2;text-wrap:balance}
 .panel p{margin:0}
-.count{font-family:var(--f-hand);font-size:120px;line-height:1;color:var(--surface);text-shadow:4px 4px 0 var(--ink)}
-.reveal{font-family:var(--f-hand);font-size:28px;letter-spacing:.06em;word-break:break-all}
+.count{font-family:var(--f-latin-hand);font-size:120px;line-height:1;color:var(--surface);text-shadow:4px 4px 0 var(--ink)}
+.reveal{font-family:var(--f-latin-hand);font-size:28px;letter-spacing:.06em;word-break:break-all;direction:ltr;text-align:start}
+:root[lang="ar"] .reveal{text-align:end}
 .res{display:grid;gap:6px;margin:0;padding:0;list-style:none}
 .res li{display:grid;grid-template-columns:22px 12px minmax(0,1fr) auto;gap:8px;align-items:center;font-variant-numeric:tabular-nums}
 .rk{font-family:var(--f-mono);color:var(--muted);font-size:13px}
 .res .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-.res .st{font-size:13px;color:var(--muted);text-align:right}
+.res .st{font-size:13px;color:var(--muted);text-align:end}
 .res .st b{color:var(--ink)}
 .seg{display:flex;border:2px solid var(--ink);border-radius:10px;overflow:hidden}
 .seg button{flex:1;border:0;background:var(--surface);padding:8px 10px;font-weight:700;font-size:14px}
@@ -128,10 +143,10 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
 .pl.first{border-top:0}
 .dot{width:12px;height:12px;border-radius:50%;display:inline-block;flex:none}
 .pn{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pn small{font-weight:600;color:var(--muted);margin-left:6px}
+.pn small{font-weight:600;color:var(--muted);margin-inline-start:6px}
 .ps{font-family:var(--f-mono);font-weight:700;font-variant-numeric:tabular-nums}
-.pp{grid-column:2/4;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);min-width:0}
-.bar{flex:1;height:6px;background:var(--bg);border-radius:9px;overflow:hidden}
+.pp{grid-column:2/4;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);min-width:0;flex-wrap:wrap}
+.bar{flex:1;height:6px;background:var(--bg);border-radius:9px;overflow:hidden;min-width:60px}
 .bar i{display:block;height:100%;background:var(--good);border-radius:9px;transition:width .25s}
 .pips{display:flex;gap:2px}
 .pips i{width:6px;height:6px;border-radius:2px;background:var(--line)}
@@ -141,15 +156,19 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
 .teamhead{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:6px 10px;border-radius:8px;background:var(--bg);font-weight:700}
 .teamhead .ps{font-size:16px}
 .empty{color:var(--muted);font-size:13.5px;padding:10px 0}
-.season{font-family:var(--f-mono);font-size:12px;letter-spacing:.04em}
-.pn small.tag{font-family:var(--f-mono);font-weight:500;margin-left:4px;letter-spacing:.04em}
-#nameHint b{font-family:var(--f-mono);color:var(--ink)}
+.season{font-family:var(--f-num);font-size:12px;letter-spacing:.04em}
+.pn small.tag{font-family:var(--f-mono);font-weight:500;margin-inline-start:4px;letter-spacing:.04em;direction:ltr;unicode-bidi:isolate}
+#nameHint b{font-family:var(--f-mono);color:var(--ink);direction:ltr;unicode-bidi:isolate}
 input.need{border-color:var(--hot)}
-.seasonbar{display:flex;justify-content:space-between;gap:8px;font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.seasonbar{display:flex;justify-content:space-between;gap:8px;font-family:var(--f-num);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .seasonbar .meter{flex:1;height:6px;align-self:center;background:var(--bg);border-radius:9px;overflow:hidden}
 .seasonbar .meter i{display:block;height:100%;background:var(--accent)}
 .seasonbar.final{color:var(--hot)}
 .seasonbar.final .meter i{background:var(--hot)}
+/* Arabic letters must stay joined: no tracking or caps transforms */
+:root[lang="ar"] .lbl,:root[lang="ar"] .stats span,:root[lang="ar"] .season{letter-spacing:0;text-transform:none}
+:root[lang="ar"] .lbl{font-size:13px}
+:root[lang="ar"] .stats span{font-size:12px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -157,59 +176,61 @@ input.need{border-color:var(--hot)}
 <body>
 <div class="wrap">
   <section id="lobby">
+    <div class="lobbytop"><button class="langbtn" id="langLobby" type="button"></button></div>
     <div>
       <div class="brand">
         <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M6 68h40M14 68V6h30v10"/><circle cx="44" cy="23" r="7" stroke="var(--hot)"/><path d="M44 30v18M44 36l-8 6M44 36l8 6M44 48l-7 10M44 48l7 10" stroke="var(--hot)"/></svg>
-        <h1>Hangman Rush</h1>
+        <h1 data-i18n="brand">Hangman Rush</h1>
       </div>
-      <p class="tag">Same word, same moment. Solve it fastest, with the fewest wrong letters, to top the board.</p>
+      <p class="tag" data-i18n="tagline">Same word, same moment. Solve it fastest, with the fewest wrong letters, to top the board.</p>
     </div>
 
     <div class="card">
-      <label class="lbl" for="nick">Your name</label>
-      <input type="text" id="nick" maxlength="16" autocomplete="off" placeholder="e.g. Yousef">
-      <p class="note" id="nameHint">Pick a name so friends can find you on the leaderboard.</p>
-      <div class="lbl">Your colour</div>
+      <label class="lbl" for="nick" data-i18n="yourName">Your name</label>
+      <input type="text" id="nick" maxlength="16" autocomplete="off" data-i18n-ph="namePh" placeholder="e.g. Yousef">
+      <p class="note" id="nameHint"></p>
+      <div class="lbl" data-i18n="yourColour">Your colour</div>
       <div class="swatches" id="sw"></div>
     </div>
 
     <div class="card daily">
       <div class="head"><h2 id="dTitle">Daily word</h2><span class="streak" id="dStreak"></span></div>
-      <p class="note" id="dStatus">One word a day for everyone. One attempt.</p>
+      <p class="note" id="dStatus"></p>
       <p class="note season" id="dSeason"></p>
-      <button class="btn primary" id="dailyBtn">Play today's word</button>
+      <button class="btn primary" id="dailyBtn"></button>
     </div>
 
     <div class="card">
-      <h2>Play with friends</h2>
-      <button class="btn" id="createBtn" disabled>Create a room</button>
+      <h2 data-i18n="playFriends">Play with friends</h2>
+      <button class="btn" id="createBtn" disabled data-i18n="createRoom">Create a room</button>
       <div class="row">
-        <input type="text" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" aria-label="Room code">
-        <button class="btn" id="joinBtn" disabled>Join room</button>
+        <input type="text" id="codeIn" maxlength="4" data-i18n-ph="codePh" placeholder="CODE" autocomplete="off" data-i18n-aria="roomCodeAria" aria-label="Room code">
+        <button class="btn" id="joinBtn" disabled data-i18n="joinRoom">Join room</button>
       </div>
-      <p class="note" id="netNote">Connecting to online play…</p>
-      <button class="btn ghost" id="soloBtn">Practise solo</button>
+      <p class="note" id="netNote"></p>
+      <button class="btn ghost" id="soloBtn" data-i18n="solo">Practise solo</button>
     </div>
 
     <div class="rules">
-      <div><b>60 seconds</b>per word, after a 3-second countdown.</div>
-      <div><b>6 misses</b>and you're hanged. Zero points.</div>
-      <div><b>Up to 340 pts</b>100 for solving, +4 per second left, −10 per miss.</div>
+      <div><b data-i18n="r1b">60 seconds</b><span data-i18n="r1">per word, after a 3-second countdown.</span></div>
+      <div><b data-i18n="r2b">6 misses</b><span data-i18n="r2">and you're hanged. Zero points.</span></div>
+      <div><b data-i18n="r3b">Up to 340 pts</b><span data-i18n="r3">100 for solving, +4 per second left, −10 per miss.</span></div>
     </div>
   </section>
 
   <section id="game" hidden>
     <div class="top">
-      <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button id="copyBtn">Copy</button></div>
+      <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button id="copyBtn" data-i18n="copy">Copy</button></div>
       <span class="roundlbl" id="roundLbl"></span>
       <span class="spacer"></span>
-      <span class="timer" id="timer">60s</span>
-      <button class="btn ghost" id="leaveBtn">Leave</button>
+      <span class="timer ltr" id="timer">60s</span>
+      <button class="langbtn" id="langGame" type="button"></button>
+      <button class="btn ghost" id="leaveBtn" data-i18n="leave">Leave</button>
     </div>
     <div class="grid">
       <div class="play" id="play">
         <div class="gal">
-          <svg viewBox="0 0 200 210" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" aria-label="Gallows">
+          <svg viewBox="0 0 200 210" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" data-i18n-aria="gallows" aria-label="Gallows">
             <path class="base" d="M20 200h110M50 200V14h90v26"/>
             <circle class="part" id="p1" cx="140" cy="58" r="18"/>
             <path class="part" id="p2" d="M140 76v58"/>
@@ -228,9 +249,9 @@ input.need{border-color:var(--hot)}
       <aside class="board">
         <header><span class="lbl" id="boardLbl">Race board</span><span class="note" id="pcount"></span></header>
         <div class="tabs" id="tabs" role="tablist" hidden>
-          <button role="tab" data-t="today" aria-selected="true">Today</button>
-          <button role="tab" data-t="yday" aria-selected="false">Yesterday</button>
-          <button role="tab" data-t="streak" aria-selected="false">Season</button>
+          <button role="tab" data-t="today" aria-selected="true" data-i18n="tabToday">Today</button>
+          <button role="tab" data-t="yday" aria-selected="false" data-i18n="tabYday">Yesterday</button>
+          <button role="tab" data-t="streak" aria-selected="false" data-i18n="tabSeason">Season</button>
         </div>
         <div id="players"></div>
       </aside>
@@ -240,25 +261,132 @@ input.need{border-color:var(--hot)}
 
 <script>
 (function(){
+/* ---------- words (always English) ---------- */
 const WORDBANK={
-  "Animals":["GIRAFFE","PENGUIN","CHEETAH","OCTOPUS","FLAMINGO","KANGAROO","HEDGEHOG","PANTHER","DOLPHIN","FALCON","CAMEL","SCORPION","GORILLA","LOBSTER","PEACOCK","WALRUS"],
-  "Food & drink":["SHAWARMA","KABSA","WAFFLE","AVOCADO","LASAGNE","PRETZEL","DUMPLING","PANCAKE","BURRITO","CROISSANT","PISTACHIO","LEMONADE","BAKLAVA","MUSHROOM"],
-  "Countries":["MOROCCO","PORTUGAL","ICELAND","VIETNAM","ARGENTINA","NORWAY","JAPAN","ETHIOPIA","CANADA","MALAYSIA","GREECE","JORDAN","MEXICO","SWEDEN"],
-  "Cities":["RIYADH","LEEDS","ISTANBUL","TOKYO","LISBON","NAIROBI","SYDNEY","TORONTO","MUSCAT","PRAGUE","MANCHESTER","JEDDAH","SEOUL","VIENNA"],
-  "Sports":["CRICKET","BADMINTON","FENCING","SURFING","VOLLEYBALL","ARCHERY","BOXING","SNOOKER","CYCLING","KARATE","ROWING","HANDBALL"],
-  "Hotel life":["CONCIERGE","RECEPTION","BELLHOP","MINIBAR","LOBBY","SUITE","BUFFET","HOUSEKEEPING","CHECKOUT","BALCONY","ROOMSERVICE","VALET"],
-  "Jobs":["DENTIST","PLUMBER","ARCHITECT","FIREFIGHTER","JOURNALIST","PILOT","BARISTA","SURGEON","CARPENTER","ASTRONAUT","LIBRARIAN","MECHANIC"],
-  "Around the house":["TOASTER","CURTAIN","PILLOW","STAIRCASE","CUPBOARD","DOORBELL","BATHTUB","SPATULA","LAMPSHADE","WARDROBE","KETTLE","DRAWER"],
-  "Space":["GALAXY","NEBULA","COMET","ASTEROID","SATURN","ECLIPSE","ROCKET","JUPITER","METEOR","ORBIT","TELESCOPE","GRAVITY"],
-  "Tech":["KEYBOARD","PASSWORD","BLUETOOTH","DOWNLOAD","SPEAKER","WEBCAM","HEADPHONES","CHARGER","PIXEL","ROUTER","BROWSER","JOYSTICK"]
+  animals:["GIRAFFE","PENGUIN","CHEETAH","OCTOPUS","FLAMINGO","KANGAROO","HEDGEHOG","PANTHER","DOLPHIN","FALCON","CAMEL","SCORPION","GORILLA","LOBSTER","PEACOCK","WALRUS"],
+  food:["SHAWARMA","KABSA","WAFFLE","AVOCADO","LASAGNE","PRETZEL","DUMPLING","PANCAKE","BURRITO","CROISSANT","PISTACHIO","LEMONADE","BAKLAVA","MUSHROOM"],
+  countries:["MOROCCO","PORTUGAL","ICELAND","VIETNAM","ARGENTINA","NORWAY","JAPAN","ETHIOPIA","CANADA","MALAYSIA","GREECE","JORDAN","MEXICO","SWEDEN"],
+  cities:["RIYADH","LEEDS","ISTANBUL","TOKYO","LISBON","NAIROBI","SYDNEY","TORONTO","MUSCAT","PRAGUE","MANCHESTER","JEDDAH","SEOUL","VIENNA"],
+  sports:["CRICKET","BADMINTON","FENCING","SURFING","VOLLEYBALL","ARCHERY","BOXING","SNOOKER","CYCLING","KARATE","ROWING","HANDBALL"],
+  hotel:["CONCIERGE","RECEPTION","BELLHOP","MINIBAR","LOBBY","SUITE","BUFFET","HOUSEKEEPING","CHECKOUT","BALCONY","ROOMSERVICE","VALET"],
+  jobs:["DENTIST","PLUMBER","ARCHITECT","FIREFIGHTER","JOURNALIST","PILOT","BARISTA","SURGEON","CARPENTER","ASTRONAUT","LIBRARIAN","MECHANIC"],
+  house:["TOASTER","CURTAIN","PILLOW","STAIRCASE","CUPBOARD","DOORBELL","BATHTUB","SPATULA","LAMPSHADE","WARDROBE","KETTLE","DRAWER"],
+  space:["GALAXY","NEBULA","COMET","ASTEROID","SATURN","ECLIPSE","ROCKET","JUPITER","METEOR","ORBIT","TELESCOPE","GRAVITY"],
+  tech:["KEYBOARD","PASSWORD","BLUETOOTH","DOWNLOAD","SPEAKER","WEBCAM","HEADPHONES","CHARGER","PIXEL","ROUTER","BROWSER","JOYSTICK"]
 };
 const WORDS=[];for(const c in WORDBANK)for(const w of WORDBANK[c])WORDS.push({w,c});
+
+/* ---------- interface text ---------- */
+const I18N={
+en:{
+  brand:"Hangman Rush",tagline:"Same word, same moment. Solve it fastest, with the fewest wrong letters, to top the board.",
+  langSwitch:"عربي",yourName:"Your name",namePh:"e.g. Yousef",yourColour:"Your colour",colourAria:"Colour {c}",
+  nameHintEmpty:"Pick a name so friends can find you on the leaderboard.",nameHintAs:"You'll appear as ",nameHintTag:". The tag is yours on this device.",
+  nameNeeded:"Add a name (2+ letters) before playing online or the daily word.",
+  dailyTitle:"Daily word #{n}",streakN:"streak {n}",bestN:"best {n}",
+  seasonLine:"Season {s} · {left} · standings reset every 30 days",lastDay:"last day",daysLeft:"{n} days left",
+  lastSeason:". Last season: {w} solved, best streak {b}, {p} pts",
+  solvedIn:"Solved in {t}",hangedToday:"Hanged today",nextWordIn:"Next word in {t}.",
+  dailyIntroLobby:"One word a day for everyone, one attempt. New word in {t}.",seeBoard:"See today's leaderboard",playToday:"Play today's word",
+  playFriends:"Play with friends",createRoom:"Create a room",codePh:"CODE",roomCodeAria:"Room code",joinRoom:"Join room",
+  connecting:"Connecting to online play…",netOk:"Friends join with the 4-letter code.",netNone:"Online rooms aren't available in this view. Solo practice still works.",
+  codeLen:"Room codes are 4 letters.",roomFail:"Couldn't open that room. Try again in a moment.",solo:"Practise solo",
+  r1b:"60 seconds",r1:"per word, after a 3-second countdown.",r2b:"6 misses",r2:"and you're hanged. Zero points.",
+  r3b:"Up to 340 pts",r3:"100 for solving, +4 per second left, −10 per miss.",
+  copy:"Copy",copied:"Copied",copyFail:"Copy failed — select the text",leave:"Leave",gallows:"Gallows",category:"Category",
+  boardRace:"Race board",teams:"Teams",boardDaily:"Daily leaderboard",tabToday:"Today",tabYday:"Yesterday",tabSeason:"Season",
+  soloPractice:"Solo practice",dailyWord:"Daily word",roomLbl:"Room ",roundN:"Round {n}",secs:"{n}s",
+  missesOf:"{n} of 6 misses",noMisses:"No misses yet",you:"you",hostTag:"host",waitingNext:"Waiting for next round",
+  solvedRow:"Solved {t} · +{p}",hangedRow:"Hanged · +0",players:"{n} players",player1:"1 player",nobodyYet:"Nobody yet",
+  seasonN:"Season {n}",dayOf:"Day {d}/{t}",resetsTonight:"Resets tonight",finalDays:"Final {n} days",
+  seasonEmpty:"Season standings show up after the first daily word is played.",solvedOf:"{w}/{p} solved · best streak {b}",
+  seasonNote:"Ranked by total daily points this season. Everything resets when Season {n} starts.",
+  todayEmpty:"Nobody has played today's word yet. Be first.",ydayEmpty:"No results for yesterday.",
+  solved:"Solved",solvedDetail:"Solved {t} · {m}",miss1:"1 miss",missN:"{n} misses",hanged:"Hanged",
+  dbErr:"The shared leaderboard didn't load or save. Your results are kept on this device.",
+  dbNone:"Couldn't reach the leaderboard server. Your results are kept on this device.",
+  timesHidden:"Times stay hidden until you play.",
+  roundInProgress:"Round in progress",jumpIn:"You'll jump in when the next word starts.",
+  readyPractise:"Ready to practise?",shareStart:"Share the code, then start",roomCodeLine:"Room code ",inRoom:" · {n} in the room",
+  waitingFor:"Waiting for {name}",startsAtOnce:"The round starts for everyone at once.",
+  noHost:"No host in room {c}",noHostHelp:"Check the code with your friend, or run the room yourself.",hostThis:"Host this room",
+  hangedBang:"Hanged!",timesUp:"Time's up",deadEven:"Dead even this round.",takesRound:"{team} takes the round.",
+  stillGuessing:"still guessing",hangedLower:"hanged",youParen:" (you)",waitingMore:"Waiting for {n} more to finish…",
+  ffa:"Free-for-all",teamsBtn:"Teams",switchTo:"Switch to {c}",onTeam:"You're on {team}",
+  nextRound:"Next round",startRound1:"Start round 1",waitingHostNext:"Waiting for {name} to start the next round.",hostLeft:"The host left.",
+  dailyIntro:"Everyone gets this word today. You get one attempt, and the clock starts after the countdown.",
+  curStreak1:"Current streak: 1 day. Solve to keep it.",curStreakN:"Current streak: {n} days. Solve to keep it.",start:"Start",
+  statPoints:"points",statMisses:"misses",statStreak:"streak",statBest:"best",copyResult:"Copy my result",
+  nextWordUtc:"Next word in {t}. It changes at midnight UTC.",
+  shareHead:"Hangman Rush · Season {s} · daily #{n}",shareSolved:"Solved in {t}, {m}, {p} pts",shareHanged:"Hanged",shareStreak:"Streak: {n}",
+  pts:"{n} pts",hm:"{h}h {m}m",
+  teamA:"Team Blue",teamB:"Team Red",colA:"Blue",colB:"Red",
+  cat_animals:"Animals",cat_food:"Food & drink",cat_countries:"Countries",cat_cities:"Cities",cat_sports:"Sports",
+  cat_hotel:"Hotel life",cat_jobs:"Jobs",cat_house:"Around the house",cat_space:"Space",cat_tech:"Tech"
+},
+ar:{
+  brand:"سباق المشنقة",tagline:"نفس الكلمة، في نفس اللحظة. حلّها أسرع من الكل وبأقل أخطاء لتتصدّر اللوحة.",
+  langSwitch:"English",yourName:"اسمك",namePh:"مثلاً: يوسف",yourColour:"لونك",colourAria:"اللون {c}",
+  nameHintEmpty:"اختر اسماً ليجدك أصحابك في لوحة الترتيب.",nameHintAs:"ستظهر باسم ",nameHintTag:". هذا الرمز خاص بك على هذا الجهاز.",
+  nameNeeded:"أضف اسماً (حرفان على الأقل) قبل اللعب أونلاين أو كلمة اليوم.",
+  dailyTitle:"كلمة اليوم #{n}",streakN:"السلسلة {n}",bestN:"الأفضل {n}",
+  seasonLine:"الموسم {s} · {left} · الترتيب يبدأ من جديد كل 30 يوماً",lastDay:"آخر يوم",daysLeft:"متبقٍ {n} يوم",
+  lastSeason:". الموسم الماضي: {w} محلولة، أفضل سلسلة {b}، {p} نقطة",
+  solvedIn:"حُلّت في {t}",hangedToday:"شُنقت اليوم",nextWordIn:"الكلمة التالية بعد {t}.",
+  dailyIntroLobby:"كلمة واحدة يومياً للجميع، ومحاولة واحدة فقط. كلمة جديدة بعد {t}.",seeBoard:"شاهد ترتيب اليوم",playToday:"العب كلمة اليوم",
+  playFriends:"العب مع أصحابك",createRoom:"أنشئ غرفة",codePh:"الرمز",roomCodeAria:"رمز الغرفة",joinRoom:"ادخل الغرفة",
+  connecting:"جارٍ الاتصال باللعب أونلاين…",netOk:"ينضم أصحابك برمز من 4 أحرف.",netNone:"الغرف الأونلاين غير متاحة هنا. التدريب الفردي يعمل.",
+  codeLen:"رمز الغرفة يتكوّن من 4 أحرف.",roomFail:"تعذّر فتح الغرفة. حاول مرة أخرى بعد قليل.",solo:"تدرّب وحدك",
+  r1b:"60 ثانية",r1:"لكل كلمة، بعد عدّ تنازلي من 3 ثوانٍ.",r2b:"6 أخطاء",r2:"وتُشنق. صفر نقاط.",
+  r3b:"حتى 340 نقطة",r3:"100 للحل، و+4 لكل ثانية متبقية، و−10 لكل خطأ.",
+  copy:"نسخ",copied:"تم النسخ",copyFail:"تعذّر النسخ، حدّد النص يدوياً",leave:"خروج",gallows:"المشنقة",category:"الفئة",
+  boardRace:"لوحة السباق",teams:"الفرق",boardDaily:"ترتيب كلمة اليوم",tabToday:"اليوم",tabYday:"أمس",tabSeason:"الموسم",
+  soloPractice:"تدريب فردي",dailyWord:"كلمة اليوم",roomLbl:"غرفة ",roundN:"الجولة {n}",secs:"{n} ث",
+  missesOf:"الأخطاء: {n} من 6",noMisses:"لا أخطاء حتى الآن",you:"أنت",hostTag:"المضيف",waitingNext:"بانتظار الجولة التالية",
+  solvedRow:"حلّها في {t} · +{p}",hangedRow:"شُنق · +0",players:"اللاعبون: {n}",player1:"لاعب واحد",nobodyYet:"لا أحد بعد",
+  seasonN:"الموسم {n}",dayOf:"اليوم {d} من {t}",resetsTonight:"يبدأ من جديد الليلة",finalDays:"آخر {n} أيام",
+  seasonEmpty:"يظهر ترتيب الموسم بعد أول مشاركة في كلمة اليوم.",solvedOf:"حلّ {w} من {p} · أفضل سلسلة {b}",
+  seasonNote:"الترتيب حسب مجموع نقاط كلمة اليوم في هذا الموسم. كل شيء يبدأ من جديد مع الموسم {n}.",
+  todayEmpty:"لم يلعب أحد كلمة اليوم بعد. كن الأول.",ydayEmpty:"لا توجد نتائج لأمس.",
+  solved:"حلّها",solvedDetail:"حلّها في {t} · {m}",miss1:"خطأ واحد",missN:"الأخطاء: {n}",hanged:"شُنق",
+  dbErr:"تعذّر تحميل أو حفظ لوحة الترتيب المشتركة. نتائجك محفوظة على هذا الجهاز.",
+  dbNone:"تعذّر الوصول إلى خادم الترتيب. نتائجك محفوظة على هذا الجهاز.",
+  timesHidden:"الأوقات مخفية حتى تلعب أنت.",
+  roundInProgress:"جولة جارية",jumpIn:"ستنضم مع بداية الكلمة التالية.",
+  readyPractise:"جاهز للتدريب؟",shareStart:"شارك الرمز ثم ابدأ",roomCodeLine:"رمز الغرفة ",inRoom:" · في الغرفة: {n}",
+  waitingFor:"بانتظار {name}",startsAtOnce:"تبدأ الجولة للجميع في نفس اللحظة.",
+  noHost:"لا يوجد مضيف في الغرفة {c}",noHostHelp:"تأكّد من الرمز مع صديقك، أو استضف الغرفة بنفسك.",hostThis:"استضف هذه الغرفة",
+  hangedBang:"شُنقت!",timesUp:"انتهى الوقت",deadEven:"تعادل تام في هذه الجولة.",takesRound:"{team} يفوز بالجولة.",
+  stillGuessing:"ما زال يخمّن",hangedLower:"شُنق",youParen:" (أنت)",waitingMore:"بانتظار بقية اللاعبين: {n}…",
+  ffa:"كل لاعب لنفسه",teamsBtn:"فرق",switchTo:"انتقل إلى {c}",onTeam:"أنت في {team}",
+  nextRound:"الجولة التالية",startRound1:"ابدأ الجولة 1",waitingHostNext:"بانتظار {name} لبدء الجولة التالية.",hostLeft:"غادر المضيف.",
+  dailyIntro:"الكل يحصل على هذه الكلمة اليوم. لديك محاولة واحدة، ويبدأ الوقت بعد العدّ التنازلي.",
+  curStreak1:"سلسلتك الحالية: يوم واحد. حلّها لتحافظ عليها.",curStreakN:"سلسلتك الحالية: {n} يوم. حلّها لتحافظ عليها.",start:"ابدأ",
+  statPoints:"النقاط",statMisses:"الأخطاء",statStreak:"السلسلة",statBest:"الأفضل",copyResult:"انسخ نتيجتي",
+  nextWordUtc:"الكلمة التالية بعد {t}. تتغيّر عند منتصف الليل بتوقيت UTC (الثالثة فجراً بتوقيت السعودية).",
+  shareHead:"سباق المشنقة · الموسم {s} · كلمة اليوم #{n}",shareSolved:"حلّيتها في {t}، {m}، {p} نقطة",shareHanged:"شُنقت",shareStreak:"السلسلة: {n}",
+  pts:"{n} نقطة",hm:"{h}س {m}د",
+  teamA:"الفريق الأزرق",teamB:"الفريق الأحمر",colA:"الأزرق",colB:"الأحمر",
+  cat_animals:"حيوانات",cat_food:"أكل ومشروبات",cat_countries:"دول",cat_cities:"مدن",cat_sports:"رياضات",
+  cat_hotel:"عالم الفنادق",cat_jobs:"مهن",cat_house:"في البيت",cat_space:"الفضاء",cat_tech:"تقنية"
+}};
+let lang="en";
+try{const s=localStorage.getItem("hr-lang");lang=(s==="ar"||s==="en")?s:((navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en")}catch(e){lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en"}
+function t(k,v){let s=(I18N[lang]&&I18N[lang][k]!=null)?I18N[lang][k]:(I18N.en[k]!=null?I18N.en[k]:k);
+  if(v)s=s.replace(/\{(\w+)\}/g,(_,n)=>v[n]!=null?v[n]:"");return s}
+const catName=c=>t("cat_"+c);
+const fmtS=ms=>t("secs",{n:(ms/1000).toFixed(1)});
+const missTxt=n=>n===1?t("miss1"):t("missN",{n});
+const teamName=k=>t(k==="A"?"teamA":"teamB");
+const teamCol=k=>t(k==="A"?"colA":"colB");
+
 const COLORS=["#2c56e0","#d93c30","#178a5c","#c27a00","#8a3ffc","#d6337f"];
-const TEAMS={A:{name:"Blue",color:"var(--accent)"},B:{name:"Red",color:"var(--hot)"}};
+const TEAMS={A:{color:"var(--accent)"},B:{color:"var(--hot)"}};
 const ROUND_MS=60000,COUNT_MS=3000,MAX_MISS=6,ROWS=["QWERTYUIOP","ASDFGHJKL","ZXCVBNM"];
 const DAY=864e5,EPOCH_DAY=Math.floor(Date.UTC(2026,9,13)/DAY);
 const $=s=>document.querySelector(s);
-const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
+const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
+const ltr=(txt,c)=>{const e=el("span",(c?c+" ":"")+"ltr",txt);return e};
 const num=v=>{v=Number(v);return isFinite(v)?v:0};
 const safeColor=c=>COLORS.includes(c)?c:COLORS[0];
 const nm16=v=>String(v||"Player").slice(0,16);
@@ -270,13 +398,13 @@ me.color=safeColor(me.color);
 let room=null,roomApi=null,code=null,mode=null,host=false,connected=true;
 let hs=freshHost();
 let cur=null,score=0,lastRound=0,waitNext=false,joinedAt=0,unsubs=[],myTeam=null;
-let db=null,uid=null,allPlayers=[],dbErr=false,boardTab="today";
+let db=null,uid=null,allPlayers=[],dbErr=false,boardTab="today",netState="connecting",netMsg=null;
 let rec; // set once the date helpers below exist
 
 function freshHost(){return{hr:0,hs:-1,st:"waiting",at:0,used:[],md:"f",ts:{A:0,B:0},tr:null}}
 
 /* ---------- daily helpers ---------- */
-const dayNum=(t=Date.now())=>Math.floor(t/DAY);
+const dayNum=(x=Date.now())=>Math.floor(x/DAY);
 const dayKey=dn=>new Date(dn*DAY).toISOString().slice(0,10);
 const todayKey=()=>dayKey(dayNum());
 const ydayKey=()=>dayKey(dayNum()-1);
@@ -298,7 +426,7 @@ function rollover(r){
   return true;
 }
 function seasonPts(r){return Object.values(r.h||{}).reduce((a,e)=>a+num(e.pts),0)}
-function untilNext(){const ms=(dayNum()+1)*DAY-Date.now();const h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return h+"h "+m+"m"}
+function untilNext(){const ms=(dayNum()+1)*DAY-Date.now();return t("hm",{h:Math.floor(ms/36e5),m:Math.floor(ms%36e5/6e4)})}
 function loadLocalRec(){try{const r=JSON.parse(localStorage.getItem("hr-daily")||"null");if(r&&typeof r==="object")return clean(r)}catch(e){}return clean({})}
 function clean(r){const h={};const src=r.h&&typeof r.h==="object"?r.h:{};
   Object.keys(src).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort().slice(-40).forEach(k=>{const v=src[k]||{};h[k]=("ok" in v)?{ok:v.ok?1:0,t:num(v.t),m:num(v.m),pts:num(v.pts)}:{s:1}});
@@ -328,6 +456,23 @@ function todayEntry(r){return r&&r.h?r.h[todayKey()]:null}
 rec=loadLocalRec();
 if(rollover(rec)){try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch(e){}}
 
+/* ---------- language ---------- */
+function applyStatic(){
+  const root=document.documentElement;root.lang=lang;root.dir=lang==="ar"?"rtl":"ltr";
+  document.querySelectorAll("[data-i18n]").forEach(n=>{n.textContent=t(n.dataset.i18n)});
+  document.querySelectorAll("[data-i18n-ph]").forEach(n=>{n.placeholder=t(n.dataset.i18nPh)});
+  document.querySelectorAll("[data-i18n-aria]").forEach(n=>{n.setAttribute("aria-label",t(n.dataset.i18nAria))});
+  [$("#langLobby"),$("#langGame")].forEach(b=>{b.textContent=t("langSwitch");b.lang=lang==="ar"?"en":"ar";b.setAttribute("aria-label",lang==="ar"?"Switch to English":"التبديل إلى العربية")});
+  [...swWrap.children].forEach((b,i)=>b.setAttribute("aria-label",t("colourAria",{c:i+1})));
+}
+function renderNet(){const n=$("#netNote");n.classList.toggle("warn",netState==="none"||!!netMsg);n.textContent=netMsg?t(netMsg):t(netState==="ok"?"netOk":netState==="none"?"netNone":"connecting")}
+function setLang(l){
+  lang=l;try{localStorage.setItem("hr-lang",l)}catch(e){}
+  applyStatic();renderNameHint();renderLobbyDaily();renderNet();lastPanelKey="";render();
+}
+$("#langLobby").onclick=()=>setLang(lang==="ar"?"en":"ar");
+$("#langGame").onclick=()=>setLang(lang==="ar"?"en":"ar");
+
 /* ---------- lobby ---------- */
 const nickIn=$("#nick");nickIn.value=me.nick;
 function saveMe(){me.nick=(nickIn.value.trim()||"Player").slice(0,16);try{localStorage.setItem("hr-me",JSON.stringify(me))}catch(e){}}
@@ -337,39 +482,42 @@ function tagOf(id){if(!id||id==="me")return"";let h=2166136261;for(const ch of S
   let s="";for(let i=0;i<4;i++){s+=TAG_ABC[h%32];h=Math.floor(h/32)}return s}
 function renderNameHint(){
   const hint=$("#nameHint"),v=nickIn.value.trim();hint.textContent="";hint.classList.remove("warn");
-  if(v.length<2){hint.textContent="Pick a name so friends can find you on the leaderboard.";return}
-  const t=tagOf(uid);hint.append(document.createTextNode("You'll appear as "),el("b",null,v.slice(0,16)+(t?" #"+t:"")));
-  if(t)hint.append(document.createTextNode(". The tag is yours on this device."));
+  if(v.length<2){hint.textContent=t("nameHintEmpty");return}
+  const tg=tagOf(uid);const b=el("b");b.append(document.createTextNode(v.slice(0,16)));if(tg)b.append(document.createTextNode(" #"+tg));
+  hint.append(document.createTextNode(t("nameHintAs")),b);
+  if(tg)hint.append(document.createTextNode(t("nameHintTag")));
 }
 function requireName(){
   if(nickIn.value.trim().length>=2){nickIn.classList.remove("need");return true}
-  const hint=$("#nameHint");hint.textContent="Add a name (2+ letters) before playing online or the daily word.";hint.classList.add("warn");
+  const hint=$("#nameHint");hint.textContent=t("nameNeeded");hint.classList.add("warn");
   nickIn.classList.add("need");nickIn.focus();nickIn.scrollIntoView({block:"center",behavior:"smooth"});return false;
 }
 nickIn.addEventListener("input",()=>{nickIn.classList.remove("need");renderNameHint()});
 const swWrap=$("#sw");
-COLORS.forEach(c=>{const b=el("button","sw");b.style.background=c;b.setAttribute("aria-label","Colour "+c);b.setAttribute("aria-pressed",c===me.color);b.onclick=()=>{me.color=c;[...swWrap.children].forEach(x=>x.setAttribute("aria-pressed",x===b))};swWrap.appendChild(b)});
+COLORS.forEach(c=>{const b=el("button","sw");b.style.background=c;b.setAttribute("aria-pressed",c===me.color);b.onclick=()=>{me.color=c;[...swWrap.children].forEach(x=>x.setAttribute("aria-pressed",x===b))};swWrap.appendChild(b)});
 
 function renderLobbyDaily(){
   if(rollover(rec))saveRec();
-  $("#dTitle").textContent="Daily word #"+dailyNo();
-  const s=curStreak(rec);$("#dStreak").textContent=s?"streak "+s:(rec.best?"best "+rec.best:"");
+  $("#dTitle").textContent=t("dailyTitle",{n:dailyNo()});
+  const s=curStreak(rec);$("#dStreak").textContent=s?t("streakN",{n:s}):(rec.best?t("bestN",{n:rec.best}):"");
   const left=seasonDaysLeft();
-  let sl="Season "+curSeason()+" · "+(left===1?"last day":left+" days left")+" · standings reset every 30 days";
-  if(rec.prev&&rec.prev.se)sl+=". Last season: "+rec.prev.wins+" solved, best streak "+rec.prev.best+", "+rec.prev.pts+" pts";
+  let sl=t("seasonLine",{s:curSeason(),left:left===1?t("lastDay"):t("daysLeft",{n:left})});
+  if(rec.prev&&rec.prev.se)sl+=t("lastSeason",{w:rec.prev.wins,b:rec.prev.best,p:rec.prev.pts});
   $("#dSeason").textContent=sl;
   const e=todayEntry(rec),st=$("#dStatus"),b=$("#dailyBtn");
-  if(e&&("ok" in e)){st.textContent=(e.ok?"Solved in "+(e.t/1000).toFixed(1)+"s · "+e.pts+" pts":"Hanged today")+". Next word in "+untilNext()+".";b.textContent="See today's leaderboard";b.classList.remove("primary")}
-  else{st.textContent="One word a day for everyone, one attempt. New word in "+untilNext()+".";b.textContent="Play today's word";b.classList.add("primary")}
+  if(e&&("ok" in e)){st.textContent=(e.ok?t("solvedIn",{t:fmtS(e.t)})+" · "+t("pts",{n:e.pts}):t("hangedToday"))+". "+t("nextWordIn",{t:untilNext()});b.textContent=t("seeBoard");b.classList.remove("primary")}
+  else{st.textContent=t("dailyIntroLobby",{t:untilNext()});b.textContent=t("playToday");b.classList.add("primary")}
 }
-renderLobbyDaily();setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},30000);
+
+applyStatic();renderNameHint();renderNet();renderLobbyDaily();
+setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},30000);
 
 (async()=>{
   const use=n=>window.claude&&window.claude.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
   const [r,d,u]=await Promise.all([use("room"),use("db"),use("user")]);
   room=r;
-  if(room){$("#createBtn").disabled=false;$("#joinBtn").disabled=false;$("#netNote").textContent="Friends join with the 4-letter code."}
-  else{const n=$("#netNote");n.textContent="Online rooms aren't available in this view. Solo practice still works.";n.classList.add("warn")}
+  if(room){$("#createBtn").disabled=false;$("#joinBtn").disabled=false;netState="ok"}else netState="none";
+  renderNet();
   if(d&&u){try{uid=await u.id()}catch(e){uid=null}}
   renderNameHint();
   if(d&&uid){db=d;
@@ -386,16 +534,15 @@ renderLobbyDaily();setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},3
 
 function newCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ";let s="";for(let i=0;i<4;i++)s+=A[Math.floor(Math.random()*A.length)];return s}
 
-renderNameHint();
-$("#createBtn").onclick=()=>{if(!requireName())return;saveMe();mode="room";host=true;hs=freshHost();enterRoom(newCode())};
-$("#joinBtn").onclick=()=>{if(!requireName())return;const c=$("#codeIn").value.trim().toUpperCase().replace(/[^A-Z]/g,"");if(c.length!==4){$("#netNote").textContent="Room codes are 4 letters.";return}saveMe();mode="room";host=false;enterRoom(c)};
+$("#createBtn").onclick=()=>{if(!requireName())return;netMsg=null;saveMe();mode="room";host=true;hs=freshHost();enterRoom(newCode())};
+$("#joinBtn").onclick=()=>{if(!requireName())return;const c=$("#codeIn").value.trim().toUpperCase().replace(/[^A-Z]/g,"");if(c.length!==4){netMsg="codeLen";renderNet();return}netMsg=null;saveMe();mode="room";host=false;enterRoom(c)};
 $("#codeIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("#joinBtn").click()});
 $("#soloBtn").onclick=()=>{saveMe();mode="solo";host=true;hs=freshHost();showGame()};
 $("#dailyBtn").onclick=()=>{if(!requireName())return;saveMe();mode="daily";host=false;boardTab="today";
-  const e=todayEntry(rec);
+  const e=todayEntry(rec);const W=WORDS[dailyIdx(dayNum())];
   if(e&&!("ok" in e)){ // started earlier but never finished
-    cur={round:0,idx:dailyIdx(dayNum()),word:WORDS[dailyIdx(dayNum())].w,cat:WORDS[dailyIdx(dayNum())].c,startAt:0,g:new Set(),miss:0,done:2,t:ROUND_MS,pts:0,daily:true};recordDaily();
-  } else if(e){const W=WORDS[dailyIdx(dayNum())];cur={round:0,idx:0,word:W.w,cat:W.c,startAt:0,g:new Set(),miss:num(e.m),done:e.ok?1:2,t:num(e.t),pts:num(e.pts),daily:true}}
+    cur={round:0,idx:dailyIdx(dayNum()),word:W.w,cat:W.c,startAt:0,g:new Set(),miss:0,done:2,t:ROUND_MS,pts:0,daily:true};recordDaily();
+  } else if(e){cur={round:0,idx:0,word:W.w,cat:W.c,startAt:0,g:new Set(),miss:num(e.m),done:e.ok?1:2,t:num(e.t),pts:num(e.pts),daily:true}}
   else cur=null;
   if(rec.n!==me.nick||rec.c!==me.color){if(rec.played)saveRec()}
   showGame()};
@@ -403,7 +550,7 @@ $("#dailyBtn").onclick=()=>{if(!requireName())return;saveMe();mode="daily";host=
 async function enterRoom(c){
   const btns=[$("#createBtn"),$("#joinBtn")];btns.forEach(b=>b.disabled=true);
   try{roomApi=await room.join("hr-"+c.toLowerCase())}catch(e){
-    $("#netNote").textContent="Couldn't open that room. Try again in a moment.";btns.forEach(b=>b.disabled=false);mode=null;return}
+    netMsg="roomFail";renderNet();btns.forEach(b=>b.disabled=false);mode=null;return}
   code=c;joinedAt=Date.now();
   unsubs.push(roomApi.onPeers(()=>{tickLogic();render()},()=>{connected=false;render()}));
   unsubs.push(roomApi.onConnection(v=>{connected=v;renderTop()},()=>{}));
@@ -417,10 +564,10 @@ $("#leaveBtn").onclick=async()=>{
   roomApi=null;code=null;mode=null;host=false;cur=null;score=0;lastRound=0;waitNext=false;myTeam=null;
   $("#game").hidden=true;$("#lobby").hidden=false;renderLobbyDaily();
 };
-function copyText(txt,btn,label){
-  navigator.clipboard.writeText(txt).then(()=>{btn.textContent="Copied";setTimeout(()=>btn.textContent=label,1400)}).catch(()=>{btn.textContent="Copy failed — select the text";setTimeout(()=>btn.textContent=label,2000)});
+function copyText(txt,btn,labelKey){
+  navigator.clipboard.writeText(txt).then(()=>{btn.textContent=t("copied");setTimeout(()=>btn.textContent=t(labelKey),1400)}).catch(()=>{btn.textContent=t("copyFail");setTimeout(()=>btn.textContent=t(labelKey),2000)});
 }
-$("#copyBtn").onclick=()=>{if(code)copyText(code,$("#copyBtn"),"Copy")};
+$("#copyBtn").onclick=()=>{if(code)copyText(code,$("#copyBtn"),"copy")};
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{boardTab=b.dataset.t;render()});
 
 /* ---------- presence ---------- */
@@ -485,12 +632,12 @@ function hostStart(){
 function setMode(md){if(!host||hs.st==="playing")return;hs.md=md;hs.ts={A:0,B:0};hs.tr=null;
   if(md==="t")ensureTeam();else myTeam=null;pushPresence();lastPanelKey="";render()}
 function switchTeam(){myTeam=myTeam==="A"?"B":"A";pushPresence();lastPanelKey="";render()}
-function takeOver(){const h=hostInfo();host=true;hs.hr=lastRound;hs.st="ended";hs.hs=cur?cur.idx:-1;hs.at=0;pushPresence();render()}
+function takeOver(){host=true;hs.hr=lastRound;hs.st="ended";hs.hs=cur?cur.idx:-1;hs.at=0;pushPresence();render()}
 function closeRoundAsHost(){
   hs.st="ended";
   if(hs.md==="t"){
     const rows=others().filter(p=>p.presence.r===hs.hr).map(p=>p.presence);rows.push(myPresence());
-    const avg=t=>{const m=rows.filter(r=>r.tm===t);return m.length?Math.round(m.reduce((a,r)=>a+num(r.pt),0)/m.length):0};
+    const avg=k=>{const m=rows.filter(r=>r.tm===k);return m.length?Math.round(m.reduce((a,r)=>a+num(r.pt),0)/m.length):0};
     hs.tr={A:avg("A"),B:avg("B"),n:hs.hr};hs.ts={A:hs.ts.A+hs.tr.A,B:hs.ts.B+hs.tr.B};
   }
   pushPresence();render();
@@ -537,27 +684,27 @@ document.addEventListener("keydown",e=>{
 /* ---------- render ---------- */
 function render(){if($("#game").hidden)return;renderTop();renderPlay();renderBoard();renderOverlay();renderTimer()}
 function renderTop(){
-  const t=$("#roomTxt");t.textContent="";
+  const r=$("#roomTxt");r.textContent="";
   $("#copyBtn").hidden=mode!=="room";$("#netDot").hidden=mode!=="room";
-  if(mode==="solo")t.textContent="Solo practice";
-  else if(mode==="daily")t.textContent="Daily word";
-  else{t.append(el("span",null,"Room "),el("span","code",code));$("#netDot").classList.toggle("off",!connected)}
-  $("#roundLbl").textContent=mode==="daily"?"#"+dailyNo():(cur?"Round "+cur.round:"");
+  if(mode==="solo")r.textContent=t("soloPractice");
+  else if(mode==="daily")r.textContent=t("dailyWord");
+  else{r.append(el("span",null,t("roomLbl")),ltr(code,"code"));$("#netDot").classList.toggle("off",!connected)}
+  $("#roundLbl").textContent=mode==="daily"?"#"+dailyNo():(cur?t("roundN",{n:cur.round}):"");
 }
 function renderTimer(){
-  const t=$("#timer");
-  if(!cur){t.textContent="60s";t.classList.remove("low");return}
+  const tm=$("#timer");
+  if(!cur){tm.textContent=t("secs",{n:60});tm.classList.remove("low");return}
   const now=Date.now();let left=cur.done?Math.max(0,ROUND_MS-cur.t):Math.min(ROUND_MS,cur.startAt+ROUND_MS-now);
-  left=Math.max(0,left);const s=Math.ceil(left/1000);t.textContent=s+"s";t.classList.toggle("low",!cur.done&&s<=10&&now>=cur.startAt);
+  left=Math.max(0,left);const s=Math.ceil(left/1000);tm.textContent=t("secs",{n:s});tm.classList.toggle("low",!cur.done&&s<=10&&now>=cur.startAt);
 }
 function renderPlay(){
   const miss=cur?cur.miss:0;for(let i=1;i<=6;i++)$("#p"+i).classList.toggle("on",i<=miss);
   const live=cur&&Date.now()>=cur.startAt;
-  $("#cat").textContent=live?cur.cat:"Category";
+  $("#cat").textContent=live?catName(cur.cat):t("category");
   const w=$("#word");w.textContent="";
   if(live){for(const ch of cur.word){const known=cur.g.has(ch);const s=el("span","slot",known||cur.done?ch:"");if(!known&&cur.done)s.classList.add("miss");w.appendChild(s)}}
   else for(let i=0;i<6;i++)w.appendChild(el("span","slot",""));
-  $("#missTxt").textContent=cur?(cur.miss?cur.miss+" of 6 misses":"No misses yet"):"";
+  $("#missTxt").textContent=cur?(cur.miss?t("missesOf",{n:cur.miss}):t("noMisses")):"";
   document.querySelectorAll(".key").forEach(b=>{const L=b.dataset.k;b.classList.remove("hit","bad");
     if(cur&&cur.g.has(L))b.classList.add(cur.word.includes(L)?"hit":"bad");
     b.disabled=!cur||!!cur.done||cur.g.has(L)});
@@ -571,11 +718,11 @@ function rowData(){
 function roundNo(){const h=hostInfo();return h?h.hr:(cur?cur.round:0)}
 function playerRow(r,round,first){
   const d=el("div","pl"+(first?" first":""));const dot=el("span","dot");dot.style.background=safeColor(r.c);
-  const nm=el("span","pn",nm16(r.n));if(r.me)nm.appendChild(el("small",null,"you"));if(r.h===1&&mode==="room")nm.appendChild(el("small",null,"host"));
+  const nm=el("span","pn",nm16(r.n));if(r.me)nm.appendChild(el("small",null,t("you")));if(r.h===1&&mode==="room")nm.appendChild(el("small",null,t("hostTag")));
   const pp=el("div","pp");
-  if(!round||r.r!==round)pp.appendChild(el("span",null,"Waiting for next round"));
-  else if(r.d===1)pp.appendChild(el("span","ok","Solved "+(num(r.t)/1000).toFixed(1)+"s · +"+num(r.pt)));
-  else if(r.d===2)pp.appendChild(el("span","dead","Hanged · +0"));
+  if(!round||r.r!==round)pp.appendChild(el("span",null,t("waitingNext")));
+  else if(r.d===1)pp.appendChild(el("span","ok",t("solvedRow",{t:fmtS(num(r.t)),p:num(r.pt)})));
+  else if(r.d===2)pp.appendChild(el("span","dead",t("hangedRow")));
   else{const bar=el("span","bar");const i=el("i");i.style.width=(r.L?Math.round(100*num(r.p)/num(r.L)):0)+"%";bar.appendChild(i);
     const pips=el("span","pips");for(let k=0;k<6;k++){const x=el("i");if(k<num(r.m))x.className="x";pips.appendChild(x)}pp.append(bar,pips)}
   d.append(dot,nm,el("span","ps",String(num(r.s))),pp);return d;
@@ -584,14 +731,14 @@ function renderBoard(){
   const box=$("#players");box.textContent="";
   $("#tabs").hidden=mode!=="daily";
   if(mode==="daily")return renderDailyBoard(box);
-  $("#boardLbl").textContent=teamsOn()?"Teams":"Race board";
+  $("#boardLbl").textContent=teamsOn()?t("teams"):t("boardRace");
   const list=rowData().sort((a,b)=>num(b.s)-num(a.s));const round=roundNo();
-  $("#pcount").textContent=list.length+(list.length===1?" player":" players");
+  $("#pcount").textContent=list.length===1?t("player1"):t("players",{n:list.length});
   if(teamsOn()){
     const h=hostInfo();
-    ["A","B"].forEach(t=>{const head=el("div","teamhead");const l=el("span");const dot=el("span","dot");dot.style.background=TEAMS[t].color;
-      l.append(dot,document.createTextNode(" Team "+TEAMS[t].name));head.append(l,el("span","ps",String(h.ts[t])));box.appendChild(head);
-      const mem=list.filter(r=>r.tm===t);if(!mem.length)box.appendChild(el("div","empty","Nobody yet"));
+    ["A","B"].forEach(k=>{const head=el("div","teamhead");const l=el("span");const dot=el("span","dot");dot.style.background=TEAMS[k].color;
+      l.append(dot,document.createTextNode(" "+teamName(k)));head.append(l,el("span","ps",String(h.ts[k])));box.appendChild(head);
+      const mem=list.filter(r=>r.tm===k);if(!mem.length)box.appendChild(el("div","empty",t("nobodyYet")));
       mem.forEach((r,i)=>box.appendChild(playerRow(r,round,i===0)))});
     const none=list.filter(r=>r.tm!=="A"&&r.tm!=="B");none.forEach(r=>box.appendChild(playerRow(r,round,false)));
     return;
@@ -599,49 +746,51 @@ function renderBoard(){
   list.forEach((r,i)=>box.appendChild(playerRow(r,round,i===0)));
 }
 /* daily board */
+function nameCell(p,i){
+  const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.isMe)nm.appendChild(el("small",null,t("you")));return nm;
+}
 function renderDailyBoard(box){
-  $("#boardLbl").textContent="Daily leaderboard";
+  $("#boardLbl").textContent=t("boardDaily");
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===boardTab));
   const se=curSeason();
   let list=(db&&!dbErr)?allPlayers.filter(p=>p.id!==uid&&p.se===se):[];
   list.push(Object.assign({},rec,{id:uid||"me",isMe:true}));
-  $("#pcount").textContent="Season "+se;
+  $("#pcount").textContent=t("seasonN",{n:se});
   const left=seasonDaysLeft(),bar=el("div","seasonbar"+(left<=3?" final":""));
   const meter=el("span","meter");const fill=el("i");fill.style.width=Math.round(100*(seasonDay()-1)/SEASON_LEN)+"%";meter.appendChild(fill);
-  bar.append(el("span",null,"Day "+seasonDay()+"/"+SEASON_LEN),meter,el("span",null,left<=3?(left===1?"Resets tonight":"Final "+left+" days"):left+" days left"));
+  bar.append(el("span",null,t("dayOf",{d:seasonDay(),t:SEASON_LEN})),meter,el("span",null,left<=3?(left===1?t("resetsTonight"):t("finalDays",{n:left})):t("daysLeft",{n:left})));
   box.appendChild(bar);
   const myEntry=todayEntry(rec);const played=myEntry&&("ok" in myEntry);
   let rows;
   if(boardTab==="streak"){
     rows=list.filter(p=>p.played>0).sort((a,b)=>seasonPts(b)-seasonPts(a)||curStreak(b)-curStreak(a)||b.best-a.best);
-    if(!rows.length)box.appendChild(el("div","empty","Season standings show up after the first daily word is played."));
+    if(!rows.length)box.appendChild(el("div","empty",t("seasonEmpty")));
     rows.forEach((p,i)=>{const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=safeColor(p.c);
-      const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.isMe)nm.appendChild(el("small",null,"you"));
       const pp=el("div","pp");const s=curStreak(p);
-      pp.appendChild(el("span",null,p.wins+"/"+p.played+" solved · best streak "+p.best));
-      if(s)pp.appendChild(el("span","streak","streak "+s));
-      d.append(dot,nm,el("span","ps",String(seasonPts(p))),pp);box.appendChild(d)});
-    box.appendChild(el("p","note","Ranked by total daily points this season. Everything resets when Season "+(se+1)+" starts."));
+      pp.appendChild(el("span",null,t("solvedOf",{w:p.wins,p:p.played,b:p.best})));
+      if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
+      d.append(dot,nameCell(p,i),el("span","ps",String(seasonPts(p))),pp);box.appendChild(d)});
+    box.appendChild(el("p","note",t("seasonNote",{n:se+1})));
   } else {
     const k=boardTab==="today"?todayKey():ydayKey();
     rows=list.filter(p=>p.h&&p.h[k]&&("ok" in p.h[k])).sort((a,b)=>{const x=a.h[k],y=b.h[k];return y.ok-x.ok||y.pts-x.pts||x.t-y.t});
-    if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?"Nobody has played today's word yet. Be first.":"No results for yesterday."));
+    if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?t("todayEmpty"):t("ydayEmpty")));
     rows.forEach((p,i)=>{const e=p.h[k];const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=safeColor(p.c);
-      const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.isMe)nm.appendChild(el("small",null,"you"));
       const hide=boardTab==="today"&&!played&&!p.isMe;
       const pp=el("div","pp");
-      if(e.ok)pp.appendChild(el("span","ok",hide?"Solved":"Solved "+(e.t/1000).toFixed(1)+"s · "+e.m+" miss"+(e.m===1?"":"es")));
-      else pp.appendChild(el("span","dead","Hanged"));
-      const s=curStreak(p);if(s)pp.appendChild(el("span","streak","streak "+s));
-      d.append(dot,nm,el("span","ps",String(e.pts)),pp);box.appendChild(d)});
+      if(e.ok)pp.appendChild(el("span","ok",hide?t("solved"):t("solvedDetail",{t:fmtS(e.t),m:missTxt(e.m)})));
+      else pp.appendChild(el("span","dead",t("hanged")));
+      const s=curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
+      d.append(dot,nameCell(p,i),el("span","ps",String(e.pts)),pp);box.appendChild(d)});
   }
-  if(!db||dbErr)box.appendChild(el("p","note",dbErr?"The shared leaderboard didn't load or save. Your results are kept on this device.":"Couldn't reach the leaderboard server. Your results are kept on this device."));
-  else if(boardTab==="today"&&!played&&rows.length)box.appendChild(el("p","note","Times stay hidden until you play."));
+  if(!db||dbErr)box.appendChild(el("p","note",dbErr?t("dbErr"):t("dbNone")));
+  else if(boardTab==="today"&&!played&&rows.length)box.appendChild(el("p","note",t("timesHidden")));
 }
 
 let lastPanelKey="";
 function showCount(ov,panel,n){const key="cd"+n;ov.hidden=false;if(lastPanelKey===key)return;lastPanelKey=key;panel.hidden=true;let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=n}
 function setPanel(ov,panel,key,build){
+  key=lang+"|"+key;
   ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;
   const c=ov.querySelector(".count");if(c)c.hidden=true;
   panel.hidden=false;panel.textContent="";build().forEach(n=>panel.appendChild(n));renderPlay();
@@ -649,9 +798,9 @@ function setPanel(ov,panel,key,build){
 function renderOverlay(){
   const ov=$("#overlay"),panel=$("#panel");const now=Date.now();
   if(cur&&!cur.done&&now<cur.startAt)return showCount(ov,panel,Math.ceil((cur.startAt-now)/1000));
-  if(cur&&!cur.done){ov.hidden=true;lastPanelKey="";return}
+  if(cur&&!cur.done){if(!ov.hidden){ov.hidden=true;renderPlay()}lastPanelKey="";return}
   if(mode==="daily")return dailyOverlay(ov,panel);
-  if(waitNext)return setPanel(ov,panel,"wait",()=>[el("h2",null,"Round in progress"),el("p",null,"You'll jump in when the next word starts.")]);
+  if(waitNext)return setPanel(ov,panel,"wait",()=>[el("h2",null,t("roundInProgress")),el("p",null,t("jumpIn"))]);
   const h=hostInfo();const hp=hostPeer();
   const ended=cur&&h&&h.st==="ended"&&h.hr===cur.round||(mode==="solo"&&cur&&cur.done);
   const pending=cur&&cur.done&&!ended;
@@ -662,33 +811,33 @@ function renderOverlay(){
     const out=[];
     const canSetup=!cur||ended;
     if(!cur){
-      if(host){out.push(el("h2",null,mode==="solo"?"Ready to practise?":"Share the code, then start"));
-        if(mode==="room"){const p=el("p",null,"Room code ");const c=el("b",null,code);c.style.fontFamily="var(--f-mono)";c.style.letterSpacing=".2em";p.append(c,document.createTextNode(" · "+peers().length+" in the room"));out.push(p)}
-      } else if(hp)out.push(el("h2",null,"Waiting for "+nm16(hp.presence.n)),el("p",null,"The round starts for everyone at once."));
-      else{out.push(el("h2",null,"No host in room "+code),el("p",null,"Check the code with your friend, or run the room yourself."));const b=el("button","btn primary","Host this room");b.onclick=takeOver;out.push(b);return out}
+      if(host){out.push(el("h2",null,mode==="solo"?t("readyPractise"):t("shareStart")));
+        if(mode==="room"){const p=el("p",null,t("roomCodeLine"));const c=ltr(code);c.style.fontFamily="var(--f-mono)";c.style.letterSpacing=".2em";c.style.fontWeight="700";p.append(c,document.createTextNode(t("inRoom",{n:peers().length})));out.push(p)}
+      } else if(hp)out.push(el("h2",null,t("waitingFor",{name:nm16(hp.presence.n)})),el("p",null,t("startsAtOnce")));
+      else{out.push(el("h2",null,t("noHost",{c:code})),el("p",null,t("noHostHelp")));const b=el("button","btn primary",t("hostThis"));b.onclick=takeOver;out.push(b);return out}
     } else {
-      out.push(el("h2",null,cur.done===1?"Solved in "+(cur.t/1000).toFixed(1)+"s":cur.miss>=MAX_MISS?"Hanged!":"Time's up"));
+      out.push(el("h2",null,cur.done===1?t("solvedIn",{t:fmtS(cur.t)}):cur.miss>=MAX_MISS?t("hangedBang"):t("timesUp")));
       out.push(el("div","reveal",cur.word));
       if(ended&&tm&&h.tr&&h.tr.n===cur.round){
-        const line=el("div","teamline");["A","B"].forEach(t=>{const s=el("span");const d=el("span","dot");d.style.background=TEAMS[t].color;s.append(d,document.createTextNode(TEAMS[t].name+" +"+h.tr[t]));line.appendChild(s)});
-        out.push(line,el("p",null,h.tr.A===h.tr.B?"Dead even this round.":"Team "+TEAMS[h.tr.A>h.tr.B?"A":"B"].name+" takes the round."));
+        const line=el("div","teamline");["A","B"].forEach(k=>{const s=el("span");const d=el("span","dot");d.style.background=TEAMS[k].color;s.append(d,document.createTextNode(teamCol(k)+" +"+h.tr[k]));line.appendChild(s)});
+        out.push(line,el("p",null,h.tr.A===h.tr.B?t("deadEven"):t("takesRound",{team:teamName(h.tr.A>h.tr.B?"A":"B")})));
       }
       rows.sort((a,b)=>(b.d===1)-(a.d===1)||(num(b.pt)-num(a.pt))||(num(a.t)-num(b.t)));
       if(mode==="room"){const ul=el("ol","res");rows.forEach((r,i)=>{const li=el("li");const dot=el("span","dot");dot.style.background=tm&&TEAMS[r.tm]?TEAMS[r.tm].color:safeColor(r.c);
-        const st=el("span","st");if(r.d===1){st.append(el("b",null,"+"+num(r.pt)),document.createTextNode(" · "+(num(r.t)/1000).toFixed(1)+"s · "+num(r.m)+" miss"+(num(r.m)===1?"":"es")))}else if(r.d===2)st.textContent="hanged";else st.textContent="still guessing";
-        li.append(el("span","rk",String(i+1)),dot,el("span","nm",nm16(r.n)+(r.me?" (you)":"")),st);ul.appendChild(li)});out.push(ul)}
-      if(pending)out.push(el("p","note","Waiting for "+rows.filter(r=>!r.d).length+" more to finish…"));
+        const st=el("span","st");if(r.d===1){st.append(el("b",null,"+"+num(r.pt)),document.createTextNode(" · "+fmtS(num(r.t))+" · "+missTxt(num(r.m))))}else if(r.d===2)st.textContent=t("hangedLower");else st.textContent=t("stillGuessing");
+        li.append(el("span","rk",String(i+1)),dot,el("span","nm",nm16(r.n)+(r.me?t("youParen"):"")),st);ul.appendChild(li)});out.push(ul)}
+      if(pending)out.push(el("p","note",t("waitingMore",{n:rows.filter(r=>!r.d).length})));
     }
     if(canSetup&&mode==="room"){
-      if(host){const seg=el("div","seg");[["f","Free-for-all"],["t","Teams"]].forEach(([v,l])=>{const b=el("button",null,l);b.setAttribute("aria-pressed",hs.md===v);b.onclick=()=>setMode(v);seg.appendChild(b)});out.push(seg)}
+      if(host){const seg=el("div","seg");[["f","ffa"],["t","teamsBtn"]].forEach(([v,l])=>{const b=el("button",null,t(l));b.setAttribute("aria-pressed",hs.md===v);b.onclick=()=>setMode(v);seg.appendChild(b)});out.push(seg)}
       if(tm&&myTeam){const p=el("div","row");const d=el("span","dot");d.style.background=TEAMS[myTeam].color;
-        const sw=el("button","btn ghost","Switch to "+TEAMS[myTeam==="A"?"B":"A"].name);sw.onclick=switchTeam;
-        p.append(d,el("span",null,"You're on Team "+TEAMS[myTeam].name),sw);out.push(p)}
+        const sw=el("button","btn ghost",t("switchTo",{c:teamCol(myTeam==="A"?"B":"A")}));sw.onclick=switchTeam;
+        p.append(d,el("span",null,t("onTeam",{team:teamName(myTeam)})),sw);out.push(p)}
     }
     if(canSetup){
-      if(host){const b=el("button","btn primary",cur?"Next round":"Start round 1");b.onclick=hostStart;out.push(b)}
-      else if(cur){if(hp)out.push(el("p","note","Waiting for "+nm16(hp.presence.n)+" to start the next round."));
-        else{out.push(el("p","note","The host left."));const b=el("button","btn primary","Host this room");b.onclick=takeOver;out.push(b)}}
+      if(host){const b=el("button","btn primary",cur?t("nextRound"):t("startRound1"));b.onclick=hostStart;out.push(b)}
+      else if(cur){if(hp)out.push(el("p","note",t("waitingHostNext",{name:nm16(hp.presence.n)})));
+        else{out.push(el("p","note",t("hostLeft")));const b=el("button","btn primary",t("hostThis"));b.onclick=takeOver;out.push(b)}}
     }
     return out;
   });
@@ -699,18 +848,18 @@ function dailyOverlay(ov,panel){
   setPanel(ov,panel,key,()=>{
     const out=[];
     if(!done){
-      out.push(el("h2",null,"Daily word #"+dailyNo()),el("p",null,"Everyone gets this word today. You get one attempt, and the clock starts after the countdown."));
-      if(s)out.push(el("p","streak","Current streak: "+s+" day"+(s===1?"":"s")+". Solve to keep it."));
-      const b=el("button","btn primary","Start");b.onclick=startDaily;out.push(b);
+      out.push(el("h2",null,t("dailyTitle",{n:dailyNo()})),el("p",null,t("dailyIntro")));
+      if(s)out.push(el("p","streak",s===1?t("curStreak1"):t("curStreakN",{n:s})));
+      const b=el("button","btn primary",t("start"));b.onclick=startDaily;out.push(b);
       return out;
     }
     const W=WORDS[dailyIdx(dayNum())];
-    out.push(el("h2",null,e.ok?"Solved in "+(e.t/1000).toFixed(1)+"s":"Hanged today"));
+    out.push(el("h2",null,e.ok?t("solvedIn",{t:fmtS(e.t)}):t("hangedToday")));
     out.push(el("div","reveal",W.w));
-    const st=el("div","stats");[[e.pts,"points"],[e.m,"misses"],[s,"streak"],[rec.best,"best"]].forEach(([v,l])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,l));st.appendChild(d)});out.push(st);
-    const share="Hangman Rush · Season "+curSeason()+" · daily #"+dailyNo()+"\n"+(e.ok?"Solved in "+(e.t/1000).toFixed(1)+"s, "+e.m+" miss"+(e.m===1?"":"es")+", "+e.pts+" pts":"Hanged")+(s?"\nStreak: "+s:"");
-    const b=el("button","btn primary","Copy my result");b.onclick=()=>copyText(share,b,"Copy my result");out.push(b);
-    out.push(el("p","note","Next word in "+untilNext()+". It changes at midnight UTC."));
+    const st=el("div","stats");[[e.pts,"statPoints"],[e.m,"statMisses"],[s,"statStreak"],[rec.best,"statBest"]].forEach(([v,l])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,t(l)));st.appendChild(d)});out.push(st);
+    const share=t("shareHead",{s:curSeason(),n:dailyNo()})+"\n"+(e.ok?t("shareSolved",{t:fmtS(e.t),m:missTxt(e.m),p:e.pts}):t("shareHanged"))+(s?"\n"+t("shareStreak",{n:s}):"");
+    const b=el("button","btn primary",t("copyResult"));b.onclick=()=>copyText(share,b,"copyResult");out.push(b);
+    out.push(el("p","note",t("nextWordUtc",{t:untilNext()})));
     return out;
   });
 }
