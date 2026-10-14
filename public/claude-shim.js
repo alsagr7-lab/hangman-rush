@@ -118,6 +118,15 @@
   /* ---------- user ---------- */
   const user = { id: async () => uid, isOwner: () => false, canEdit: () => false, can: () => true };
 
-  const caps = { room, db, user };
+  /* ---------- daily word (served one day at a time) ---------- */
+  const daily = {
+    async today() {
+      const r = await fetch("/api/daily", { cache: "no-store" });
+      if (!r.ok) throw new Error("daily " + r.status);
+      return r.json();
+    },
+  };
+
+  const caps = { room, db, user, daily };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };
 })();

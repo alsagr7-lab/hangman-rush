@@ -17,3 +17,5 @@ services:
         fromDatabase:
           name: hangman-rush-db
           property: connectionString
+      - key: DAILY_KEY
+        sync: false

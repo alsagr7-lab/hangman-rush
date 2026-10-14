@@ -9,6 +9,19 @@ const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, "public");
 const store = require("./store");
 
+// ---------- daily word ----------
+// The list is stored encrypted (daily-words.enc) and unlocked with the DAILY_KEY environment variable,
+// so neither the page nor the public repo reveals upcoming words. Only today's word is ever sent.
+const DAY = 864e5, EPOCH_DAY = Math.floor(Date.UTC(2026, 9, 13) / DAY);
+let DAILY = [];
+try {
+  const { decrypt, FILE } = require("./scripts/daily-words");
+  DAILY = decrypt(fs.readFileSync(FILE, "utf8"));
+  console.log(`Daily words loaded: ${DAILY.length}`);
+} catch (e) {
+  console.warn("Daily words unavailable (set DAILY_KEY):", e.message);
+}
+
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon" };
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
@@ -32,6 +45,13 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
   try {
     if (url.pathname === "/healthz") return send(res, 200, "ok", "text/plain");
+
+    if (url.pathname === "/api/daily" && req.method === "GET") {
+      if (!DAILY.length) return send(res, 503, { error: "Today's word isn't set up on this server yet" });
+      const n = Math.floor(Date.now() / DAY) - EPOCH_DAY;
+      const [c, w, en, ar, m] = DAILY[((n - 1) % DAILY.length + DAILY.length) % DAILY.length];
+      return send(res, 200, { n, c, w, en, ar, m });
+    }
 
     if (url.pathname === "/api/players" && req.method === "GET") {
       const rows = await store.all();
