@@ -142,6 +142,9 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
 .teamhead .ps{font-size:16px}
 .empty{color:var(--muted);font-size:13.5px;padding:10px 0}
 .season{font-family:var(--f-mono);font-size:12px;letter-spacing:.04em}
+.pn small.tag{font-family:var(--f-mono);font-weight:500;margin-left:4px;letter-spacing:.04em}
+#nameHint b{font-family:var(--f-mono);color:var(--ink)}
+input.need{border-color:var(--hot)}
 .seasonbar{display:flex;justify-content:space-between;gap:8px;font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .seasonbar .meter{flex:1;height:6px;align-self:center;background:var(--bg);border-radius:9px;overflow:hidden}
 .seasonbar .meter i{display:block;height:100%;background:var(--accent)}
@@ -165,6 +168,7 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
     <div class="card">
       <label class="lbl" for="nick">Your name</label>
       <input type="text" id="nick" maxlength="16" autocomplete="off" placeholder="e.g. Yousef">
+      <p class="note" id="nameHint">Pick a name so friends can find you on the leaderboard.</p>
       <div class="lbl">Your colour</div>
       <div class="swatches" id="sw"></div>
     </div>
@@ -327,6 +331,22 @@ if(rollover(rec)){try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch
 /* ---------- lobby ---------- */
 const nickIn=$("#nick");nickIn.value=me.nick;
 function saveMe(){me.nick=(nickIn.value.trim()||"Player").slice(0,16);try{localStorage.setItem("hr-me",JSON.stringify(me))}catch(e){}}
+/* a short, permanent tag per player so same-named players stay distinguishable */
+const TAG_ABC="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function tagOf(id){if(!id||id==="me")return"";let h=2166136261;for(const ch of String(id)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)>>>0}
+  let s="";for(let i=0;i<4;i++){s+=TAG_ABC[h%32];h=Math.floor(h/32)}return s}
+function renderNameHint(){
+  const hint=$("#nameHint"),v=nickIn.value.trim();hint.textContent="";hint.classList.remove("warn");
+  if(v.length<2){hint.textContent="Pick a name so friends can find you on the leaderboard.";return}
+  const t=tagOf(uid);hint.append(document.createTextNode("You'll appear as "),el("b",null,v.slice(0,16)+(t?" #"+t:"")));
+  if(t)hint.append(document.createTextNode(". The tag is yours on this device."));
+}
+function requireName(){
+  if(nickIn.value.trim().length>=2){nickIn.classList.remove("need");return true}
+  const hint=$("#nameHint");hint.textContent="Add a name (2+ letters) before playing online or the daily word.";hint.classList.add("warn");
+  nickIn.classList.add("need");nickIn.focus();nickIn.scrollIntoView({block:"center",behavior:"smooth"});return false;
+}
+nickIn.addEventListener("input",()=>{nickIn.classList.remove("need");renderNameHint()});
 const swWrap=$("#sw");
 COLORS.forEach(c=>{const b=el("button","sw");b.style.background=c;b.setAttribute("aria-label","Colour "+c);b.setAttribute("aria-pressed",c===me.color);b.onclick=()=>{me.color=c;[...swWrap.children].forEach(x=>x.setAttribute("aria-pressed",x===b))};swWrap.appendChild(b)});
 
@@ -351,6 +371,7 @@ renderLobbyDaily();setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},3
   if(room){$("#createBtn").disabled=false;$("#joinBtn").disabled=false;$("#netNote").textContent="Friends join with the 4-letter code."}
   else{const n=$("#netNote");n.textContent="Online rooms aren't available in this view. Solo practice still works.";n.classList.add("warn")}
   if(d&&u){try{uid=await u.id()}catch(e){uid=null}}
+  renderNameHint();
   if(d&&uid){db=d;
     db.collection("players").onSnapshot(snap=>{
       allPlayers=snap.docs.map(doc=>Object.assign(clean(doc.data()||{}),{id:doc.id}));
@@ -365,11 +386,12 @@ renderLobbyDaily();setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},3
 
 function newCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ";let s="";for(let i=0;i<4;i++)s+=A[Math.floor(Math.random()*A.length)];return s}
 
-$("#createBtn").onclick=()=>{saveMe();mode="room";host=true;hs=freshHost();enterRoom(newCode())};
-$("#joinBtn").onclick=()=>{const c=$("#codeIn").value.trim().toUpperCase().replace(/[^A-Z]/g,"");if(c.length!==4){$("#netNote").textContent="Room codes are 4 letters.";return}saveMe();mode="room";host=false;enterRoom(c)};
+renderNameHint();
+$("#createBtn").onclick=()=>{if(!requireName())return;saveMe();mode="room";host=true;hs=freshHost();enterRoom(newCode())};
+$("#joinBtn").onclick=()=>{if(!requireName())return;const c=$("#codeIn").value.trim().toUpperCase().replace(/[^A-Z]/g,"");if(c.length!==4){$("#netNote").textContent="Room codes are 4 letters.";return}saveMe();mode="room";host=false;enterRoom(c)};
 $("#codeIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("#joinBtn").click()});
 $("#soloBtn").onclick=()=>{saveMe();mode="solo";host=true;hs=freshHost();showGame()};
-$("#dailyBtn").onclick=()=>{saveMe();mode="daily";host=false;boardTab="today";
+$("#dailyBtn").onclick=()=>{if(!requireName())return;saveMe();mode="daily";host=false;boardTab="today";
   const e=todayEntry(rec);
   if(e&&!("ok" in e)){ // started earlier but never finished
     cur={round:0,idx:dailyIdx(dayNum()),word:WORDS[dailyIdx(dayNum())].w,cat:WORDS[dailyIdx(dayNum())].c,startAt:0,g:new Set(),miss:0,done:2,t:ROUND_MS,pts:0,daily:true};recordDaily();
@@ -594,7 +616,7 @@ function renderDailyBoard(box){
     rows=list.filter(p=>p.played>0).sort((a,b)=>seasonPts(b)-seasonPts(a)||curStreak(b)-curStreak(a)||b.best-a.best);
     if(!rows.length)box.appendChild(el("div","empty","Season standings show up after the first daily word is played."));
     rows.forEach((p,i)=>{const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=safeColor(p.c);
-      const nm=el("span","pn",(i+1)+". "+nm16(p.n));if(p.isMe)nm.appendChild(el("small",null,"you"));
+      const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.isMe)nm.appendChild(el("small",null,"you"));
       const pp=el("div","pp");const s=curStreak(p);
       pp.appendChild(el("span",null,p.wins+"/"+p.played+" solved · best streak "+p.best));
       if(s)pp.appendChild(el("span","streak","streak "+s));
@@ -605,7 +627,7 @@ function renderDailyBoard(box){
     rows=list.filter(p=>p.h&&p.h[k]&&("ok" in p.h[k])).sort((a,b)=>{const x=a.h[k],y=b.h[k];return y.ok-x.ok||y.pts-x.pts||x.t-y.t});
     if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?"Nobody has played today's word yet. Be first.":"No results for yesterday."));
     rows.forEach((p,i)=>{const e=p.h[k];const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=safeColor(p.c);
-      const nm=el("span","pn",(i+1)+". "+nm16(p.n));if(p.isMe)nm.appendChild(el("small",null,"you"));
+      const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.isMe)nm.appendChild(el("small",null,"you"));
       const hide=boardTab==="today"&&!played&&!p.isMe;
       const pp=el("div","pp");
       if(e.ok)pp.appendChild(el("span","ok",hide?"Solved":"Solved "+(e.t/1000).toFixed(1)+"s · "+e.m+" miss"+(e.m===1?"":"es")));
