@@ -105,7 +105,8 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
 .misses{text-align:center;font-size:13px;color:var(--muted);min-height:20px;font-variant-numeric:tabular-nums}
 .cat{display:grid;gap:4px;justify-items:center}
 .vowels{font-size:12.5px;color:var(--muted)}
-.meaning{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;font-size:20px;font-weight:600;color:var(--accent);direction:rtl;unicode-bidi:isolate;min-height:0}
+.clue{font-size:15px;font-weight:600;color:var(--accent);text-align:center;max-width:34ch;text-wrap:balance}
+.transl{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;font-size:14px;color:var(--muted)}
 .hints{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
 .hints button{border:2px dashed var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-weight:600;font-size:13px;color:var(--ink)}
 .hints button:disabled{opacity:.4;cursor:default}
@@ -249,10 +250,10 @@ input.need{border-color:var(--hot)}
             <path class="part eye" id="p8" d="M144 51l6 6M150 51l-6 6" stroke-width="3"/>
           </svg>
         </div>
-        <div class="cat"><span class="lbl" id="cat">Category</span><span class="vowels" id="vowels"></span><span class="meaning" id="meaning" hidden></span></div>
+        <div class="cat"><span class="lbl" id="cat">Category</span><span class="vowels" id="vowels"></span><span class="clue" id="clue" hidden></span><span class="transl" id="transl" hidden></span></div>
         <div class="word" id="word" aria-live="polite"></div>
         <div class="misses" id="missTxt"></div>
-        <div class="hints" id="hintRow" hidden><button type="button" id="hintLetterBtn"></button><button type="button" id="hintMeaningBtn"></button></div>
+        <div class="hints" id="hintRow" hidden><button type="button" id="hintLetterBtn"></button><button type="button" id="hintClueBtn"></button></div>
         <div class="keys" id="keys"></div>
         <div class="overlay" id="overlay" hidden><div class="panel" id="panel"></div></div>
       </div>
@@ -285,7 +286,7 @@ const WORDBANK={
   tech:["KEYBOARD","PASSWORD","BLUETOOTH","DOWNLOAD","SPEAKER","WEBCAM","HEADPHONES","CHARGER","PIXEL","ROUTER","BROWSER","JOYSTICK"]
 };
 const WORDS=[];for(const c in WORDBANK)for(const w of WORDBANK[c])WORDS.push({w,c});
-/* Arabic meaning of each word, for the meaning hint */
+/* Arabic meaning of each word, shown to Arabic players after the round */
 const MEANING={GIRAFFE:"زرافة",PENGUIN:"بطريق",CHEETAH:"فهد",OCTOPUS:"أخطبوط",FLAMINGO:"طائر النحام (فلامنغو)",KANGAROO:"كنغر",HEDGEHOG:"قنفذ",PANTHER:"نمر أسود",DOLPHIN:"دلفين",FALCON:"صقر",CAMEL:"جمل",SCORPION:"عقرب",GORILLA:"غوريلا",LOBSTER:"كركند (لوبستر)",PEACOCK:"طاووس",WALRUS:"فظ (حصان البحر)",
   SHAWARMA:"شاورما",KABSA:"كبسة",WAFFLE:"وافل",AVOCADO:"أفوكادو",LASAGNE:"لازانيا",PRETZEL:"بريتزل",DUMPLING:"فطيرة محشوة مسلوقة",PANCAKE:"بان كيك",BURRITO:"بوريتو",CROISSANT:"كرواسون",PISTACHIO:"فستق حلبي",LEMONADE:"ليموناضة",BAKLAVA:"بقلاوة",MUSHROOM:"فطر (مشروم)",
   MOROCCO:"المغرب",PORTUGAL:"البرتغال",ICELAND:"آيسلندا",VIETNAM:"فيتنام",ARGENTINA:"الأرجنتين",NORWAY:"النرويج",JAPAN:"اليابان",ETHIOPIA:"إثيوبيا",CANADA:"كندا",MALAYSIA:"ماليزيا",GREECE:"اليونان",JORDAN:"الأردن",MEXICO:"المكسيك",SWEDEN:"السويد",
@@ -298,11 +299,15 @@ const MEANING={GIRAFFE:"زرافة",PENGUIN:"بطريق",CHEETAH:"فهد",OCTOPU
   KEYBOARD:"لوحة مفاتيح",PASSWORD:"كلمة مرور",BLUETOOTH:"بلوتوث",DOWNLOAD:"تنزيل (تحميل)",SPEAKER:"مكبّر صوت (سمّاعة)",WEBCAM:"كاميرا ويب",HEADPHONES:"سمّاعات رأس",CHARGER:"شاحن",PIXEL:"بكسل",ROUTER:"راوتر",BROWSER:"متصفّح",JOYSTICK:"عصا تحكّم"};
 /* difficulty: Easy = short words, 8 misses, 90 s; Normal = everything as before; Hard = long words, no help */
 const DIFF={
-  easy:{miss:8,ms:90000,free:true,help:true,maxHints:3,pool:w=>w.length<=7},
-  normal:{miss:6,ms:60000,free:true,help:true,maxHints:2,pool:()=>true},
-  hard:{miss:6,ms:60000,free:false,help:false,maxHints:0,pool:w=>w.length>=8}};
+  easy:{miss:8,ms:90000,free:true,help:true,pool:w=>w.length<=7},
+  normal:{miss:6,ms:60000,free:true,help:true,pool:()=>true},
+  hard:{miss:6,ms:60000,free:false,help:false,pool:w=>w.length>=8}};
 const diffOf=k=>DIFF[k]?k:"normal";
-const HINT_LETTER=30,HINT_MEANING=20;
+/* clue for each word: [English, Arabic]; the clue hint shows the one in the player's language */
+const CLUE={GIRAFFE:["Tallest animal, with a very long neck", "أطول حيوان، رقبته طويلة جداً"],PENGUIN:["Bird that swims but can't fly, lives in the cold", "طائر يسبح ولا يطير، يعيش في البرد"],CHEETAH:["Fastest land animal, with a spotted coat", "أسرع حيوان على اليابسة، جلده منقّط"],OCTOPUS:["Sea creature with eight arms", "كائن بحري له ثماني أذرع"],FLAMINGO:["Pink bird that stands on one leg", "طائر وردي يقف على ساق واحدة"],KANGAROO:["Australian animal that hops and carries its baby in a pouch", "حيوان أسترالي يقفز ويحمل صغيره في جيب"],HEDGEHOG:["Small animal covered in spines that curls into a ball", "حيوان صغير مغطّى بالأشواك يلتفّ ككرة"],PANTHER:["Big wild cat with a black coat", "قط بري كبير فروه أسود"],DOLPHIN:["Smart, friendly sea mammal that leaps out of the water", "حيوان بحري ذكي ولطيف يقفز فوق الماء"],FALCON:["Hunting bird loved in the Gulf, a very fast diver", "طائر صيد محبوب في الخليج، سريع الانقضاض"],CAMEL:["Desert animal with a hump", "حيوان الصحراء صاحب السنام"],SCORPION:["Desert creature with a stinging tail", "كائن صحراوي له ذيل لاسع"],GORILLA:["Largest ape, lives in African forests", "أكبر القردة، يعيش في غابات أفريقيا"],LOBSTER:["Seafood with big claws that turns red when cooked", "مأكول بحري بمخالب كبيرة يحمرّ عند طبخه"],PEACOCK:["Bird that fans out colourful tail feathers", "طائر يفرد ريش ذيله الملوّن"],WALRUS:["Arctic sea animal with long tusks and whiskers", "حيوان بحري قطبي له نابان طويلان وشارب"],SHAWARMA:["Meat sliced from a turning spit, wrapped in bread", "لحم يُقطّع من سيخ دوّار ويُلفّ بالخبز"],KABSA:["Saudi spiced rice dish with chicken or meat", "طبق أرز سعودي متبّل مع دجاج أو لحم"],WAFFLE:["Breakfast with a grid pattern, often with syrup", "فطور على شكل شبكة مربعات، غالباً مع الشراب"],AVOCADO:["Green fruit with a big seed, used in guacamole", "فاكهة خضراء بنواة كبيرة تُصنع منها الغواكامولي"],LASAGNE:["Italian dish of flat pasta layers baked with sauce", "طبق إيطالي من طبقات معكرونة عريضة مخبوزة بالصلصة"],PRETZEL:["Twisted, knot-shaped baked snack", "مخبوزة على شكل عقدة ملتوية"],DUMPLING:["Small parcel of dough, filled and steamed or boiled", "قطعة عجين صغيرة محشوة تُطهى بالبخار أو تُسلق"],PANCAKE:["Flat, round breakfast cake cooked in a pan", "كعكة فطور مسطّحة مستديرة تُطهى في المقلاة"],BURRITO:["Mexican wrap filled with rice, beans and meat", "لفافة مكسيكية محشوة بالأرز والفاصوليا واللحم"],CROISSANT:["Flaky, buttery French pastry shaped like a crescent", "معجنات فرنسية هشّة بالزبدة على شكل هلال"],PISTACHIO:["Green nut, popular in sweets and ice cream", "مكسرات خضراء مشهورة في الحلويات والآيس كريم"],LEMONADE:["Sweet and sour drink made from citrus juice", "مشروب حلو وحامض من عصير الحمضيات"],BAKLAVA:["Layered filo sweet with nuts and syrup", "حلوى رقائق عجين بالمكسرات والقطر"],MUSHROOM:["Umbrella-shaped fungus often put on pizza", "شيء على شكل مظلة صغيرة يُضاف للبيتزا"],MOROCCO:["North African kingdom, home of Marrakesh", "مملكة في شمال أفريقيا، فيها مراكش"],PORTUGAL:["European country on the Atlantic, west of Spain", "دولة أوروبية على الأطلسي غرب إسبانيا"],ICELAND:["Island of volcanoes and glaciers near the Arctic", "جزيرة البراكين والأنهار الجليدية قرب القطب"],VIETNAM:["Southeast Asian country famous for pho soup", "دولة في جنوب شرق آسيا مشهورة بحساء الفو"],ARGENTINA:["South American country of tango and Messi", "بلد التانغو وميسي في أمريكا الجنوبية"],NORWAY:["Scandinavian country of fjords and northern lights", "بلد اسكندنافي بالمضائق البحرية والشفق القطبي"],JAPAN:["Island nation of sushi and bullet trains", "دولة جزر السوشي والقطار السريع"],ETHIOPIA:["East African country where coffee began", "دولة في شرق أفريقيا بدأت منها القهوة"],CANADA:["Huge northern country with a maple leaf flag", "دولة شمالية ضخمة علمها ورقة القيقب"],MALAYSIA:["Asian country home to the Petronas Towers", "دولة آسيوية فيها برجا بتروناس"],GREECE:["Birthplace of the Olympics and ancient philosophy", "مهد الألعاب الأولمبية والفلسفة القديمة"],JORDAN:["Arab kingdom home to Petra", "مملكة عربية فيها مدينة البتراء"],MEXICO:["Country of tacos, just south of the USA", "بلد التاكو جنوب الولايات المتحدة"],SWEDEN:["Nordic country where IKEA started", "دولة اسكندنافية بدأت منها ايكيا"],RIYADH:["Saudi capital, home of Kingdom Centre", "العاصمة السعودية، فيها برج المملكة"],LEEDS:["Big city in West Yorkshire, England", "مدينة كبيرة في غرب يوركشاير بإنجلترا"],ISTANBUL:["City that sits on two continents", "مدينة تقع على قارتين"],TOKYO:["Japan's huge capital", "عاصمة اليابان الضخمة"],LISBON:["Hilly capital with yellow trams by the Atlantic", "عاصمة بتلال وترام أصفر على المحيط الأطلسي"],NAIROBI:["Kenya's capital, with a wildlife park on its edge", "عاصمة كينيا، وبجانبها محمية للحيوانات البرية"],SYDNEY:["Australian city with a famous opera house", "مدينة أسترالية فيها دار أوبرا شهيرة"],TORONTO:["Canada's biggest city, home of the CN Tower", "أكبر مدن كندا، فيها برج سي إن"],MUSCAT:["Capital of Oman", "عاصمة سلطنة عُمان"],PRAGUE:["Czech capital of bridges and castles", "العاصمة التشيكية بجسورها وقلاعها"],MANCHESTER:["English city with two famous football clubs", "مدينة إنجليزية فيها ناديا كرة قدم مشهوران"],JEDDAH:["Saudi port city on the Red Sea", "مدينة سعودية ساحلية على البحر الأحمر"],SEOUL:["South Korea's capital", "عاصمة كوريا الجنوبية"],VIENNA:["Austrian capital of music and coffee houses", "عاصمة النمسا، مدينة الموسيقى والمقاهي"],CRICKET:["Bat-and-ball game with wickets, huge in India", "لعبة بمضرب وكرة وأوتاد، شعبية جداً في الهند"],BADMINTON:["Racket sport played with a shuttlecock", "رياضة بمضرب وريشة"],FENCING:["Sport of sword fighting in masks", "رياضة القتال بالسيوف مع ارتداء الأقنعة"],SURFING:["Riding ocean waves on a board", "الوقوف على لوح فوق أمواج البحر"],VOLLEYBALL:["Two teams hit a ball over a high net with their hands", "فريقان يضربان الكرة باليد فوق شبكة عالية"],ARCHERY:["Shooting arrows at a target", "إطلاق السهام نحو هدف"],BOXING:["Fighting with gloves inside a ring", "قتال بالقفازات داخل حلبة"],SNOOKER:["Cue sport with red balls on a big green table", "لعبة بعصا وكرات حمراء على طاولة خضراء كبيرة"],CYCLING:["Racing on two wheels, like the Tour de France", "السباق على عجلتين، مثل طواف فرنسا"],KARATE:["Japanese martial art with coloured belts", "فن قتالي ياباني بأحزمة ملوّنة"],ROWING:["Moving a boat with oars", "تحريك القارب بالمجاديف"],HANDBALL:["Fast team sport: pass and throw the ball into a goal", "رياضة جماعية سريعة تُمرَّر فيها الكرة وتُرمى نحو المرمى"],CONCIERGE:["Hotel staff who book tables and give local tips", "موظف فندق يحجز المطاعم ويقدّم نصائح عن المدينة"],RECEPTION:["Front desk where guests check in", "المكتب الأمامي الذي يسجّل فيه النزلاء وصولهم"],BELLHOP:["Hotel worker who carries your bags to the room", "عامل فندق ينقل حقائبك إلى الغرفة"],MINIBAR:["Small fridge of drinks and snacks in a hotel room", "ثلاجة صغيرة بمشروبات ووجبات خفيفة في الغرفة"],LOBBY:["Entrance hall where hotel guests wait and meet", "قاعة المدخل حيث ينتظر النزلاء ويلتقون"],SUITE:["Luxury room with a separate living area", "غرفة فاخرة مع صالة جلوس منفصلة"],BUFFET:["Meal where you serve yourself from many dishes", "وجبة تخدم فيها نفسك من أطباق كثيرة"],HOUSEKEEPING:["Hotel department that cleans and makes up the rooms", "القسم الذي ينظّف غرف الفندق ويرتّبها"],CHECKOUT:["Leaving the hotel and handing back your key", "مغادرة الفندق وتسليم المفتاح"],BALCONY:["Small outdoor platform off a room", "مساحة صغيرة مكشوفة خارج الغرفة"],ROOMSERVICE:["Food brought up to your hotel room", "طعام يُوصَل إلى غرفتك في الفندق"],VALET:["Staff member who parks your car for you", "موظف يركن سيارتك بدلاً عنك"],DENTIST:["You visit them when a tooth hurts", "تزوره عندما يؤلمك ضرسك"],PLUMBER:["Fixes leaking pipes and taps", "يصلح الأنابيب والحنفيات المسرّبة"],ARCHITECT:["Designs buildings", "يصمّم المباني"],FIREFIGHTER:["Rides the red truck and rescues people from flames", "يركب الشاحنة الحمراء وينقذ الناس من النيران"],JOURNALIST:["Writes news stories", "يكتب الأخبار والتقارير"],PILOT:["Flies the plane", "يقود الطائرة"],BARISTA:["Makes coffee drinks at a café", "يحضّر القهوة في المقهى"],SURGEON:["Doctor who performs operations", "طبيب يجري العمليات"],CARPENTER:["Builds things out of wood", "يصنع الأشياء من الخشب"],ASTRONAUT:["Wears a special suit and lives on a station orbiting Earth", "يرتدي بدلة خاصة ويعيش في محطة تدور حول الأرض"],LIBRARIAN:["Looks after books and the people who borrow them", "يعتني بالكتب ومن يستعيرها"],MECHANIC:["Repairs cars", "يصلح السيارات"],TOASTER:["Pops up hot bread for breakfast", "جهاز يقفز منه الخبز ساخناً على الفطور"],CURTAIN:["Fabric that covers a window", "قماش يغطّي النافذة"],PILLOW:["Soft thing you rest your head on in bed", "شيء ناعم تضع عليه رأسك في السرير"],STAIRCASE:["Steps that connect the floors of a building", "درجات تصل بين طوابق المبنى"],CUPBOARD:["Kitchen storage with doors, for plates and cups", "مكان تخزين بأبواب للصحون والأكواب في المطبخ"],DOORBELL:["Button visitors press so you know they've arrived", "زر يضغطه الزائر لتعرف أنه وصل"],BATHTUB:["You fill it with warm water and lie down in it", "تملؤه بالماء الدافئ وتستلقي فيه"],SPATULA:["Flat kitchen tool for flipping food", "أداة مطبخ مسطّحة لقلب الطعام"],LAMPSHADE:["Fabric or paper cover around a bulb that softens the light", "قطعة من قماش أو ورق حول اللمبة تنعّم الضوء"],WARDROBE:["Tall furniture where clothes hang", "قطعة أثاث طويلة تُعلَّق فيها الملابس"],KETTLE:["Boils water for tea", "يغلي الماء للشاي"],DRAWER:["Box that slides out of a desk or cabinet", "صندوق ينزلق خارج المكتب أو الخزانة"],GALAXY:["Billions of stars held together, like the Milky Way", "مليارات النجوم معاً، مثل درب التبانة"],NEBULA:["Huge cloud of gas and dust where stars are born", "سحابة ضخمة من الغاز والغبار تولد فيها النجوم"],COMET:["Icy body with a glowing tail", "جسم جليدي له ذيل مضيء"],ASTEROID:["Rocky body orbiting the Sun, smaller than a planet", "جسم صخري يدور حول الشمس، أصغر من الكوكب"],SATURN:["Planet famous for its rings", "كوكب مشهور بحلقاته"],ECLIPSE:["When the Moon blocks out the Sun", "عندما يحجب القمر الشمس"],ROCKET:["Blasts off into space on fire and smoke", "ينطلق إلى الفضاء بالنار والدخان"],JUPITER:["Biggest planet in our solar system", "أكبر كوكب في مجموعتنا الشمسية"],METEOR:["Shooting star streaking across the night sky", "نجم يبدو ساقطاً يخطف في سماء الليل"],ORBIT:["Curved path around a planet or star", "مسار منحنٍ حول كوكب أو نجم"],TELESCOPE:["Tube that makes faraway stars look close", "أنبوب يجعل النجوم البعيدة تبدو قريبة"],GRAVITY:["Force that pulls things down to Earth", "القوة التي تشدّ الأشياء نحو الأرض"],KEYBOARD:["You type on it with your fingers", "تكتب عليه بأصابعك"],PASSWORD:["Secret word that keeps your account safe", "كلمة سرية تحمي حسابك"],BLUETOOTH:["Wireless link for earbuds and nearby devices", "اتصال لاسلكي للسماعات والأجهزة القريبة"],DOWNLOAD:["Saving a file from the internet onto your device", "حفظ ملف من الإنترنت على جهازك"],SPEAKER:["Plays your music out loud", "يُخرج صوت الموسيقى عالياً"],WEBCAM:["Camera for video calls on a computer", "كاميرا لمكالمات الفيديو على الكمبيوتر"],HEADPHONES:["Worn over your ears so only you can hear", "تلبسها على أذنيك لتسمع وحدك"],CHARGER:["Fills up your phone's battery", "يملأ بطارية جوالك"],PIXEL:["Tiny dot that makes up an image on a screen", "نقطة صغيرة تتكوّن منها الصورة على الشاشة"],ROUTER:["Box that spreads Wi-Fi around your home", "جهاز يوزّع الواي فاي في البيت"],BROWSER:["App you use to visit websites", "تطبيق تزور به المواقع"],JOYSTICK:["Small lever you tilt to steer in video games", "ذراع صغير تحرّكه بيدك للتوجيه في ألعاب الفيديو"]};
+const HINT_LETTER=30,HINT_CLUE=20;
+/* reveal-a-letter allowance by word length: 7+ letters 3, 6 letters 2, 5 or fewer 1 */
+const letterHints=w=>w.length>=7?3:w.length===6?2:1;
 const vowelCount=w=>[...w].filter(c=>"AEIOU".includes(c)).length;
 
 /* ---------- interface text ---------- */
@@ -321,7 +326,7 @@ en:{
   connecting:"Connecting to online play…",netOk:"Friends join with the 4-letter code.",netNone:"Online rooms aren't available in this view. Solo practice still works.",
   codeLen:"Room codes are 4 letters.",roomFail:"Couldn't open that room. Try again in a moment.",solo:"Practise solo",
   r1b:"60 seconds",r1:"per word, after a 3-second countdown.",r2b:"6 misses",r2:"and you're hanged. Zero points.",
-  r3b:"Up to 340 pts",r3:"100 for solving, up to +240 for speed, −10 per miss, −20 or −30 per hint.",
+  r3b:"Up to 340 pts",r3:"100 for solving, up to +240 for speed, −10 per miss, −30 per revealed letter, −20 for a clue.",
   copy:"Copy",copied:"Copied",copyFail:"Copy failed — select the text",leave:"Leave",gallows:"Gallows",category:"Category",
   boardRace:"Race board",teams:"Teams",boardDaily:"Daily leaderboard",tabToday:"Today",tabYday:"Yesterday",tabSeason:"Season",
   soloPractice:"Solo practice",dailyWord:"Daily word",roomLbl:"Room ",roundN:"Round {n}",secs:"{n}s",
@@ -351,7 +356,7 @@ en:{
   pts:"{n} pts",hm:"{h}h {m}m",
   diffEasy:"Easy",diffNormal:"Normal",diffHard:"Hard",
   diffHelp_easy:"Short words · 8 misses · 90 seconds · hints on",diffHelp_normal:"All words · 6 misses · 60 seconds · hints on",diffHelp_hard:"Long words · no hints · no free letter",
-  hintLetter:"Reveal a letter",hintMeaning:"Meaning in Arabic",vowels:"Vowels: {n}",hint1:"1 hint",hintsN:"{n} hints",
+  hintLetter:"Reveal a letter",hintClue:"Show a clue",meaningAr:"In Arabic: {m}",vowels:"Vowels: {n}",hint1:"1 hint",hintsN:"{n} hints",
   dailyHelp:"The first letter is free. Hints are there if you need them, but they cost points.",
   teamA:"Team Blue",teamB:"Team Red",colA:"Blue",colB:"Red",
   cat_animals:"Animals",cat_food:"Food & drink",cat_countries:"Countries",cat_cities:"Cities",cat_sports:"Sports",
@@ -371,7 +376,7 @@ ar:{
   connecting:"جارٍ الاتصال باللعب أونلاين…",netOk:"ينضم أصحابك برمز من 4 أحرف.",netNone:"الغرف الأونلاين غير متاحة هنا. التدريب الفردي يعمل.",
   codeLen:"رمز الغرفة يتكوّن من 4 أحرف.",roomFail:"تعذّر فتح الغرفة. حاول مرة أخرى بعد قليل.",solo:"تدرّب وحدك",
   r1b:"60 ثانية",r1:"لكل كلمة، بعد عدّ تنازلي من 3 ثوانٍ.",r2b:"6 أخطاء",r2:"وتُشنق. صفر نقاط.",
-  r3b:"حتى 340 نقطة",r3:"100 للحل، وحتى +240 للسرعة، و−10 لكل خطأ، و−20 أو −30 لكل تلميح.",
+  r3b:"حتى 340 نقطة",r3:"100 للحل، وحتى +240 للسرعة، و−10 لكل خطأ، و−30 لكل حرف مكشوف، و−20 للوصف.",
   copy:"نسخ",copied:"تم النسخ",copyFail:"تعذّر النسخ، حدّد النص يدوياً",leave:"خروج",gallows:"المشنقة",category:"الفئة",
   boardRace:"لوحة السباق",teams:"الفرق",boardDaily:"ترتيب كلمة اليوم",tabToday:"اليوم",tabYday:"أمس",tabSeason:"الموسم",
   soloPractice:"تدريب فردي",dailyWord:"كلمة اليوم",roomLbl:"غرفة ",roundN:"الجولة {n}",secs:"{n} ث",
@@ -401,7 +406,7 @@ ar:{
   pts:"{n} نقطة",hm:"{h}س {m}د",
   diffEasy:"سهل",diffNormal:"عادي",diffHard:"صعب",
   diffHelp_easy:"كلمات قصيرة · 8 أخطاء · 90 ثانية · التلميحات متاحة",diffHelp_normal:"كل الكلمات · 6 أخطاء · 60 ثانية · التلميحات متاحة",diffHelp_hard:"كلمات طويلة · بدون تلميحات · بدون حرف مجاني",
-  hintLetter:"اكشف حرفاً",hintMeaning:"المعنى بالعربي",vowels:"الحروف المتحركة: {n}",hint1:"تلميح واحد",hintsN:"تلميحات: {n}",
+  hintLetter:"اكشف حرفاً",hintClue:"اعرض وصفاً",meaningAr:"بالعربي: {m}",vowels:"الحروف المتحركة: {n}",hint1:"تلميح واحد",hintsN:"تلميحات: {n}",
   dailyHelp:"الحرف الأول مجاني. التلميحات متاحة إذا احتجتها، لكنها تخصم من نقاطك.",
   teamA:"الفريق الأزرق",teamB:"الفريق الأحمر",colA:"الأزرق",colB:"الأحمر",
   cat_animals:"حيوانات",cat_food:"أكل ومشروبات",cat_countries:"دول",cat_cities:"مدن",cat_sports:"رياضات",
@@ -607,7 +612,7 @@ function copyText(txt,btn,labelKey){
   navigator.clipboard.writeText(txt).then(()=>{btn.textContent=t("copied");setTimeout(()=>btn.textContent=t(labelKey),1400)}).catch(()=>{btn.textContent=t("copyFail");setTimeout(()=>btn.textContent=t(labelKey),2000)});
 }
 $("#copyBtn").onclick=()=>{if(code)copyText(code,$("#copyBtn"),"copy")};
-$("#hintLetterBtn").onclick=hintLetter;$("#hintMeaningBtn").onclick=hintMeaning;
+$("#hintLetterBtn").onclick=hintLetter;$("#hintClueBtn").onclick=hintClue;
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{boardTab=b.dataset.t;render()});
 
 /* ---------- presence ---------- */
@@ -638,7 +643,7 @@ function revealed(){if(!cur)return 0;let n=0;for(const ch of cur.word)if(cur.g.h
 function makeCur(round,idx,startAt,daily,df){
   df=diffOf(df);const D=DIFF[df];const W=WORDS[((idx%WORDS.length)+WORDS.length)%WORDS.length];
   const c={round,idx,word:W.w,cat:W.c,startAt,g:new Set(),miss:0,done:0,t:0,pts:0,daily:!!daily,
-    df,maxMiss:D.miss,ms:D.ms,help:D.help,maxHints:D.maxHints,hints:0,meaning:false};
+    df,maxMiss:D.miss,ms:D.ms,help:D.help,maxHints:D.help?letterHints(W.w):0,hints:0,clue:false};
   if(D.free)c.g.add(W.w[0]); // the first letter (every place it appears) is free
   return c;
 }
@@ -646,7 +651,7 @@ function beginRound(round,idx,startAt,daily,df){
   cur=makeCur(round,idx,startAt,daily,df);
   waitNext=false;pushPresence();render();
 }
-function hintsUsed(){return cur?cur.hints+(cur.meaning?1:0):0}
+function hintsUsed(){return cur?cur.hints+(cur.clue?1:0):0}
 function hiddenLetters(){return cur?[...new Set(cur.word)].filter(ch=>!cur.g.has(ch)):[]}
 function canPlay(){return cur&&!cur.done&&Date.now()>=cur.startAt&&!(mode==="room"&&!host&&(()=>{const h=hostInfo();return h&&h.st==="ended"&&h.hr===cur.round})())}
 function hintLetter(){
@@ -655,16 +660,16 @@ function hintLetter(){
   cur.g.add(left[Math.floor(Math.random()*left.length)]);cur.hints++;
   pushPresence();render();
 }
-function hintMeaning(){
-  if(!canPlay()||!cur.help||cur.meaning)return;
-  cur.meaning=true;pushPresence();render();
+function hintClue(){
+  if(!canPlay()||!cur.help||cur.clue)return;
+  cur.clue=true;pushPresence();render();
 }
 function finishMine(kind){
   if(!cur||cur.done)return;
   cur.t=Math.min(cur.ms,Math.max(0,Date.now()-cur.startAt));
   if(kind==="solved"){cur.done=1;
     const speed=Math.round(240*Math.max(0,cur.ms-cur.t)/cur.ms);
-    cur.pts=Math.max(20,100+speed-cur.miss*10-cur.hints*HINT_LETTER-(cur.meaning?HINT_MEANING:0));
+    cur.pts=Math.max(20,100+speed-cur.miss*10-cur.hints*HINT_LETTER-(cur.clue?HINT_CLUE:0));
     if(!cur.daily)score+=cur.pts}
   else{cur.done=2;cur.pts=0}
   if(cur.daily)recordDaily();
@@ -767,14 +772,15 @@ function renderPlay(){
   const live=cur&&Date.now()>=cur.startAt;
   $("#cat").textContent=live?catName(cur.cat):t("category");
   $("#vowels").textContent=live&&cur.help?t("vowels",{n:vowelCount(cur.word)}):"";
-  const mn=$("#meaning");mn.hidden=!(live&&(cur.meaning||(cur.done&&cur.help)));mn.textContent=live?MEANING[cur.word]||"":"";
+  const cl=$("#clue");cl.hidden=!(live&&(cur.clue||cur.done));cl.textContent=live&&CLUE[cur.word]?CLUE[cur.word][lang==="ar"?1:0]:"";
+  const tr=$("#transl");tr.hidden=!(live&&cur.done&&lang==="ar");tr.textContent=live?t("meaningAr",{m:MEANING[cur.word]||""}):"";
   const hr=$("#hintRow");hr.hidden=!(live&&cur.help&&!cur.done);
   if(!hr.hidden){
-    const hl=$("#hintLetterBtn"),hm=$("#hintMeaningBtn");hl.textContent="";hm.textContent="";
+    const hl=$("#hintLetterBtn"),hm=$("#hintClueBtn");hl.textContent="";hm.textContent="";
     const left=cur.maxHints-cur.hints;
     hl.append(document.createTextNode(t("hintLetter")+" "),el("b",null,"−"+HINT_LETTER),document.createTextNode(" ("+left+")"));
     hl.disabled=left<=0||hiddenLetters().length<2;
-    hm.append(document.createTextNode(t("hintMeaning")+" "),el("b",null,"−"+HINT_MEANING));hm.disabled=cur.meaning;
+    hm.append(document.createTextNode(t("hintClue")+" "),el("b",null,"−"+HINT_CLUE));hm.disabled=cur.clue;
   }
   const w=$("#word");w.textContent="";
   if(live){for(const ch of cur.word){const known=cur.g.has(ch);const s=el("span","slot",known||cur.done?ch:"");if(!known&&cur.done)s.classList.add("miss");w.appendChild(s)}}
