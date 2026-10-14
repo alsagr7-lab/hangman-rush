@@ -5,6 +5,8 @@ Multiplayer hangman you play on your phone, in English or Arabic (the words them
 - **Rooms:** create a room, share the 4-letter code, and race. Free-for-all or Blue vs Red teams (team score is the members' average, so uneven teams stay fair).
 - **Daily word:** one word a day for everyone (changes at midnight UTC), one attempt, a shared leaderboard and streaks.
 - **Solo practice:** no server features needed.
+- **Difficulty:** the host (or solo player) picks Easy (short words, 8 misses, 90 s), Normal, or Hard (long words, no help). The daily word is always Normal.
+- **Help:** the first letter is free on Easy and Normal, a vowel count is shown, and two hints cost points: reveal a letter (−30) or see the word's meaning in Arabic (−20).
 
 ## Run locally
 
