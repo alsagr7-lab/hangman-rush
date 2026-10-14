@@ -6,7 +6,8 @@ Multiplayer hangman you play on your phone, in English or Arabic (the words them
 - **Daily word:** one word a day for everyone (changes at midnight UTC), one attempt, a shared leaderboard and streaks.
 - **Solo practice:** no server features needed.
 - **Difficulty:** the host (or solo player) picks Easy (short words, 8 misses, 90 s), Normal, or Hard (long words, no help). The daily word is always Normal.
-- **Help:** the first letter is free on Easy and Normal and a vowel count is shown. Two hints cost points: reveal a letter (−30; 3 for words of 7+ letters, 2 for 6, 1 for 5 or fewer) or show a clue (halves the round score) written in the player's language. After each round the clue is shown, and Arabic players also see the word's Arabic meaning.
+- **Adaptive handicap:** every player has a level that rises with each solved word and falls with each miss (rooms and the daily word only). A clue costs 50% of the round score, plus 5 points per level (25–90%). Players two or more levels below the start get extra letter reveals.
+- **Help:** the first letter is free on Easy and Normal and a vowel count is shown. Two hints cost points: reveal a letter (−30; 3 for words of 7+ letters, 2 for 6, 1 for 5 or fewer) or show a clue written in the player's language. After each round the clue is shown, and Arabic players also see the word's Arabic meaning.
 
 ## Run locally
 
