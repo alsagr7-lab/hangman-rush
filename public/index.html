@@ -37,7 +37,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .btn.ghost{box-shadow:none;border-color:var(--line);background:transparent;padding:8px 12px;font-weight:600}
 .lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
-input[type=text]{font:inherit;font-size:16px;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
 
 /* Lobby */
 #lobby{display:grid;gap:18px;max-width:560px;margin:0 auto}
