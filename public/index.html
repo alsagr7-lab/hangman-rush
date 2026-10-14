@@ -141,6 +141,12 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
 .teamhead{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:6px 10px;border-radius:8px;background:var(--bg);font-weight:700}
 .teamhead .ps{font-size:16px}
 .empty{color:var(--muted);font-size:13.5px;padding:10px 0}
+.season{font-family:var(--f-mono);font-size:12px;letter-spacing:.04em}
+.seasonbar{display:flex;justify-content:space-between;gap:8px;font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.seasonbar .meter{flex:1;height:6px;align-self:center;background:var(--bg);border-radius:9px;overflow:hidden}
+.seasonbar .meter i{display:block;height:100%;background:var(--accent)}
+.seasonbar.final{color:var(--hot)}
+.seasonbar.final .meter i{background:var(--hot)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -166,6 +172,7 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
     <div class="card daily">
       <div class="head"><h2 id="dTitle">Daily word</h2><span class="streak" id="dStreak"></span></div>
       <p class="note" id="dStatus">One word a day for everyone. One attempt.</p>
+      <p class="note season" id="dSeason"></p>
       <button class="btn primary" id="dailyBtn">Play today's word</button>
     </div>
 
@@ -219,7 +226,7 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
         <div class="tabs" id="tabs" role="tablist" hidden>
           <button role="tab" data-t="today" aria-selected="true">Today</button>
           <button role="tab" data-t="yday" aria-selected="false">Yesterday</button>
-          <button role="tab" data-t="streak" aria-selected="false">Streaks</button>
+          <button role="tab" data-t="streak" aria-selected="false">Season</button>
         </div>
         <div id="players"></div>
       </aside>
@@ -260,7 +267,7 @@ let room=null,roomApi=null,code=null,mode=null,host=false,connected=true;
 let hs=freshHost();
 let cur=null,score=0,lastRound=0,waitNext=false,joinedAt=0,unsubs=[],myTeam=null;
 let db=null,uid=null,allPlayers=[],dbErr=false,boardTab="today";
-let rec=loadLocalRec();
+let rec; // set once the date helpers below exist
 
 function freshHost(){return{hr:0,hs:-1,st:"waiting",at:0,used:[],md:"f",ts:{A:0,B:0},tr:null}}
 
@@ -271,11 +278,28 @@ const todayKey=()=>dayKey(dayNum());
 const ydayKey=()=>dayKey(dayNum()-1);
 const dailyNo=()=>dayNum()-EPOCH_DAY;
 const dailyIdx=dn=>((dn*37+11)%WORDS.length+WORDS.length)%WORDS.length;
+/* seasons: 30 days each; Season 1 starts on daily #1 */
+const SEASON_LEN=30;
+const seasonOf=dn=>Math.floor((dn-EPOCH_DAY-1)/SEASON_LEN)+1;
+const curSeason=()=>Math.max(1,seasonOf(dayNum()));
+const seasonDay=()=>((dayNum()-EPOCH_DAY-1)%SEASON_LEN+SEASON_LEN)%SEASON_LEN+1; // 1..30
+const seasonDaysLeft=()=>SEASON_LEN-seasonDay()+1; // includes today
+const seasonOfRec=r=>num(r.se)||curSeason();
+function rollover(r){
+  // a record from an earlier season starts fresh, keeping a summary of the old one
+  if(seasonOfRec(r)>=curSeason())return false;
+  const pts=Object.values(r.h).reduce((a,e)=>a+num(e.pts),0);
+  r.prev={se:seasonOfRec(r),best:r.best,wins:r.wins,played:r.played,pts};
+  r.se=curSeason();r.streak=0;r.best=0;r.ls="";r.played=0;r.wins=0;r.h={};
+  return true;
+}
+function seasonPts(r){return Object.values(r.h||{}).reduce((a,e)=>a+num(e.pts),0)}
 function untilNext(){const ms=(dayNum()+1)*DAY-Date.now();const h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return h+"h "+m+"m"}
 function loadLocalRec(){try{const r=JSON.parse(localStorage.getItem("hr-daily")||"null");if(r&&typeof r==="object")return clean(r)}catch(e){}return clean({})}
 function clean(r){const h={};const src=r.h&&typeof r.h==="object"?r.h:{};
   Object.keys(src).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort().slice(-40).forEach(k=>{const v=src[k]||{};h[k]=("ok" in v)?{ok:v.ok?1:0,t:num(v.t),m:num(v.m),pts:num(v.pts)}:{s:1}});
-  return{n:nm16(r.n||me.nick),c:safeColor(r.c||me.color),streak:num(r.streak),best:num(r.best),ls:typeof r.ls==="string"?r.ls:"",played:num(r.played),wins:num(r.wins),h}}
+  return{n:nm16(r.n||me.nick),c:safeColor(r.c||me.color),streak:num(r.streak),best:num(r.best),ls:typeof r.ls==="string"?r.ls:"",played:num(r.played),wins:num(r.wins),h,se:num(r.se)||curSeason(),
+    prev:r.prev&&typeof r.prev==="object"?{se:num(r.prev.se),best:num(r.prev.best),wins:num(r.prev.wins),played:num(r.prev.played),pts:num(r.prev.pts)}:null}}
 function curStreak(r){return r.ls===todayKey()||r.ls===ydayKey()?num(r.streak):0}
 let saving=false,pendingSave=false;
 function saveRec(){
@@ -287,6 +311,7 @@ function saveRec(){
   db.doc("players/"+uid).set(JSON.parse(JSON.stringify(rec))).catch(()=>{dbErr=true;render()}).finally(()=>{saving=false;if(pendingSave){pendingSave=false;saveRec()}});
 }
 function recordDaily(){
+  rollover(rec);
   const k=todayKey(),y=ydayKey(),ok=cur.done===1;
   if(rec.h[k]&&("ok" in rec.h[k]))return;
   rec.h[k]={ok:ok?1:0,t:cur.t,m:cur.miss,pts:cur.pts};
@@ -296,6 +321,8 @@ function recordDaily(){
   rec=clean(rec);saveRec();renderLobbyDaily();
 }
 function todayEntry(r){return r&&r.h?r.h[todayKey()]:null}
+rec=loadLocalRec();
+if(rollover(rec)){try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch(e){}}
 
 /* ---------- lobby ---------- */
 const nickIn=$("#nick");nickIn.value=me.nick;
@@ -304,8 +331,13 @@ const swWrap=$("#sw");
 COLORS.forEach(c=>{const b=el("button","sw");b.style.background=c;b.setAttribute("aria-label","Colour "+c);b.setAttribute("aria-pressed",c===me.color);b.onclick=()=>{me.color=c;[...swWrap.children].forEach(x=>x.setAttribute("aria-pressed",x===b))};swWrap.appendChild(b)});
 
 function renderLobbyDaily(){
+  if(rollover(rec))saveRec();
   $("#dTitle").textContent="Daily word #"+dailyNo();
   const s=curStreak(rec);$("#dStreak").textContent=s?"streak "+s:(rec.best?"best "+rec.best:"");
+  const left=seasonDaysLeft();
+  let sl="Season "+curSeason()+" · "+(left===1?"last day":left+" days left")+" · standings reset every 30 days";
+  if(rec.prev&&rec.prev.se)sl+=". Last season: "+rec.prev.wins+" solved, best streak "+rec.prev.best+", "+rec.prev.pts+" pts";
+  $("#dSeason").textContent=sl;
   const e=todayEntry(rec),st=$("#dStatus"),b=$("#dailyBtn");
   if(e&&("ok" in e)){st.textContent=(e.ok?"Solved in "+(e.t/1000).toFixed(1)+"s · "+e.pts+" pts":"Hanged today")+". Next word in "+untilNext()+".";b.textContent="See today's leaderboard";b.classList.remove("primary")}
   else{st.textContent="One word a day for everyone, one attempt. New word in "+untilNext()+".";b.textContent="Play today's word";b.classList.add("primary")}
@@ -323,8 +355,9 @@ renderLobbyDaily();setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},3
     db.collection("players").onSnapshot(snap=>{
       allPlayers=snap.docs.map(doc=>Object.assign(clean(doc.data()||{}),{id:doc.id}));
       const mine=allPlayers.find(p=>p.id===uid);
-      if(mine&&mine.played>=rec.played){rec=clean(mine);try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch(e){}}
-      else if(rec.played>0&&(!mine||mine.played<rec.played))saveRec();
+      const newer=mine&&(mine.se>rec.se||(mine.se===rec.se&&mine.played>=rec.played));
+      if(newer){rec=clean(mine);const rolled=rollover(rec);try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch(e){}if(rolled)saveRec()}
+      else if(rec.played>0||rec.prev)saveRec();
       renderLobbyDaily();render();
     },()=>{dbErr=true;render()});
   }
@@ -547,19 +580,26 @@ function renderBoard(){
 function renderDailyBoard(box){
   $("#boardLbl").textContent="Daily leaderboard";
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===boardTab));
-  let list=(db&&!dbErr)?allPlayers.slice():[];
-  if(!list.find(p=>p.id===uid))list.push(Object.assign({},rec,{id:uid||"me"}));
-  list=list.map(p=>Object.assign({},p,{isMe:(uid?p.id===uid:p.id==="me")}));
-  $("#pcount").textContent=list.length+(list.length===1?" player":" players");
+  const se=curSeason();
+  let list=(db&&!dbErr)?allPlayers.filter(p=>p.id!==uid&&p.se===se):[];
+  list.push(Object.assign({},rec,{id:uid||"me",isMe:true}));
+  $("#pcount").textContent="Season "+se;
+  const left=seasonDaysLeft(),bar=el("div","seasonbar"+(left<=3?" final":""));
+  const meter=el("span","meter");const fill=el("i");fill.style.width=Math.round(100*(seasonDay()-1)/SEASON_LEN)+"%";meter.appendChild(fill);
+  bar.append(el("span",null,"Day "+seasonDay()+"/"+SEASON_LEN),meter,el("span",null,left<=3?(left===1?"Resets tonight":"Final "+left+" days"):left+" days left"));
+  box.appendChild(bar);
   const myEntry=todayEntry(rec);const played=myEntry&&("ok" in myEntry);
   let rows;
   if(boardTab==="streak"){
-    rows=list.filter(p=>p.played>0).sort((a,b)=>curStreak(b)-curStreak(a)||b.best-a.best||b.wins-a.wins);
-    if(!rows.length)box.appendChild(el("div","empty","Streaks show up after the first daily solve."));
+    rows=list.filter(p=>p.played>0).sort((a,b)=>seasonPts(b)-seasonPts(a)||curStreak(b)-curStreak(a)||b.best-a.best);
+    if(!rows.length)box.appendChild(el("div","empty","Season standings show up after the first daily word is played."));
     rows.forEach((p,i)=>{const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=safeColor(p.c);
-      const nm=el("span","pn",nm16(p.n));if(p.isMe)nm.appendChild(el("small",null,"you"));
-      const pp=el("div","pp",p.wins+" solved of "+p.played+" · best streak "+p.best);
-      d.append(dot,nm,el("span","ps streak",String(curStreak(p))),pp);box.appendChild(d)});
+      const nm=el("span","pn",(i+1)+". "+nm16(p.n));if(p.isMe)nm.appendChild(el("small",null,"you"));
+      const pp=el("div","pp");const s=curStreak(p);
+      pp.appendChild(el("span",null,p.wins+"/"+p.played+" solved · best streak "+p.best));
+      if(s)pp.appendChild(el("span","streak","streak "+s));
+      d.append(dot,nm,el("span","ps",String(seasonPts(p))),pp);box.appendChild(d)});
+    box.appendChild(el("p","note","Ranked by total daily points this season. Everything resets when Season "+(se+1)+" starts."));
   } else {
     const k=boardTab==="today"?todayKey():ydayKey();
     rows=list.filter(p=>p.h&&p.h[k]&&("ok" in p.h[k])).sort((a,b)=>{const x=a.h[k],y=b.h[k];return y.ok-x.ok||y.pts-x.pts||x.t-y.t});
@@ -646,7 +686,7 @@ function dailyOverlay(ov,panel){
     out.push(el("h2",null,e.ok?"Solved in "+(e.t/1000).toFixed(1)+"s":"Hanged today"));
     out.push(el("div","reveal",W.w));
     const st=el("div","stats");[[e.pts,"points"],[e.m,"misses"],[s,"streak"],[rec.best,"best"]].forEach(([v,l])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,l));st.appendChild(d)});out.push(st);
-    const share="Hangman Rush daily #"+dailyNo()+"\n"+(e.ok?"Solved in "+(e.t/1000).toFixed(1)+"s, "+e.m+" miss"+(e.m===1?"":"es")+", "+e.pts+" pts":"Hanged")+(s?"\nStreak: "+s:"");
+    const share="Hangman Rush · Season "+curSeason()+" · daily #"+dailyNo()+"\n"+(e.ok?"Solved in "+(e.t/1000).toFixed(1)+"s, "+e.m+" miss"+(e.m===1?"":"es")+", "+e.pts+" pts":"Hanged")+(s?"\nStreak: "+s:"");
     const b=el("button","btn primary","Copy my result");b.onclick=()=>copyText(share,b,"Copy my result");out.push(b);
     out.push(el("p","note","Next word in "+untilNext()+". It changes at midnight UTC."));
     return out;

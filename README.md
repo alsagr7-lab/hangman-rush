@@ -21,13 +21,21 @@ npm start
    (Or **New → Web Service**: build `npm install`, start `npm start`.)
 3. Open the `.onrender.com` URL and share it with friends.
 
-### Keeping the leaderboard and streaks
+### Seasons and the database
 
-With no database the leaderboard is saved to a file. Render's free plan wipes that file on every deploy or restart, so streaks reset.
-To keep them, create a Postgres database (Render, Neon or Supabase all work), then add its connection string to the web service as the
-environment variable `DATABASE_URL`. The table is created automatically on start.
+The daily leaderboard runs in **30-day seasons**. Season 1 started on 14 Oct 2026; standings, streaks and points reset at the start of
+each season, and every player keeps a one-line summary of their last season.
 
-The free plan also sleeps after about 15 minutes idle, so the first visit afterwards takes 30–60 seconds to load.
+`render.yaml` creates a free Render Postgres database and connects it automatically (`DATABASE_URL`). Render deletes free databases
+after 30 days, which lines up with the season length. When Render says the database has expired:
+
+1. Delete `hangman-rush-db` in the Render dashboard.
+2. Open the Blueprint and click **Manual sync**. Render creates a fresh database and redeploys.
+
+If the database is ever missing or unreachable, the server keeps running and falls back to a local file (which resets on restart).
+Want permanent storage instead? Point `DATABASE_URL` at a Neon or Supabase database.
+
+The free web service sleeps after about 15 minutes idle, so the first visit afterwards takes 30–60 seconds to load.
 
 ## How it fits together
 

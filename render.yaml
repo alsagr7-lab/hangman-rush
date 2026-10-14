@@ -1,3 +1,9 @@
+databases:
+  - name: hangman-rush-db
+    plan: free
+    databaseName: hangman
+    user: hangman
+
 services:
   - type: web
     name: hangman-rush
@@ -6,3 +12,8 @@ services:
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hangman-rush-db
+          property: connectionString
