@@ -115,9 +115,9 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
 .votes{display:grid;gap:8px}
 .votes .lbl{margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;display:inline-flex;gap:6px;align-items:center}
-.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
-.chip .pct{font-family:var(--f-mono);font-size:11.5px;opacity:.85}
+.catchip{border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;display:inline-flex;gap:6px;align-items:center}
+.catchip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.catchip .pct{font-family:var(--f-mono);font-size:11.5px;opacity:.85}
 .hintnote{flex-basis:100%;text-align:center;color:var(--good)}
 .keys{display:grid;gap:6px;user-select:none;direction:ltr}
 .krow{display:flex;justify-content:center;gap:5px}
@@ -719,7 +719,7 @@ function pickCategory(){
 function voteBox(){
   const sh=voteShares(),box=el("div","votes"),chips=el("div","chips");
   box.appendChild(el("p","lbl",t(mode==="room"?"voteTitle":"pickTitle")));
-  CATS.forEach(c=>{const b=el("button","chip");b.type="button";b.setAttribute("aria-pressed",myVotes.has(c));b.append(document.createTextNode(catName(c)));
+  CATS.forEach(c=>{const b=el("button","catchip");b.type="button";b.setAttribute("aria-pressed",myVotes.has(c));b.append(document.createTextNode(catName(c)));
     if(sh[c])b.appendChild(el("span","pct",Math.round(sh[c]*100)+"%"));b.onclick=()=>toggleVote(c);chips.appendChild(b)});
   box.append(chips,el("p","diffhelp",Object.keys(sh).length?t(mode==="room"?"voteHelp":"pickHelp"):t("anyCat")));
   return box;
