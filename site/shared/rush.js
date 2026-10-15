@@ -52,15 +52,19 @@
     en: { welcome: "Welcome to", sub: "Give us a moment while the game server wakes up.", check: "Checking if the server is awake…",
           tries: n => `Still waking up · asked ${n} time${n === 1 ? "" : "s"}`, ready: "Ready! Let's play.",
           slow: "This is taking longer than usual. We'll keep asking every 10 seconds.", offline: "Practise offline meanwhile",
+          blocked: "Your browser is blocking the connection to the game server.", blockedBrave: "Brave Shields is blocking the connection to the game server.",
+          blockedHelp: "Open the direct version instead. Your name, streaks and scores come with you.", direct: "Open the direct version",
           why: "The games run on a free server that naps when nobody's playing." },
     ar: { welcome: "أهلاً بك في", sub: "لحظات من فضلك حتى يستيقظ خادم اللعبة.", check: "نتحقق إن كان الخادم مستيقظاً…",
           tries: n => `ما زال يستيقظ · سألناه ${n} ${n === 1 ? "مرة" : "مرات"}`, ready: "جاهز! لنلعب.",
           slow: "يستغرق الأمر أطول من المعتاد. سنواصل السؤال كل 10 ثوانٍ.", offline: "تدرّب بدون اتصال في هذه الأثناء",
+          blocked: "متصفحك يمنع الاتصال بخادم اللعبة.", blockedBrave: "دروع Brave تمنع الاتصال بخادم اللعبة.",
+          blockedHelp: "افتح النسخة المباشرة بدلاً من ذلك. اسمك وسلاسلك ونقاطك تنتقل معك.", direct: "افتح النسخة المباشرة",
           why: "الألعاب تعمل على خادم مجاني يغفو عندما لا يلعب أحد." },
   };
 
   // the welcome screen; it uses the page's own colours and fonts, so it looks like part of the game
-  let splash = null, bar = null, line = null, slowBox = null, started = 0, tries = 0, dismissed = false, ticker = null;
+  let splash = null, bar = null, line = null, slowBox = null, blockBox = null, blockMsg = null, started = 0, tries = 0, dismissed = false, ticker = null;
   function showSplash() {
     if (splash || dismissed) return;
     const ar = isAr(), T = TXT[ar ? "ar" : "en"], g = GAMES[gameKey][ar ? "ar" : "en"];
@@ -83,6 +87,8 @@
 .rush-splash .st{font:600 14px var(--f-body,system-ui,sans-serif);min-height:20px}
 .rush-splash .why{font-size:13px;color:var(--muted,#5d6a80)}
 .rush-splash .slow{display:grid;gap:10px}
+.rush-splash .go{justify-self:center;text-decoration:none;font:700 15px var(--f-body,system-ui,sans-serif);color:var(--accent-ink,#fff);background:var(--accent,#2c56e0);
+  border:2px solid var(--ink,#1b2333);border-radius:10px;padding:11px 18px;box-shadow:3px 3px 0 var(--ink,#1b2333)}
 .rush-splash button{justify-self:center;font:700 15px var(--f-body,system-ui,sans-serif);color:var(--ink,#1b2333);background:var(--surface,#fff);
   border:2px solid var(--ink,#1b2333);border-radius:10px;padding:10px 16px;box-shadow:3px 3px 0 var(--ink,#1b2333);cursor:pointer}
 @media (prefers-reduced-motion:reduce){.rush-splash,.rush-splash .fill{transition:none}}`;
@@ -98,16 +104,21 @@
     const sp = document.createElement("p"); sp.textContent = T.slow;
     const off = document.createElement("button"); off.type = "button"; off.textContent = T.offline; off.onclick = () => hideSplash(true);
     slowBox.append(sp, off);
+    blockBox = document.createElement("div"); blockBox.className = "slow"; blockBox.hidden = true;
+    blockMsg = document.createElement("p"); blockMsg.style.fontWeight = "700";
+    const bh = document.createElement("p"); bh.textContent = T.blockedHelp;
+    const go = document.createElement("a"); go.className = "go"; go.textContent = T.direct; go.href = directLink();
+    blockBox.append(blockMsg, bh, go);
     const logo = document.querySelector(".brand svg");
     if (logo) { const ic = logo.cloneNode(true); ic.setAttribute("class", "ic"); inner.append(ic); }
-    inner.append(wl, h, sub, track, line, slowBox, why);
+    inner.append(wl, h, sub, track, line, slowBox, blockBox, why);
     splash.append(st, inner);
     document.body.appendChild(splash);
     // the bar creeps towards 95% over about a minute (a typical wake-up), then waits for the real answer
     ticker = setInterval(() => {
       const t = Date.now() - started;
       if (bar && serverState !== "up") bar.style.width = Math.min(95, 3 + 92 * (1 - Math.exp(-t / 25000))).toFixed(1) + "%";
-      if (t > SLOW_MS && slowBox) slowBox.hidden = false;
+      if (t > SLOW_MS && slowBox && !blocked) slowBox.hidden = false;
     }, 500);
   }
   function hideSplash(byUser) {
@@ -119,6 +130,27 @@
     setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 400); }, 450);
   }
 
+  // the same game on the server's own address, where nothing is cross-site; carries the player's id and profile
+  function directLink() { return API ? moveLink(API) : location.href; }
+  async function reachable() {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), TRY_MS);
+    try { await fetch(http("/healthz"), { mode: "no-cors", cache: "no-store", signal: ctl.signal }); return true; }
+    catch (e) { return e && e.name === "AbortError"; } // a slow answer is a waking server, not a block
+    finally { clearTimeout(to); }
+  }
+  let blockedTries = 0, blocked = false;
+  function showBlocked() {
+    blocked = true; setServer("down");
+    onBody(() => {
+      if (dismissed) { dismissed = false; }
+      showSplash();
+      if (!splash) return;
+      const T = TXT[isAr() ? "ar" : "en"];
+      blockMsg.textContent = navigator.brave ? T.blockedBrave : T.blocked;
+      blockBox.hidden = false; slowBox.hidden = true; line.textContent = "";
+      bar.parentElement.hidden = true;
+    });
+  }
   async function askOnce() {
     tries++;
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), TRY_MS);
@@ -133,7 +165,11 @@
     for (;;) {
       const t0 = Date.now();
       if (await askOnce()) { clearTimeout(show); setServer("up"); hideSplash(false); return true; }
-      if (line && splash) line.textContent = TXT[isAr() ? "ar" : "en"].tries(tries);
+      if (API && !blocked) {
+        blockedTries = (await reachable()) ? 0 : blockedTries + 1;
+        if (blockedTries >= 2) { clearTimeout(show); showBlocked(); }
+      }
+      if (line && splash && !blocked) line.textContent = TXT[isAr() ? "ar" : "en"].tries(tries);
       if (Date.now() - started > SLOW_MS) setServer("down");
       const gap = Date.now() - started > SLOW_MS ? 10000 : POLL_MS;
       await new Promise(r => setTimeout(r, Math.max(0, gap - (Date.now() - t0))));
