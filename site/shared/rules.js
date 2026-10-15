@@ -65,6 +65,7 @@
     REVEAL_MS: 3500,       // answer shown between room questions
     COUNT_MS: 3000,        // countdown before a round or the daily
     GRACE_MS: 700,         // network allowance on server-timed answers
+    FAST_MS: 1000,         // once everyone in a room or practice has answered, the timer drains over this long
     DIFF: {
       easy: { ms: 20000, help: true, pool: d => d <= 2 },
       normal: { ms: 15000, help: true, pool: () => true },
