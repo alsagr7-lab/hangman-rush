@@ -12,6 +12,8 @@ const PUBLIC = path.join(__dirname, "site");
 const SITE_URL = (process.env.SITE_URL || "").replace(/\/+$/, "");
 const store = require("./store");
 const trivia = require("./trivia");
+// pages are served as single files with the shared styles and scripts written in (see scripts/build-site.js)
+const PAGES = require("./scripts/build-site").build({ api: "", site: SITE_URL });
 
 // ---------- daily word ----------
 // The list is stored encrypted (daily-words.enc) and unlocked with the DAILY_KEY environment variable,
@@ -92,6 +94,11 @@ const server = http.createServer(async (req, res) => {
 
     // static
     let p = url.pathname.endsWith("/") ? url.pathname + "index.html" : url.pathname;
+    const page = PAGES.get(p.replace(/^\/+/, ""));
+    if (page) {
+      res.writeHead(200, { "Content-Type": TYPES[".html"], "Cache-Control": "no-cache" });
+      return res.end(page);
+    }
     const file = path.normalize(path.join(PUBLIC, decodeURIComponent(p)));
     if (!file.startsWith(PUBLIC + path.sep)) return send(res, 403, "Forbidden", "text/plain");
     // /trivia -> /trivia/ so the page's relative links work

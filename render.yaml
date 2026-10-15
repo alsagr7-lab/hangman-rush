@@ -30,9 +30,10 @@ services:
   - type: web
     name: rush-games
     runtime: static
-    staticPublishPath: ./site
+    staticPublishPath: ./dist
+    # Each page is built as one file with the shared styles and scripts inside.
     # API_URL is the game server's address, e.g. https://hangman-rush.onrender.com
-    buildCommand: printf 'window.RUSH_CONFIG={api:"%s",site:""};\n' "$API_URL" > site/shared/config.js
+    buildCommand: node scripts/build-site.js
     envVars:
       - key: API_URL
         sync: false
