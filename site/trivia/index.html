@@ -196,7 +196,7 @@ en:{
   nextSetUtc:"Next set in {t}. It changes at midnight UTC.",shareHead:"Trivia Rush · Season {s} · daily #{n}",
   archDone:"Past daily #{n}: {c} of 5",archNote:"Replays don't count on the leaderboard.",backLobby:"Back to the lobby",
   players:"{n} players",player1:"1 player",you:"you",hostTag:"host",thinking:"thinking…",waitingNext:"joins next round",
-  resumed:"You left during a question, so it counted as time's up.",pts:"{n} pts",hm:"{h}h {m}m",
+  skipAll:"Everyone has answered",skipSolo:"Answered",resumed:"You left during a question, so it counted as time's up.",pts:"{n} pts",hm:"{h}h {m}m",
   cat_geography:"Geography",cat_history:"History",cat_science:"Science",cat_space:"Space",cat_animals:"Animals",cat_sports:"Sports",
   cat_football:"Football",cat_food:"Food & drink",cat_saudi:"Saudi Arabia",cat_tech:"Tech",cat_gaming:"Gaming",cat_cars:"Cars"
 },
@@ -243,7 +243,7 @@ ar:{
   nextSetUtc:"المجموعة التالية بعد {t}. تتغيّر عند منتصف الليل بتوقيت UTC.",shareHead:"سباق المعلومات · الموسم {s} · أسئلة اليوم #{n}",
   archDone:"اليوم السابق #{n}: {c} من 5",archNote:"الإعادة لا تُحتسب في الترتيب.",backLobby:"العودة للبداية",
   players:"اللاعبون: {n}",player1:"لاعب واحد",you:"أنت",hostTag:"المضيف",thinking:"يفكّر…",waitingNext:"ينضم في الجولة التالية",
-  resumed:"خرجت أثناء سؤال، فاحتُسب انتهاء الوقت.",pts:"{n} نقطة",hm:"{h}س {m}د",
+  skipAll:"أجاب الجميع",skipSolo:"تمت الإجابة",resumed:"خرجت أثناء سؤال، فاحتُسب انتهاء الوقت.",pts:"{n} نقطة",hm:"{h}س {m}د",
   cat_geography:"جغرافيا",cat_history:"تاريخ",cat_science:"علوم",cat_space:"فضاء",cat_animals:"حيوانات",cat_sports:"رياضة",
   cat_football:"كرة القدم",cat_food:"أكل ومشروبات",cat_saudi:"السعودية",cat_tech:"تقنية",cat_gaming:"ألعاب الفيديو",cat_cars:"سيارات"
 }};
@@ -392,7 +392,7 @@ let run=null;         // daily/archive run
 let room=null,roomApi=null,code=null,host=false,connected=true,unsubs=[],joinedAt=0;
 let hs=freshHost(),cur=null,score=0,lastRound=0,waitNext=false,myTeam=null,closing=false;
 let myVotes=new Set((LS.get("tr-cv",[])||[]).filter(c=>T.CATS.includes(c)));
-function freshHost(){return{hr:0,st:"waiting",at:0,ids:[],cat:null,df:"normal",md:"f",ts:{A:0,B:0},tr:null,vo:offer(null),used:[]}}
+function freshHost(){return{hr:0,st:"waiting",at:0,ids:[],cat:null,df:"normal",md:"f",ts:{A:0,B:0},tr:null,vo:offer(null),used:[],cut:{}}}
 function offer(last){const pool=T.CATS.filter(c=>c!==last);for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}return pool.slice(0,T.VOTE_OPTIONS)}
 
 function showGame(){$("#lobby").hidden=true;$("#game").hidden=false;lastPanelKey="";window.scrollTo(0,0);render()}
@@ -511,8 +511,8 @@ function fiftyLocal(q,seed){
 /* ---------- rooms and practice ---------- */
 function myPresence(){
   const p={n:me.nick,c:me.color,u:uid,h:host?1:0,s:score,tm:myTeam,cv:[...myVotes],r:cur?cur.round:0,a:cur?cur.ans.map(x=>x?(x.ok?1:0):-1):[],rs:cur?roundScore():0};
-  if(host){Object.assign(p,{hr:hs.hr,st:hs.st,at:hs.at,ids:hs.ids,cat:hs.cat,df:hs.df,md:hs.md,ts:hs.ts,tr:hs.tr,vo:hs.vo})}
-  else Object.assign(p,{hr:null,st:null,at:null,ids:null,cat:null,df:null,md:null,ts:null,tr:null,vo:null});
+  if(host){Object.assign(p,{hr:hs.hr,st:hs.st,at:hs.at,ids:hs.ids,cat:hs.cat,df:hs.df,md:hs.md,ts:hs.ts,tr:hs.tr,vo:hs.vo,cu:hs.cut})}
+  else Object.assign(p,{hr:null,st:null,at:null,ids:null,cat:null,df:null,md:null,ts:null,tr:null,vo:null,cu:null});
   return p;
 }
 function pushPresence(){if(roomApi)roomApi.presence(myPresence()).catch(()=>{})}
@@ -525,8 +525,10 @@ function hostInfo(){
   const hp=hostPeer();if(!hp)return null;const P=hp.presence;
   return{hr:num(P.hr),st:P.st,at:num(P.at),ids:Array.isArray(P.ids)?P.ids.slice(0,10):[],cat:T.CATS.includes(P.cat)?P.cat:null,df:diffOf(P.df),md:P.md==="t"?"t":"f",
     ts:{A:num(P.ts&&P.ts.A),B:num(P.ts&&P.ts.B)},tr:P.tr&&typeof P.tr==="object"?{A:num(P.tr.A),B:num(P.tr.B),n:num(P.tr.n)}:null,
-    vo:Array.isArray(P.vo)?P.vo.filter(c=>T.CATS.includes(c)).slice(0,T.VOTE_OPTIONS):T.CATS.slice(0,T.VOTE_OPTIONS)};
+    vo:Array.isArray(P.vo)?P.vo.filter(c=>T.CATS.includes(c)).slice(0,T.VOTE_OPTIONS):T.CATS.slice(0,T.VOTE_OPTIONS),
+    cut:cleanCut(P.cu)};
 }
+function cleanCut(o){const c={};if(o&&typeof o==="object")for(let j=0;j<T.QUESTIONS;j++){const v=o[j];if(Array.isArray(v)&&v.length===2)c[j]=[num(v[0]),num(v[1])]}return c}
 const teamsOn=()=>mode==="room"&&(hostInfo()||{}).md==="t";
 function ensureTeam(){
   if(!teamsOn()){if(myTeam&&mode==="room"&&hostInfo()){myTeam=null;pushPresence()}return}
@@ -536,17 +538,29 @@ function ensureTeam(){
 }
 function roundScore(){return cur?cur.ans.reduce((s,x)=>s+(x?x.pts:0),0):0}
 
-/* the round schedule: countdown, then each question for its time, then the answer for REVEAL_MS */
+/* the round schedule: countdown, then each question for its time, then the answer for REVEAL_MS.
+   When everyone in the round has answered, the host cuts the question short: c.cut[j] = [when, new end].
+   The timer then drains quickly to zero instead of jumping. */
 function phaseOf(c,now){
-  const t0=c.at+T.COUNT_MS,step=c.ms+T.REVEAL_MS;
-  if(now<t0)return{ph:"count",left:t0-now};
-  const k=Math.floor((now-t0)/step);if(k>=c.ids.length)return{ph:"over"};
-  const off=now-t0-k*step,start=t0+k*step;
-  return off<c.ms?{ph:"q",j:k,left:c.ms-off,start}:{ph:"reveal",j:k,start};
+  let t=c.at+T.COUNT_MS;
+  if(now<t)return{ph:"count",left:t-now};
+  const cut=c.cut||{};
+  for(let j=0;j<c.ids.length;j++){
+    const start=t,full=start+c.ms,cu=cut[j];
+    const end=cu?Math.min(full,Math.max(start,cu[1])):full;
+    if(now<end){
+      let left=end-now;
+      if(cu){const span=Math.max(1,end-cu[0]);left=Math.max(0,full-cu[0])*Math.min(1,left/span)}
+      return{ph:"q",j,left,start,fast:!!cu};
+    }
+    if(now<end+T.REVEAL_MS)return{ph:"reveal",j,start};
+    t=end+T.REVEAL_MS;
+  }
+  return{ph:"over"};
 }
 function beginRound(round,ids,at,cat,df){
   df=diffOf(df);const D=T.DIFF[df];
-  cur={round,ids:ids.slice(0,T.QUESTIONS),at,cat,df,ms:D.ms,help:D.help,ans:[],fifty:{},removed:{},free:D.help&&R.bonusFor(sk())?1:0,cluePct:R.cluePctFor(sk())};
+  cur={round,ids:ids.slice(0,T.QUESTIONS),at,cat,df,ms:D.ms,help:D.help,cut:host?hs.cut:{},shift:0,ans:[],fifty:{},removed:{},free:D.help&&R.bonusFor(sk())?1:0,cluePct:R.cluePctFor(sk())};
   markSeen(cur.ids);waitNext=false;closing=false;pushPresence();lastPanelKey="";render();
 }
 function curQ(j){const q=BYID.get(cur.ids[j]);if(!q)return null;const ord=R.shuffledOrder(4,uid+"|"+q.id);return{q,ord,correct:ord.indexOf(0)}}
@@ -608,7 +622,7 @@ async function hostStart(){
   starting=false;
   if(!ids.length){render();return}
   hs.used=hs.used.concat(ids).slice(-300);
-  hs.hr=Math.max(hs.hr,lastRound)+1;hs.st="playing";hs.at=Date.now();hs.ids=ids;hs.cat=cat;hs.tr=null;
+  hs.hr=Math.max(hs.hr,lastRound)+1;hs.st="playing";hs.at=Date.now();hs.ids=ids;hs.cat=cat;hs.tr=null;hs.cut={};
   lastRound=hs.hr;beginRound(hs.hr,ids,hs.at,cat,df);
 }
 function closeRoundAsHost(){
@@ -625,7 +639,7 @@ function closeRoundAsHost(){
 function setMode(md){if(!host||hs.st==="playing")return;hs.md=md;hs.ts={A:0,B:0};hs.tr=null;if(md==="t")ensureTeam();else myTeam=null;pushPresence();lastPanelKey="";render()}
 function setDiff(df){if(!host||hs.st==="playing")return;hs.df=diffOf(df);pushPresence();lastPanelKey="";render()}
 function switchTeam(){myTeam=myTeam==="A"?"B":"A";pushPresence();lastPanelKey="";render()}
-function takeOver(){const h=hostInfo();host=true;hs=Object.assign(freshHost(),h||{},{hr:lastRound,st:"ended",used:hs.used});pushPresence();lastPanelKey="";render()}
+function takeOver(){const h=hostInfo();host=true;hs=Object.assign(freshHost(),h||{},{hr:lastRound,st:"ended",used:hs.used,cut:{}});pushPresence();lastPanelKey="";render()}
 
 function tick(){
   const now=Date.now();
@@ -640,6 +654,11 @@ function tick(){
     const last=P.ph==="over"?cur.ids.length:(P.ph==="reveal"?P.j+1:(P.ph==="q"?P.j:0));
     for(let j=0;j<last;j++)if(!cur.ans[j]){cur.ans[j]={ok:false,pts:0,p:-1};if(mode==="room")Rush.trivia.level(-1,profile()).catch(()=>{});pushPresence()}
     if(P.ph==="over"&&host&&hs.st==="playing"&&!closing){closing=true;setTimeout(closeRoundAsHost,600)}
+    if(host&&hs.st==="playing"&&cur.round===hs.hr&&P.ph==="q"&&!P.fast&&cur.ans[P.j]){
+      const rest=mode==="room"?others().filter(p=>p.presence.r===hs.hr):[];
+      const done=rest.every(p=>Array.isArray(p.presence.a)&&(p.presence.a[P.j]===0||p.presence.a[P.j]===1));
+      if(done&&P.left>T.FAST_MS){hs.cut[P.j]=[now,now+T.FAST_MS];pushPresence()}
+    }
   }
   if(mode!=="room")return;
   ensureTeam();
@@ -649,12 +668,13 @@ function tick(){
     return;
   }
   const h=hostInfo();if(!h)return;
+  if(cur&&h.hr===cur.round){const c={};for(const j in h.cut)c[j]=[h.cut[j][0]+cur.shift,h.cut[j][1]+cur.shift];cur.cut=c}
   if(h.hr>lastRound&&h.st==="playing"&&h.ids.length){
     lastRound=h.hr;
     let at=h.at||now;const D=T.DIFF[h.df],total=T.COUNT_MS+h.ids.length*(D.ms+T.REVEAL_MS);
     if(at>now+5000||at<now-total)at=now; // clocks too far apart: start our schedule now
     if(now-joinedAt<2500&&now>at+T.COUNT_MS+2000){waitNext=true;cur=null;lastPanelKey="";render();return}
-    beginRound(h.hr,h.ids,at,h.cat,h.df);
+    beginRound(h.hr,h.ids,at,h.cat,h.df);cur.shift=at-(h.at||at);
   }else if(h.hr>lastRound)lastRound=h.hr;
 }
 setInterval(()=>{if(!$("#game").hidden){tick();renderLive()}},150);
@@ -696,7 +716,7 @@ function view(){
     const a=cur.ans[P.j],opts=x.ord.map(k=>x.q.a[k]);
     return{dots,cat:cur.cat,q:x.q.q,opts,removed:cur.removed[P.j]||[],picked:a?a.p:null,correct:P.ph==="reveal"?x.correct:null,
       ok:a&&a.ok,pts:a?a.pts:0,reveal:P.ph==="reveal",live:P.ph==="q",left:P.ph==="q"?P.left:0,ms:cur.ms,
-      help:cur.help,fifty:!!cur.fifty[P.j],fiftyPct:cur.cluePct,free:cur.free>0,num:P.j+1};
+      help:cur.help,fifty:!!cur.fifty[P.j],fiftyPct:cur.cluePct,free:cur.free>0,num:P.j+1,fast:!!P.fast};
   }
   return{dots:[...Array(T.QUESTIONS)].map(()=>""),cat:null,q:null};
 }
@@ -720,7 +740,7 @@ function renderTimer(){
 }
 function renderPlay(force){
   const v=view();
-  const key=[lang,v.cat,v.q&&v.q.en,v.picked,v.correct,v.removed&&v.removed.join(),v.fifty,v.live,v.reveal,v.dots.join(),v.free].join("|");
+  const key=[lang,v.cat,v.q&&v.q.en,v.picked,v.correct,v.removed&&v.removed.join(),v.fifty,v.live,v.reveal,v.dots.join(),v.free,v.fast].join("|");
   if(!force&&key===lastQKey)return;lastQKey=key;
   const d=$("#dots");d.textContent="";v.dots.forEach(c=>d.appendChild(el("i",c)));
   $("#cat").textContent=v.cat?catName(v.cat)+(v.num?" · "+t("qOf",{i:v.num,n:T.QUESTIONS}):""):t("category");
@@ -736,6 +756,7 @@ function renderPlay(force){
   const hr=$("#hintRow");hr.hidden=!(v.live&&v.help&&v.picked==null);
   if(!hr.hidden){const fb=$("#fiftyBtn");fb.textContent="";fb.append(document.createTextNode(t("fifty")+" "),el("b",null,v.free?t("fiftyFree"):"−"+v.fiftyPct+"%"));fb.disabled=!!v.fifty}
   const f=$("#fb");f.className="feedback";f.textContent="";
+  if(v.fast&&!v.reveal)f.textContent=t(mode==="solo"?"skipSolo":"skipAll");
   if(v.reveal){
     if(v.picked==null||v.picked<0){if(v.reveal){f.textContent=t("timeUp");f.classList.add("no")}}
     else if(v.ok){f.textContent=t("right",{p:v.pts});f.classList.add("ok")}
