@@ -1,25 +1,55 @@
-// Leaderboard storage. Uses Postgres when DATABASE_URL is set, otherwise a JSON file.
+// Storage. Uses Postgres when DATABASE_URL is set, otherwise a JSON file.
 // If Postgres can't be reached at start-up (for example the free Render database has expired),
 // the server falls back to the JSON file instead of crashing, and logs a warning.
+//
+// Three kinds of data:
+//   players         Hangman Rush daily records, written by each player's device
+//   trivia_players  Trivia Rush daily records, written by the server (it times every answer)
+//   trivia_seen     which room/practice questions each player has seen, and when
 const fs = require("fs");
 const path = require("path");
 
 function jsonStore() {
   const file = process.env.DATA_FILE || path.join(__dirname, "data", "players.json");
-  let rows = {};
+  let db = { players: {}, trivia: {}, seen: {} };
   let writing = Promise.resolve();
+  const flush = () => (writing = writing.then(() => fs.promises.writeFile(file, JSON.stringify(db))).catch(e => console.error(e)));
   return {
     kind: "json file",
     async init() {
       fs.mkdirSync(path.dirname(file), { recursive: true });
-      try { rows = JSON.parse(fs.readFileSync(file, "utf8")); } catch { rows = {}; }
+      try {
+        const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+        // older files held only the Hangman players
+        db = raw && raw.players ? { players: raw.players, trivia: raw.trivia || {}, seen: raw.seen || {} } : { players: raw || {}, trivia: {}, seen: {} };
+      } catch { /* fresh file */ }
     },
-    async all() { return Object.entries(rows).map(([id, r]) => ({ id, data: r.data })); },
-    async get(id) { return rows[id] ? { id, ...rows[id] } : null; },
-    async put(id, token, data) {
-      rows[id] = { token, data };
-      writing = writing.then(() => fs.promises.writeFile(file, JSON.stringify(rows))).catch(e => console.error(e));
-      return writing;
+    async all() { return Object.entries(db.players).map(([id, r]) => ({ id, data: r.data })); },
+    async get(id) { return db.players[id] ? { id, ...db.players[id] } : null; },
+    async put(id, token, data) { db.players[id] = { token, data }; return flush(); },
+
+    async tAll() { return Object.entries(db.trivia).map(([id, r]) => ({ id, data: r.data })); },
+    async tGet(id) { return db.trivia[id] ? { id, ...db.trivia[id] } : null; },
+    async tPut(id, token, data) { db.trivia[id] = { token, data }; return flush(); },
+
+    // -> Map(qid -> latest seen time in ms) across these players, only rows newer than sinceMs
+    async seenGet(uids, sinceMs) {
+      const out = new Map();
+      for (const u of uids) for (const [q, ts] of Object.entries(db.seen[u] || {})) if (ts >= sinceMs && !(out.get(q) >= ts)) out.set(q, ts);
+      return out;
+    },
+    async seenAll(uids) { return this.seenGet(uids, 0); },
+    async seenMark(uids, qids, now) {
+      for (const u of uids) { const m = (db.seen[u] = db.seen[u] || {}); for (const q of qids) m[q] = now; }
+      return flush();
+    },
+    async seenPrune(beforeMs) {
+      for (const u of Object.keys(db.seen)) {
+        const m = db.seen[u];
+        for (const q of Object.keys(m)) if (m[q] < beforeMs) delete m[q];
+        if (!Object.keys(m).length) delete db.seen[u];
+      }
+      return flush();
     },
   };
 }
@@ -30,22 +60,47 @@ function pgStore(url) {
   let host = "";
   try { host = new URL(url).hostname; } catch {}
   const ssl = process.env.PGSSL === "off" || (host && !host.includes(".")) ? false : { rejectUnauthorized: false };
-  const pool = new Pool({ connectionString: url, ssl, connectionTimeoutMillis: 8000 });
+  const pool = new Pool({ connectionString: url, ssl, connectionTimeoutMillis: 8000, max: 5 });
   pool.on("error", e => console.error("Postgres error:", e.message));
+  const upsert = table => (id, token, data) => pool.query(
+    `INSERT INTO ${table} (id, token, data, updated_at) VALUES ($1,$2,$3,now())
+     ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data, updated_at=now()`, [id, token, data]);
   return {
     kind: "postgres",
     async init() {
       await pool.query(`CREATE TABLE IF NOT EXISTS players (
         id TEXT PRIMARY KEY, token TEXT NOT NULL, data JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT now())`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS trivia_players (
+        id TEXT PRIMARY KEY, token TEXT NOT NULL, data JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT now())`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS trivia_seen (
+        uid TEXT NOT NULL, qid TEXT NOT NULL, seen_at TIMESTAMPTZ NOT NULL, PRIMARY KEY (uid, qid))`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS trivia_seen_at ON trivia_seen (seen_at)`);
     },
     async all() { return (await pool.query("SELECT id, data FROM players ORDER BY updated_at DESC LIMIT 500")).rows; },
     async get(id) { return (await pool.query("SELECT id, token, data FROM players WHERE id=$1", [id])).rows[0] || null; },
-    async put(id, token, data) {
-      await pool.query(
-        `INSERT INTO players (id, token, data, updated_at) VALUES ($1,$2,$3,now())
-         ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data, updated_at=now()`,
-        [id, token, data]);
+    put: upsert("players"),
+
+    async tAll() { return (await pool.query("SELECT id, data FROM trivia_players ORDER BY updated_at DESC LIMIT 500")).rows; },
+    async tGet(id) { return (await pool.query("SELECT id, token, data FROM trivia_players WHERE id=$1", [id])).rows[0] || null; },
+    tPut: upsert("trivia_players"),
+
+    async seenGet(uids, sinceMs) {
+      const r = await pool.query(
+        `SELECT qid, max(seen_at) AS ts FROM trivia_seen WHERE uid = ANY($1) AND seen_at >= $2 GROUP BY qid`,
+        [uids, new Date(sinceMs)]);
+      return new Map(r.rows.map(x => [x.qid, new Date(x.ts).getTime()]));
     },
+    async seenAll(uids) { return this.seenGet(uids, 0); },
+    async seenMark(uids, qids, now) {
+      if (!uids.length || !qids.length) return;
+      // one statement: every (uid, qid) pair, refreshed if it already exists
+      await pool.query(
+        `INSERT INTO trivia_seen (uid, qid, seen_at)
+         SELECT u, q, $3 FROM unnest($1::text[]) AS u CROSS JOIN unnest($2::text[]) AS q
+         ON CONFLICT (uid, qid) DO UPDATE SET seen_at = EXCLUDED.seen_at`,
+        [uids, qids, new Date(now)]);
+    },
+    async seenPrune(beforeMs) { await pool.query("DELETE FROM trivia_seen WHERE seen_at < $1", [new Date(beforeMs)]); },
   };
 }
 
@@ -61,9 +116,7 @@ const store = {
     impl = jsonStore();
     await impl.init();
   },
-  all: (...a) => impl.all(...a),
-  get: (...a) => impl.get(...a),
-  put: (...a) => impl.put(...a),
 };
+for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune"]) store[k] = (...a) => impl[k](...a);
 
 module.exports = store;

@@ -1,7 +1,7 @@
 {
   "name": "hangman-rush",
   "version": "1.0.0",
-  "description": "Multiplayer hangman: speed races, team mode, and a daily word with streaks.",
+  "description": "Rush Games: Hangman Rush and Trivia Rush, daily multiplayer games with shared profiles, rooms and seasons.",
   "main": "server.js",
   "scripts": { "start": "node server.js" },
   "engines": { "node": ">=18" },

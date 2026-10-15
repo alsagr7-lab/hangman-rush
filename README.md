@@ -1,14 +1,28 @@
-# Hangman Rush
+# Rush Games
 
-Multiplayer hangman you play on your phone, in English or Arabic (the words themselves stay English). Everyone gets the same word at the same moment; fastest solve with the fewest misses wins.
+Two daily multiplayer games you play on your phone, in English or Arabic, sharing one profile:
 
-- **Rooms:** create a room, share the 4-letter code, and race. Free-for-all or Blue vs Red teams (team score is the members' average, so uneven teams stay fair).
-- **Words and category votes:** 1,000 room and practice words, 100 in each of 10 categories. Before each round every player can tap the categories they want; each player's vote is split across their picks and the next word's category is drawn by vote share.
-- **Daily word:** one word a day for everyone (changes at midnight UTC), one attempt, a shared leaderboard and streaks. Daily words come from a separate list of 160 that never appears in rooms or practice.
-- **Solo practice:** no server features needed.
-- **Difficulty:** the host (or solo player) picks Easy (short words, 8 misses, 90 s), Normal, or Hard (long words, no help). The daily word is always Normal.
-- **Adaptive handicap:** every player has a level that rises with each solved word and falls with each miss (rooms and the daily word only). A clue costs 50% of the round score, plus 5 points per level (25–90%). Players two or more levels below the start get extra letter reveals.
-- **Help:** the first letter is free on Easy and Normal and a vowel count is shown. Two hints cost points: reveal a letter (−30; 3 for words of 7+ letters, 2 for 6, 1 for 5 or fewer) or show a clue written in the player's language. After each round the clue is shown, and Arabic players also see the word's Arabic meaning.
+- **Hangman Rush** (`/hangman/`): everyone gets the same word at the same moment; fastest solve with the fewest misses wins.
+- **Trivia Rush** (`/trivia/`): five multiple-choice questions, fifteen seconds each; fast and right wins.
+
+The home page (`/`) links both, with today's status for each.
+
+## What the games share
+
+- **Profile:** name, colour, a permanent 4-character player tag and language, stored once in the browser.
+- **Daily numbering and 30-day seasons:** daily #1 was 14 Oct 2026; both leaderboards reset together. Each game keeps its own record and streak.
+- **Scoring scale:** every word or question is worth 100 for getting it, plus up to 240 for speed.
+- **Levels:** +1 for each correct result and −1 for each miss, in rooms and the daily (not solo practice). The paid hint costs 50% of the item's points, +5 per level (25–90%). Players two or more levels below the start get extra help.
+- **Rooms:** 4-letter codes, free-for-all or Blue vs Red teams (team score is the members' average), Easy/Normal/Hard, and category votes where each player's vote is split across their picks and the category is drawn by vote share.
+
+## Trivia Rush
+
+- **Daily:** five questions for everyone, one attempt, 15 seconds each. The server sends one question at a time and scores each answer by its own clock, so looking answers up or reading them from the network doesn't help. Get 3 or more right to keep your streak. Leaderboard: Today, Yesterday, Season.
+- **50/50:** removes two wrong answers for a share of the question's points, set by your level. Low-level players get their first 50/50 of the day free.
+- **Past dailies:** replay any earlier day. Replays don't count on the leaderboard.
+- **Rooms:** each round offers 5 of the 12 categories to vote on, then plays 5 questions from the winner. Easy uses easier questions with 20 seconds; Hard uses harder ones with 10 seconds and no 50/50.
+- **No repeats:** when a round starts, the server picks questions that nobody in the room has seen in the last 60 days, in any room or in practice, and marks them as seen for everyone there. If a category runs low, it tops up with the ones the group saw longest ago.
+- **Separate pools:** daily questions never appear in rooms or practice.
 
 ## Run locally
 
@@ -18,36 +32,66 @@ npm start
 # open http://localhost:3000
 ```
 
-## Deploy on Render
+Without `DAILY_KEY` and `TRIVIA_KEY` the two dailies show as unavailable; everything else works.
 
-1. Push this repo to GitHub.
-2. On render.com: **New → Blueprint**, pick the repo. `render.yaml` sets up a free web service.
-   (Or **New → Web Service**: build `npm install`, start `npm start`.)
-3. Open the `.onrender.com` URL and share it with friends.
+## Deploy on Render (free)
+
+`render.yaml` sets up three things:
+
+| Service | What it is |
+|---|---|
+| `hangman-rush` (free web service) | The game server: rooms, dailies, leaderboards. Sleeps after 15 idle minutes. |
+| `rush-games` (free static site) | The pages. Never sleeps and uses no free instance hours. Shows "waking up the game server" while the server starts. |
+| `hangman-rush-db` (free Postgres) | Leaderboards and seen-question history. Render deletes it after 30 days. |
+
+1. On render.com: **Blueprints → your blueprint → Manual sync** (or **New → Blueprint** the first time).
+2. Set these environment variables:
+   - On `hangman-rush`: `DAILY_KEY` (Hangman words), `TRIVIA_KEY` (trivia questions), `SITE_URL` = the static site's address (e.g. `https://rush-games.onrender.com`).
+   - On `rush-games`: `API_URL` = the game server's address (e.g. `https://hangman-rush.onrender.com`), then redeploy it.
+   - Optional on `hangman-rush`: `TRIVIA_START` (`YYYY-MM-DD`, the first day of trivia set 1; set it to your launch day), `TRIVIA_COOLDOWN_DAYS` (default 60).
+3. Share the static site's address. The old server address keeps working too; its home page offers players a one-tap move to the static site that keeps their identity and leaderboard place.
+
+Only one free web service runs, so the free plan's 750 shared instance hours a month are enough to keep it up all month.
 
 ### Seasons and the database
 
-The daily leaderboard runs in **30-day seasons**. Season 1 started on 14 Oct 2026; standings, streaks and points reset at the start of
-each season, and every player keeps a one-line summary of their last season.
+When Render says the free database has expired: delete `hangman-rush-db`, then **Manual sync** the blueprint for a fresh one. Leaderboards reset with the season anyway, but **the seen-question history also resets**, so the 60-day "no repeats" window can only stretch as far back as the database. For permanent storage, point `DATABASE_URL` at a free Neon or Supabase database instead.
 
-`render.yaml` creates a free Render Postgres database and connects it automatically (`DATABASE_URL`). Render deletes free databases
-after 30 days, which lines up with the season length. When Render says the database has expired:
+If the database is missing or unreachable, the server keeps running on a local file that resets on restart.
 
-1. Delete `hangman-rush-db` in the Render dashboard.
-2. Open the Blueprint and click **Manual sync**. Render creates a fresh database and redeploys.
+## Questions
 
-If the database is ever missing or unreachable, the server keeps running and falls back to a local file (which resets on restart).
-Want permanent storage instead? Point `DATABASE_URL` at a Neon or Supabase database.
+### Rooms and practice
 
-The free web service sleeps after about 15 minutes idle, so the first visit afterwards takes 30–60 seconds to load.
+One file per category in `content/trivia/` (geography, history, science, space, animals, sports, football, food, saudi, tech, gaming, cars). Each question:
 
-### The daily word list
+```json
+["geo-01", 1, "Question in English?", "السؤال بالعربية؟", ["Right answer", "Wrong", "Wrong", "Wrong"], ["الإجابة الصحيحة", "خطأ", "خطأ", "خطأ"]]
+```
 
-The 160 daily words live only in `daily-words.enc`, encrypted, so neither the page nor this repo reveals upcoming words. The server unlocks
-the file with the `DAILY_KEY` environment variable (64 hex characters) and sends players today's word only, via `/api/daily`.
-Without the key, the daily word shows as unavailable. Keep the key private; anyone with it can read the list.
+The right answer goes first (players see them shuffled). Difficulty 1–3: Easy rooms use 1–2, Hard rooms use 2–3, Normal uses all. After editing, check and rebuild:
 
-To change or extend the list (it repeats after 160 days, around 22 March 2027):
+```bash
+node scripts/build-trivia.js
+```
+
+It checks ids, answer counts, repeats and pool sizes, then writes `site/trivia/questions.json`. Commit both.
+
+### Daily questions
+
+They live only in `trivia-daily.enc`, encrypted with `TRIVIA_KEY`, so neither the pages nor this repo reveal upcoming questions. The current file holds **30 days** (five questions a day, mixed categories). Trivia day N uses set N counted from `TRIVIA_START`; when the sets run out, the daily shows as unavailable until more are added.
+
+```bash
+TRIVIA_KEY=... node scripts/trivia-daily.js decrypt > trivia-daily.json      # keep this file out of git
+# edit: {"start": "YYYY-MM-DD", "days": [[five questions], ...]}, each like a room question but with the category first:
+#   ["geography", 1, "Question?", "السؤال؟", [4 answers, right first], [4 Arabic answers]]
+node scripts/build-trivia.js --daily trivia-daily.json                      # checks it shares nothing with the room pool
+TRIVIA_KEY=... node scripts/trivia-daily.js encrypt trivia-daily.json
+```
+
+### Hangman daily words
+
+The 160 daily words live only in `daily-words.enc`, unlocked with `DAILY_KEY`. To change or extend them (they repeat after 160 days, around 22 March 2027):
 
 ```bash
 DAILY_KEY=... node scripts/daily-words.js decrypt > words.json   # edit, keeping words.json out of git
@@ -56,9 +100,13 @@ DAILY_KEY=... node scripts/daily-words.js encrypt words.json
 
 ## How it fits together
 
-- `public/index.html`: the game.
-- `public/claude-shim.js`: talks to this server for live rooms (WebSocket) and the leaderboard (HTTP).
-- `server.js`: serves the page, runs rooms at `/ws`, today's word at `/api/daily` and the leaderboard at `/api/players`.
+- `site/`: the pages, served by the static site and by the game server.
+  - `index.html` home, `hangman/index.html`, `trivia/index.html`, `trivia/questions.json` (built).
+  - `shared/rules.js`: days, seasons, streaks, levels, scoring and tags, used by both games and the server.
+  - `shared/api.js`: player identity, rooms (WebSocket), leaderboards, the trivia API and the wake-up notice.
+  - `shared/rush.css`: the shared look. `shared/config.js`: where the game server is (rewritten by the static site's build).
+- `server.js`: serves `site/`, rooms at `/ws`, the Hangman daily word and leaderboard, and CORS so the static site can call it.
+- `trivia.js`: the Trivia daily, past dailies, leaderboard, question picks and levels (`/api/trivia/...`).
 - `store.js`: Postgres when `DATABASE_URL` is set, otherwise a JSON file.
 
-Each device gets a random player id and a secret token in browser storage. Only that device can update its own leaderboard entry.
+Each device gets a random player id and a secret token in browser storage. Only that device can update its own records.

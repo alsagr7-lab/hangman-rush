@@ -3,3 +3,4 @@ data/
 .env
 words.json
 *.key
+trivia-daily.json

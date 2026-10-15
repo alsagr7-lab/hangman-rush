@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
-<script src="/claude-shim.js"></script>
+<script src="/shared/config.js"></script>
+<script src="/shared/api.js"></script>
 <title>Hangman Rush</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +53,10 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
 
 /* Lobby */
 #lobby{display:grid;gap:18px;max-width:560px;margin:0 auto}
-.lobbytop{display:flex;justify-content:flex-end}
+.lobbytop{display:flex;justify-content:space-between;gap:10px}
+.langbtn.home{color:inherit;text-decoration:none}
+.langbtn.home::before{content:"\2190\00a0"}
+:root[lang="ar"] .langbtn.home::before{content:"\2192\00a0"}
 .brand{display:flex;align-items:center;gap:14px}
 .brand h1{font-family:var(--f-hand);font-weight:400;font-size:clamp(44px,11vw,64px);line-height:1.05;margin:0;text-wrap:balance}
 :root[lang="ar"] .brand h1{font-weight:700;font-size:clamp(40px,10vw,58px)}
@@ -191,7 +195,7 @@ input.need{border-color:var(--hot)}
 <body>
 <div class="wrap">
   <section id="lobby">
-    <div class="lobbytop"><button class="langbtn" id="langLobby" type="button"></button></div>
+    <div class="lobbytop"><a class="langbtn home" href="/" data-i18n="allGames">All games</a><button class="langbtn" id="langLobby" type="button"></button></div>
     <div>
       <div class="brand">
         <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M6 68h40M14 68V6h30v10"/><circle cx="44" cy="23" r="7" stroke="var(--hot)"/><path d="M44 30v18M44 36l-8 6M44 36l8 6M44 48l-7 10M44 48l7 10" stroke="var(--hot)"/></svg>
@@ -319,7 +323,7 @@ const vowelCount=w=>[...w].filter(c=>"AEIOU".includes(c)).length;
 /* ---------- interface text ---------- */
 const I18N={
 en:{
-  brand:"Hangman Rush",tagline:"Same word, same moment. Solve it fastest, with the fewest wrong letters, to top the board.",
+  allGames:"All games",brand:"Hangman Rush",tagline:"Same word, same moment. Solve it fastest, with the fewest wrong letters, to top the board.",
   langSwitch:"عربي",yourName:"Your name",namePh:"e.g. Yousef",yourColour:"Your colour",colourAria:"Colour {c}",
   nameHintEmpty:"Pick a name so friends can find you on the leaderboard.",nameHintAs:"You'll appear as ",nameHintTag:". The tag is yours on this device.",
   nameNeeded:"Add a name (2+ letters) before playing online or the daily word.",
@@ -376,7 +380,7 @@ en:{
   cat_hotel:"Hotel life",cat_jobs:"Jobs",cat_house:"Around the house",cat_space:"Space",cat_tech:"Tech"
 },
 ar:{
-  brand:"سباق المشنقة",tagline:"نفس الكلمة، في نفس اللحظة. حلّها أسرع من الكل وبأقل أخطاء لتتصدّر اللوحة.",
+  allGames:"كل الألعاب",brand:"سباق المشنقة",tagline:"نفس الكلمة، في نفس اللحظة. حلّها أسرع من الكل وبأقل أخطاء لتتصدّر اللوحة.",
   langSwitch:"English",yourName:"اسمك",namePh:"مثلاً: يوسف",yourColour:"لونك",colourAria:"اللون {c}",
   nameHintEmpty:"اختر اسماً ليجدك أصحابك في لوحة الترتيب.",nameHintAs:"ستظهر باسم ",nameHintTag:". هذا الرمز خاص بك على هذا الجهاز.",
   nameNeeded:"أضف اسماً (حرفان على الأقل) قبل اللعب أونلاين أو كلمة اليوم.",

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style>
+<title>Rush Games</title>
+<script src="/shared/config.js"></script>
+<script src="/shared/rules.js"></script>
+<script src="/shared/api.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Aref+Ruqaa:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/shared/rush.css">
+<style>
+#hub{display:grid;gap:18px;max-width:720px;margin:0 auto}
+.games{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:620px){.games{grid-template-columns:1fr}}
+.game{background:var(--surface);border:2px solid var(--ink);border-radius:14px;padding:18px;display:grid;gap:10px;align-content:start;box-shadow:4px 4px 0 var(--ink);color:inherit;text-decoration:none;transition:transform .08s,box-shadow .08s}
+.game:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+.game:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.game .gh{display:flex;align-items:center;gap:12px}
+.game svg{flex:none;width:46px;height:52px}
+.game h2{font-family:var(--f-hand);font-weight:400;font-size:30px;margin:0;line-height:1.1}
+:root[lang="ar"] .game h2{font-weight:700;font-size:28px}
+.game p{margin:0}
+.status{font-weight:700;font-size:14px}
+.status.done{color:var(--good)}
+.status.miss{color:var(--hot)}
+.go{justify-self:start;margin-top:4px;pointer-events:none}
+.move{border-color:var(--accent);box-shadow:4px 4px 0 var(--accent)}
+.move a{justify-self:start;text-decoration:none}
+.today{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section id="hub">
+    <div class="lobbytop"><button class="langbtn" id="lang" type="button"></button></div>
+    <div>
+      <div class="brand">
+        <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 60l14-40 10 26 8-14 12 28z"/><path d="M6 66h52" stroke="var(--hot)"/></svg>
+        <h1 data-i18n="brand">Rush Games</h1>
+      </div>
+      <p class="tag" data-i18n="tagline">Two daily games, one profile. Play today's word and today's questions, then race your friends.</p>
+    </div>
+
+    <div class="card move" id="move" hidden>
+      <h2 data-i18n="moveTitle">There's a faster version of this site</h2>
+      <p class="note" data-i18n="moveHelp">It opens instantly, even when the game server is asleep. Your name, streaks and leaderboard place come with you.</p>
+      <a class="btn primary" id="moveLink" href="#" data-i18n="moveBtn">Move me over</a>
+    </div>
+
+    <div class="today"><span class="lbl" id="todayLbl"></span><span class="note season" id="season"></span></div>
+    <div class="games">
+      <a class="game" href="/hangman/" id="gHangman">
+        <div class="gh">
+          <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M6 68h40M14 68V6h30v10"/><circle cx="44" cy="23" r="7" stroke="var(--hot)"/><path d="M44 30v18M44 36l-8 6M44 36l8 6M44 48l-7 10M44 48l7 10" stroke="var(--hot)"/></svg>
+          <h2 data-i18n="hangman">Hangman Rush</h2>
+        </div>
+        <p class="note" data-i18n="hangmanDesc">Same word, same moment. Solve it fastest with the fewest wrong letters.</p>
+        <p class="status" id="sHangman"></p>
+        <span class="btn primary go" data-i18n="play">Play</span>
+      </a>
+      <a class="game" href="/trivia/" id="gTrivia">
+        <div class="gh">
+          <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h48v38H30l-12 12V48H8z"/><path d="M26 24a6 6 0 1 1 9 5c-2 1-3 2-3 5" stroke="var(--hot)"/><circle cx="32" cy="41" r="1.6" fill="var(--hot)" stroke="var(--hot)"/></svg>
+          <h2 data-i18n="trivia">Trivia Rush</h2>
+        </div>
+        <p class="note" data-i18n="triviaDesc">Five questions, fifteen seconds each, in English or Arabic. Fast and right wins.</p>
+        <p class="status" id="sTrivia"></p>
+        <span class="btn primary go" data-i18n="play">Play</span>
+      </a>
+    </div>
+
+    <div class="card">
+      <label class="lbl" for="nick" data-i18n="yourName">Your name</label>
+      <input type="text" id="nick" maxlength="16" autocomplete="off" data-i18n-ph="namePh" placeholder="e.g. Yousef">
+      <p class="note" id="nameHint"></p>
+      <div class="lbl" data-i18n="yourColour">Your colour</div>
+      <div class="swatches" id="sw"></div>
+    </div>
+
+    <div class="rules">
+      <div><b data-i18n="s1b">One profile</b><span data-i18n="s1">Your name, colour and tag are the same in both games.</span></div>
+      <div><b data-i18n="s2b">30-day seasons</b><span data-i18n="s2">Both leaderboards reset together, and each keeps its own streak.</span></div>
+      <div><b data-i18n="s3b">Rooms</b><span data-i18n="s3">Share a 4-letter code, vote on categories, play free-for-all or in teams.</span></div>
+    </div>
+  </section>
+</div>
+<script>
+(function(){
+const R=RushRules,num=R.num;
+const $=s=>document.querySelector(s);
+const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
+const I18N={
+en:{brand:"Rush Games",tagline:"Two daily games, one profile. Play today's word and today's questions, then race your friends.",langSwitch:"عربي",
+  moveTitle:"There's a faster version of this site",moveHelp:"It opens instantly, even when the game server is asleep. Your name, streaks and leaderboard place come with you.",moveBtn:"Move me over",
+  todayLbl:"Today · #{n}",seasonLine:"Season {s} · day {d} of 30",
+  hangman:"Hangman Rush",hangmanDesc:"Same word, same moment. Solve it fastest with the fewest wrong letters.",
+  trivia:"Trivia Rush",triviaDesc:"Five questions, fifteen seconds each, in English or Arabic. Fast and right wins.",play:"Play",
+  hWaiting:"Today's word is waiting",hSolved:"Solved today · {p} pts",hHanged:"Hanged today",
+  tWaiting:"Today's questions are waiting",tDone:"{c} of 5 right · {p} pts",tGoing:"Started: {i} of 5 answered",tNone:"No questions set up for today",
+  streak:" · streak {n}",
+  yourName:"Your name",namePh:"e.g. Yousef",yourColour:"Your colour",colourAria:"Colour {c}",
+  nameHintEmpty:"Pick a name so friends can find you on the leaderboards.",nameHintAs:"You'll show as ",nameHintTag:" in both games.",
+  s1b:"One profile",s1:"Your name, colour and tag are the same in both games.",s2b:"30-day seasons",s2:"Both leaderboards reset together, and each keeps its own streak.",
+  s3b:"Rooms",s3:"Share a 4-letter code, vote on categories, play free-for-all or in teams."},
+ar:{brand:"ألعاب السباق",tagline:"لعبتان يوميتان وملف واحد. العب كلمة اليوم وأسئلة اليوم، ثم تسابق مع أصحابك.",langSwitch:"English",
+  moveTitle:"توجد نسخة أسرع من هذا الموقع",moveHelp:"تفتح فوراً حتى عندما يكون خادم اللعبة نائماً. اسمك وسلاسلك ومركزك في الترتيب تنتقل معك.",moveBtn:"انقلني إليها",
+  todayLbl:"اليوم · #{n}",seasonLine:"الموسم {s} · اليوم {d} من 30",
+  hangman:"سباق المشنقة",hangmanDesc:"نفس الكلمة في نفس اللحظة. حلّها أسرع وبأقل عدد من الأحرف الخاطئة.",
+  trivia:"سباق المعلومات",triviaDesc:"خمسة أسئلة، و15 ثانية لكل سؤال، بالعربية أو الإنجليزية. الأسرع والأصح يفوز.",play:"العب",
+  hWaiting:"كلمة اليوم بانتظارك",hSolved:"حللتها اليوم · {p} نقطة",hHanged:"شُنقت اليوم",
+  tWaiting:"أسئلة اليوم بانتظارك",tDone:"{c} من 5 صحيحة · {p} نقطة",tGoing:"بدأت: أجبت {i} من 5",tNone:"لا توجد أسئلة لهذا اليوم",
+  streak:" · السلسلة {n}",
+  yourName:"اسمك",namePh:"مثلاً: يوسف",yourColour:"لونك",colourAria:"اللون {c}",
+  nameHintEmpty:"اختر اسماً ليجدك أصحابك في لوحات الترتيب.",nameHintAs:"ستظهر باسم ",nameHintTag:" في اللعبتين.",
+  s1b:"ملف واحد",s1:"اسمك ولونك ورمزك نفسها في اللعبتين.",s2b:"مواسم من 30 يوماً",s2:"يبدأ الترتيبان من جديد معاً، ولكل لعبة سلسلتها.",
+  s3b:"الغرف",s3:"شارك رمزاً من 4 أحرف، وصوّت للفئات، والعب فردياً أو بفرق."}};
+let lang;try{lang=localStorage.getItem("hr-lang")}catch(e){}
+if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en";
+const t=(k,v)=>{let s=I18N[lang][k]!=null?I18N[lang][k]:I18N.en[k];if(v)s=s.replace(/\{(\w+)\}/g,(_,n)=>v[n]!=null?v[n]:"");return s};
+const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}};
+
+let me=get("hr-me")||{nick:"",color:R.COLORS[0]};me.color=R.safeColor(me.color);
+const nick=$("#nick");nick.value=me.nick||"";
+function saveMe(){me.nick=(nick.value.trim()||"Player").slice(0,16);try{localStorage.setItem("hr-me",JSON.stringify(me))}catch(e){}}
+nick.addEventListener("input",renderHint);nick.addEventListener("change",saveMe);
+const sw=$("#sw");
+R.COLORS.forEach(c=>{const b=el("button","sw");b.type="button";b.style.background=c;b.setAttribute("aria-pressed",String(me.color===c));
+  b.onclick=()=>{me.color=c;saveMe();[...sw.children].forEach(x=>x.setAttribute("aria-pressed",String(x===b)))};sw.appendChild(b)});
+function renderHint(){const h=$("#nameHint"),v=nick.value.trim();h.textContent="";
+  if(v.length<2){h.textContent=t("nameHintEmpty");return}
+  const b=el("b");b.textContent=v.slice(0,16)+" #"+R.tagOf(Rush.uid);h.append(document.createTextNode(t("nameHintAs")),b,document.createTextNode(t("nameHintTag")))}
+
+let triviaLive=null;
+function renderStatus(){
+  const k=R.todayKey();
+  // Hangman keeps its daily record on this device as well as on the server
+  const hr=get("hr-daily"),he=hr&&hr.h?hr.h[k]:null,hs=$("#sHangman");
+  const hStreak=hr&&(hr.ls===k||hr.ls===R.ydayKey())?num(hr.streak):0;
+  hs.className="status";
+  if(he&&("ok" in he)){hs.textContent=(he.ok?t("hSolved",{p:num(he.pts)}):t("hHanged"))+(hStreak?t("streak",{n:hStreak}):"");hs.classList.add(he.ok?"done":"miss")}
+  else hs.textContent=t("hWaiting")+(hStreak?t("streak",{n:hStreak}):"");
+  const tr=triviaLive||get("tr-today"),ts=$("#sTrivia");ts.className="status";
+  const today=tr&&tr.d===k?tr:null,e=today&&today.entry,tStreak=today?num(today.streak):0;
+  if(today&&today.unavailable)ts.textContent=t("tNone");
+  else if(e&&("ok" in e)){ts.textContent=t("tDone",{c:e.c,p:e.pts})+(tStreak?t("streak",{n:tStreak}):"");ts.classList.add(e.ok?"done":"miss")}
+  else if(today&&today.i>0)ts.textContent=t("tGoing",{i:today.i});
+  else ts.textContent=t("tWaiting")+(tStreak?t("streak",{n:tStreak}):"");
+}
+function apply(){
+  const root=document.documentElement;root.lang=lang;root.dir=lang==="ar"?"rtl":"ltr";
+  document.querySelectorAll("[data-i18n]").forEach(n=>{n.textContent=t(n.dataset.i18n)});
+  document.querySelectorAll("[data-i18n-ph]").forEach(n=>{n.placeholder=t(n.dataset.i18nPh)});
+  const b=$("#lang");b.textContent=t("langSwitch");b.lang=lang==="ar"?"en":"ar";
+  [...sw.children].forEach((x,i)=>x.setAttribute("aria-label",t("colourAria",{c:i+1})));
+  $("#todayLbl").textContent=t("todayLbl",{n:R.dailyNo()});
+  $("#season").textContent=t("seasonLine",{s:R.curSeason(),d:R.seasonDay()});
+  document.title=t("brand");renderHint();renderStatus();
+}
+$("#lang").onclick=()=>{lang=lang==="ar"?"en":"ar";try{localStorage.setItem("hr-lang",lang)}catch(e){}apply()};
+apply();
+setInterval(renderStatus,30000);
+window.addEventListener("pageshow",renderStatus);
+
+// fresh trivia status once the server is awake
+Rush.ready.then(()=>Rush.trivia.state({n:me.nick,c:me.color})).then(s=>{
+  triviaLive={d:R.todayKey(),n:s.n,entry:s.entry||null,i:s.i||0,unavailable:!!s.unavailable,streak:s.streak||0};
+  try{localStorage.setItem("tr-today",JSON.stringify(triviaLive))}catch(e){}renderStatus()}).catch(()=>{});
+
+// offer the static site when this page is served by the game server itself
+const site=((window.RUSH_CONFIG||{}).site||"").replace(/\/+$/,"");
+if(site&&!Rush.api){try{if(new URL(site).origin!==location.origin){$("#move").hidden=false;$("#moveLink").href=Rush.moveLink(site)}}catch(e){}}
+})();
+</script>
+</body>
+</html>

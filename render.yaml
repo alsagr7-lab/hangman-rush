@@ -5,6 +5,7 @@ databases:
     user: hangman
 
 services:
+  # The game server: live rooms, daily words and questions, leaderboards. Free web services sleep after 15 idle minutes.
   - type: web
     name: hangman-rush
     runtime: node
@@ -19,3 +20,23 @@ services:
           property: connectionString
       - key: DAILY_KEY
         sync: false
+      - key: TRIVIA_KEY
+        sync: false
+      # the static site's address, e.g. https://rush-games.onrender.com (offers players a move to it)
+      - key: SITE_URL
+        sync: false
+
+  # The pages, as a free static site: never sleeps and uses none of the free instance hours.
+  - type: web
+    name: rush-games
+    runtime: static
+    staticPublishPath: ./site
+    # API_URL is the game server's address, e.g. https://hangman-rush.onrender.com
+    buildCommand: printf 'window.RUSH_CONFIG={api:"%s",site:""};\n' "$API_URL" > site/shared/config.js
+    envVars:
+      - key: API_URL
+        sync: false
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache

@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style>
+<title>Trivia Rush</title>
+<script src="/shared/config.js"></script>
+<script src="/shared/rules.js"></script>
+<script src="/shared/api.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Aref+Ruqaa:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/shared/rush.css">
+<style>
+/* Trivia Rush additions to the shared Rush look */
+.lobbytop{justify-content:space-between;gap:10px}
+.langbtn.home{color:inherit;text-decoration:none}
+.langbtn.home::before{content:"\2190\00a0"}
+:root[lang="ar"] .langbtn.home::before{content:"\2192\00a0"}
+.play{min-height:620px;align-content:start}
+/* on phones the question comes first, the board underneath */
+@media (max-width:820px){.board{order:0}}
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.dots{display:flex;gap:6px;direction:ltr}
+.dots i{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);background:var(--surface)}
+.dots i.now{border-color:var(--accent)}
+.dots i.ok{background:var(--good);border-color:var(--good)}
+.dots i.no{background:var(--hot);border-color:var(--hot)}
+.qtext{font-family:var(--f-body);font-weight:700;font-size:clamp(20px,5.2vw,26px);line-height:1.3;margin:4px 0 0;text-wrap:balance;min-height:2.6em}
+.qwait{font-family:var(--f-hand);font-weight:400;color:var(--muted)}
+.tbar{height:8px;background:var(--bg);border-radius:9px;overflow:hidden}
+.tbar i{display:block;height:100%;background:var(--accent);border-radius:9px;transition:width .15s linear}
+.tbar.low i{background:var(--hot)}
+.opts{display:grid;gap:10px}
+.opt{display:flex;align-items:center;gap:12px;text-align:start;border:2px solid var(--ink);background:var(--surface);border-radius:12px;padding:12px 14px;font-weight:600;font-size:16px;box-shadow:3px 3px 0 var(--ink);min-height:54px;transition:transform .08s,box-shadow .08s}
+.opt:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.opt .k{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;font-family:var(--f-mono);font-size:13px}
+.opt:disabled{cursor:default}
+.opt.gone{opacity:.25;box-shadow:none;text-decoration:line-through}
+.opt.mine{border-color:var(--accent);box-shadow:3px 3px 0 var(--accent)}
+.opt.right{background:var(--good);border-color:var(--good);color:var(--surface);box-shadow:none}
+.opt.right .k{border-color:currentColor}
+.opt.wrong{background:var(--hot);border-color:var(--hot);color:var(--surface);box-shadow:none}
+.opt.wrong .k{border-color:currentColor}
+.feedback{text-align:center;font-weight:700;min-height:22px}
+.feedback.ok{color:var(--good)}
+.feedback.no{color:var(--hot)}
+.archlist{display:grid;gap:0}
+.arow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed var(--line)}
+.arow:first-child{border-top:0}
+.arow .an{font-family:var(--f-num);font-weight:700;min-width:3.5ch}
+.arow .ad{flex:1;min-width:0;font-size:13px;color:var(--muted)}
+.arow .btn{padding:6px 12px;box-shadow:2px 2px 0 var(--ink);font-size:13px}
+.more{justify-self:start}
+.res .rs{font-family:var(--f-mono);font-weight:700}
+.marks{font-family:var(--f-mono);letter-spacing:.1em;font-size:12px;color:var(--muted);direction:ltr;unicode-bidi:isolate}
+.marks b{color:var(--good)}.marks s{color:var(--hot);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section id="lobby">
+    <div class="lobbytop"><a class="langbtn home" href="/" data-i18n="allGames">All games</a><button class="langbtn" id="langLobby" type="button"></button></div>
+    <div>
+      <div class="brand">
+        <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h48v38H30l-12 12V48H8z"/><path d="M26 24a6 6 0 1 1 9 5c-2 1-3 2-3 5" stroke="var(--hot)"/><circle cx="32" cy="41" r="1.6" fill="var(--hot)" stroke="var(--hot)"/></svg>
+        <h1 data-i18n="brand">Trivia Rush</h1>
+      </div>
+      <p class="tag" data-i18n="tagline">Five questions, fifteen seconds each. Answer fast and right to top the board.</p>
+    </div>
+
+    <div class="card">
+      <label class="lbl" for="nick" data-i18n="yourName">Your name</label>
+      <input type="text" id="nick" maxlength="16" autocomplete="off" data-i18n-ph="namePh" placeholder="e.g. Yousef">
+      <p class="note" id="nameHint"></p>
+      <p class="note" id="skillNote"></p>
+      <div class="lbl" data-i18n="yourColour">Your colour</div>
+      <div class="swatches" id="sw"></div>
+    </div>
+
+    <div class="card daily">
+      <div class="head"><h2 id="dTitle">Daily trivia</h2><span class="streak" id="dStreak"></span></div>
+      <p class="note" id="dStatus"></p>
+      <p class="note season" id="dSeason"></p>
+      <button class="btn primary" id="dailyBtn" disabled></button>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="playFriends">Play with friends</h2>
+      <button class="btn" id="createBtn" data-i18n="createRoom">Create a room</button>
+      <div class="row">
+        <input type="text" id="codeIn" maxlength="4" data-i18n-ph="codePh" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <button class="btn" id="joinBtn" data-i18n="joinRoom">Join room</button>
+      </div>
+      <p class="note" id="netNote"></p>
+      <button class="btn ghost" id="soloBtn" data-i18n="solo">Practise solo</button>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="archTitle">Past dailies</h2>
+      <p class="note" data-i18n="archHelp">Replay a day you missed, or have another go. Replays don't count on the leaderboard.</p>
+      <div class="archlist" id="archList"></div>
+      <button class="btn ghost more" id="archMore" hidden data-i18n="showMore">Show more</button>
+    </div>
+
+    <div class="rules">
+      <div><b data-i18n="r1b">15 seconds</b><span data-i18n="r1">per question, five questions a round.</span></div>
+      <div><b data-i18n="r2b">Up to 340 pts</b><span data-i18n="r2">per question: 100 for a right answer, up to +240 for speed.</span></div>
+      <div><b data-i18n="r3b">50/50</b><span data-i18n="r3">removes two wrong answers, for a share of that question's points.</span></div>
+    </div>
+  </section>
+
+  <section id="game" hidden>
+    <div class="top">
+      <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button type="button" id="copyBtn" data-i18n="copy">Copy</button></div>
+      <span class="roundlbl" id="roundLbl"></span>
+      <span class="spacer"></span>
+      <span class="timer ltr" id="timer"></span>
+      <button class="langbtn" id="langGame" type="button"></button>
+      <button class="btn ghost" id="leaveBtn" data-i18n="leave">Leave</button>
+    </div>
+    <div class="grid">
+      <div class="play" id="play">
+        <div class="qhead"><span class="lbl" id="cat"></span><span class="dots" id="dots"></span></div>
+        <div class="tbar" id="tbar"><i></i></div>
+        <p class="qtext" id="qText" aria-live="polite"></p>
+        <div class="opts" id="opts"></div>
+        <div class="hints" id="hintRow" hidden><button type="button" id="fiftyBtn"></button></div>
+        <div class="feedback" id="fb" aria-live="polite"></div>
+        <div class="overlay" id="overlay" hidden><div class="panel" id="panel"></div></div>
+      </div>
+      <aside class="board">
+        <header><span class="lbl" id="boardLbl"></span><span class="note" id="pcount"></span></header>
+        <div class="tabs" id="tabs" role="tablist" hidden>
+          <button role="tab" data-t="today" aria-selected="true" data-i18n="tabToday">Today</button>
+          <button role="tab" data-t="yday" aria-selected="false" data-i18n="tabYday">Yesterday</button>
+          <button role="tab" data-t="season" aria-selected="false" data-i18n="tabSeason">Season</button>
+        </div>
+        <div id="players"></div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+const R=RushRules,T=R.TRIVIA,num=R.num,nm16=R.nm16;
+const $=s=>document.querySelector(s);
+const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
+const ltr=(txt,c)=>el("span",(c?c+" ":"")+"ltr",txt);
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- interface text ---------- */
+const I18N={
+en:{
+  brand:"Trivia Rush",tagline:"Five questions, fifteen seconds each. Answer fast and right to top the board.",allGames:"All games",
+  langSwitch:"عربي",yourName:"Your name",namePh:"e.g. Yousef",yourColour:"Your colour",colourAria:"Colour {c}",
+  nameHintEmpty:"Pick a name so friends can find you on the leaderboard.",nameHintAs:"You'll show as ",nameHintTag:" on the leaderboard.",
+  nameNeeded:"Add a name (2+ letters) before playing online or the daily.",
+  skillNote:"Your 50/50 costs {p}% of a question's points. It goes up 5 with each right answer in the daily or rooms, and down with each miss.",skillBonus:" Your first 50/50 each day is free for now.",
+  dailyTitle:"Daily trivia #{n}",streakN:"streak {n}",bestN:"best {n}",
+  seasonLine:"Season {s} · {left} · standings reset every 30 days",lastDay:"last day",daysLeft:"{n} days left",lastSeason:". Last season: {w} days with 3+ right, best streak {b}, {p} pts",
+  dailyIntroLobby:"Five questions for everyone, one attempt. New set in {t}.",playToday:"Play today's questions",resume:"Carry on ({i} of 5 done)",seeBoard:"See the leaderboard",
+  doneLine:"{c} of 5 right · {p} pts",loadingDaily:"Loading today's questions…",dailyErr:"Couldn't load today's questions. Trying again shortly.",dailyNone:"No daily questions are set up for today.",
+  playFriends:"Play with friends",createRoom:"Create a room",codePh:"CODE",joinRoom:"Join room",solo:"Practise solo",
+  connecting:"Connecting to online play…",netOk:"Friends join with the 4-letter code.",netNone:"Online play isn't available right now. Solo practice still works.",
+  codeLen:"Room codes are 4 letters.",roomFail:"Couldn't open that room. Try again in a moment.",
+  archTitle:"Past dailies",archHelp:"Replay a day you missed, or have another go. Replays don't count on the leaderboard.",archEmpty:"Past dailies show up here from the second day.",
+  archPlayed:"Played: {c}/5 · {p} pts",archReplayed:"Replayed: {c}/5 · {p} pts",archMissed:"Not played",archPlay:"Play",archAgain:"Replay",showMore:"Show more",
+  r1b:"15 seconds",r1:"per question, five questions a round.",r2b:"Up to 340 pts",r2:"per question: 100 for a right answer, up to +240 for speed.",r3b:"50/50",r3:"removes two wrong answers, for a share of that question's points.",
+  copy:"Copy",copied:"Copied",copyFail:"Copy failed — select the text",leave:"Leave",roomLbl:"Room ",soloPractice:"Solo practice",dailyMode:"Daily trivia",archMode:"Past daily",
+  roundN:"Round {n}",qOf:"Question {i} of {n}",secs:"{n}s",category:"Category",
+  fifty:"50/50",fiftyFree:"free",right:"Right! +{p}",wrong:"Not this time",timeUp:"Time's up",answerWas:"The answer: {a}",getReady:"Get ready…",
+  start:"Start",nextRound:"Next round",startRound1:"Start round 1",readyPractise:"Ready to practise?",shareStart:"Share the code, then start",roomCodeLine:"Room code: ",
+  waitingFor:"Waiting for {name}",startsAtOnce:"The round starts for everyone at once.",noHost:"No host in room {c}",noHostHelp:"Check the code with your friend, or run the room yourself.",
+  takeOver:"Run the room",hostLeft:"The host left. Anyone can take over.",waitingHostNext:"Waiting for {name} to start the next round.",
+  roundInProgress:"Round in progress",jumpIn:"You'll jump in when the next round starts.",roundOver:"Round {n} results",youParen:" (you)",waitingMore:"Waiting for the round to finish…",
+  deadEven:"Dead even this round.",takesRound:"{team} takes the round.",ffa:"Free-for-all",teamsBtn:"Teams",switchTo:"Switch to {c}",onTeam:"You're on {team}",
+  teamA:"Team Blue",teamB:"Team Red",colA:"Blue",colB:"Red",noOne:"Nobody yet",
+  diffEasy:"Easy",diffNormal:"Normal",diffHard:"Hard",
+  diffHelp_easy:"Easier questions · 20 seconds · 50/50 on",diffHelp_normal:"All questions · 15 seconds · 50/50 on",diffHelp_hard:"Harder questions · 10 seconds · no help",
+  voteTitle:"Vote for the next category",pickTitle:"Pick a category",
+  voteHelp:"Five categories are on offer each round. Each player's vote is split across the ones they tap, and the category is drawn by vote share.",
+  pickHelp:"The next round comes from one of your picks.",anyCat:"No votes yet, so any of these could come up.",
+  boardRace:"Race board",teams:"Teams",boardDaily:"Daily leaderboard",tabToday:"Today",tabYday:"Yesterday",tabSeason:"Season",
+  seasonN:"Season {n}",dayOf:"Day {d}/{t}",resetsTonight:"Resets tonight",finalDays:"Final {n} days",daysLeftShort:"{n} days left",
+  seasonEmpty:"Season standings show up after the first daily is played.",solvedOf:"{w} of {p} days with 3+ right · best streak {b}",
+  seasonNote:"Ranked by total daily points this season. Everything resets when Season {n} starts.",
+  todayEmpty:"Nobody has played today's questions yet. Be first.",ydayEmpty:"No results for yesterday.",
+  dbErr:"The leaderboard didn't load. Your results are still saved on the server.",dbNone:"Couldn't reach the leaderboard server.",
+  timesHidden:"Scores show once you've played.",playedHidden:"Played",
+  dailyIntro:"Everyone gets these five questions today. One attempt, 15 seconds a question. Get 3 or more right to keep your streak.",
+  curStreak1:"Current streak: 1 day. Get 3+ right to keep it.",curStreakN:"Current streak: {n} days. Get 3+ right to keep it.",
+  doneTitle:"{c} of 5 right",statPoints:"points",statRight:"right",statStreak:"streak",statBest:"best",copyResult:"Copy result",
+  nextSetUtc:"Next set in {t}. It changes at midnight UTC.",shareHead:"Trivia Rush · Season {s} · daily #{n}",
+  archDone:"Past daily #{n}: {c} of 5",archNote:"Replays don't count on the leaderboard.",backLobby:"Back to the lobby",
+  players:"{n} players",player1:"1 player",you:"you",hostTag:"host",thinking:"thinking…",waitingNext:"joins next round",
+  resumed:"You left during a question, so it counted as time's up.",pts:"{n} pts",hm:"{h}h {m}m",
+  cat_geography:"Geography",cat_history:"History",cat_science:"Science",cat_space:"Space",cat_animals:"Animals",cat_sports:"Sports",
+  cat_football:"Football",cat_food:"Food & drink",cat_saudi:"Saudi Arabia",cat_tech:"Tech",cat_gaming:"Gaming",cat_cars:"Cars"
+},
+ar:{
+  brand:"سباق المعلومات",tagline:"خمسة أسئلة، و15 ثانية لكل سؤال. أجب بسرعة وبشكل صحيح لتتصدّر الترتيب.",allGames:"كل الألعاب",
+  langSwitch:"English",yourName:"اسمك",namePh:"مثلاً: يوسف",yourColour:"لونك",colourAria:"اللون {c}",
+  nameHintEmpty:"اختر اسماً ليجدك أصحابك في لوحة الترتيب.",nameHintAs:"ستظهر باسم ",nameHintTag:" في لوحة الترتيب.",
+  nameNeeded:"أضف اسماً (حرفان على الأقل) قبل اللعب أونلاين أو أسئلة اليوم.",
+  skillNote:"تكلفة 50/50 عليك {p}% من نقاط السؤال. ترتفع 5 مع كل إجابة صحيحة في أسئلة اليوم أو الغرف، وتنخفض مع كل خطأ.",skillBonus:" أول 50/50 كل يوم مجانية لك حالياً.",
+  dailyTitle:"أسئلة اليوم #{n}",streakN:"السلسلة {n}",bestN:"الأفضل {n}",
+  seasonLine:"الموسم {s} · {left} · الترتيب يبدأ من جديد كل 30 يوماً",lastDay:"اليوم الأخير",daysLeft:"باقي {n} أيام",lastSeason:". الموسم الماضي: {w} أيام بـ3 إجابات صحيحة أو أكثر، أفضل سلسلة {b}، {p} نقطة",
+  dailyIntroLobby:"خمسة أسئلة للجميع، ومحاولة واحدة. مجموعة جديدة بعد {t}.",playToday:"العب أسئلة اليوم",resume:"أكمل ({i} من 5)",seeBoard:"اعرض الترتيب",
+  doneLine:"{c} من 5 صحيحة · {p} نقطة",loadingDaily:"جارٍ تحميل أسئلة اليوم…",dailyErr:"تعذّر تحميل أسئلة اليوم. سنحاول مجدداً بعد قليل.",dailyNone:"لا توجد أسئلة يومية مُعدّة لهذا اليوم.",
+  playFriends:"العب مع أصحابك",createRoom:"أنشئ غرفة",codePh:"الرمز",joinRoom:"ادخل الغرفة",solo:"تدرّب وحدك",
+  connecting:"جارٍ الاتصال باللعب أونلاين…",netOk:"ينضم أصحابك برمز من 4 أحرف.",netNone:"اللعب أونلاين غير متاح حالياً. التدريب الفردي يعمل.",
+  codeLen:"رمز الغرفة يتكوّن من 4 أحرف.",roomFail:"تعذّر فتح الغرفة. حاول بعد لحظات.",
+  archTitle:"أسئلة الأيام السابقة",archHelp:"أعد لعب يوم فاتك، أو جرّب مرة أخرى. الإعادة لا تُحتسب في الترتيب.",archEmpty:"تظهر الأيام السابقة هنا ابتداءً من اليوم الثاني.",
+  archPlayed:"لعبتها: {c}/5 · {p} نقطة",archReplayed:"أعدتها: {c}/5 · {p} نقطة",archMissed:"لم تلعبها",archPlay:"العب",archAgain:"أعد",showMore:"المزيد",
+  r1b:"15 ثانية",r1:"لكل سؤال، وخمسة أسئلة في الجولة.",r2b:"حتى 340 نقطة",r2:"لكل سؤال: 100 للإجابة الصحيحة، وحتى +240 للسرعة.",r3b:"50/50",r3:"تحذف إجابتين خاطئتين، مقابل جزء من نقاط السؤال.",
+  copy:"نسخ",copied:"تم النسخ",copyFail:"تعذّر النسخ، حدّد النص",leave:"خروج",roomLbl:"غرفة ",soloPractice:"تدريب فردي",dailyMode:"أسئلة اليوم",archMode:"يوم سابق",
+  roundN:"الجولة {n}",qOf:"السؤال {i} من {n}",secs:"{n} ث",category:"الفئة",
+  fifty:"50/50",fiftyFree:"مجاناً",right:"صحيح! +{p}",wrong:"ليست هذه",timeUp:"انتهى الوقت",answerWas:"الإجابة: {a}",getReady:"استعد…",
+  start:"ابدأ",nextRound:"الجولة التالية",startRound1:"ابدأ الجولة 1",readyPractise:"جاهز للتدريب؟",shareStart:"شارك الرمز ثم ابدأ",roomCodeLine:"رمز الغرفة: ",
+  waitingFor:"بانتظار {name}",startsAtOnce:"تبدأ الجولة للجميع في نفس اللحظة.",noHost:"لا يوجد مضيف في الغرفة {c}",noHostHelp:"تأكّد من الرمز مع صديقك، أو أدِر الغرفة بنفسك.",
+  takeOver:"أدِر الغرفة",hostLeft:"غادر المضيف. يستطيع أي لاعب أن يتولى الإدارة.",waitingHostNext:"بانتظار {name} ليبدأ الجولة التالية.",
+  roundInProgress:"جولة جارية",jumpIn:"ستنضم مع بداية الجولة التالية.",roundOver:"نتائج الجولة {n}",youParen:" (أنت)",waitingMore:"بانتظار انتهاء الجولة…",
+  deadEven:"تعادل تام في هذه الجولة.",takesRound:"{team} يفوز بالجولة.",ffa:"كل لاعب لنفسه",teamsBtn:"فرق",switchTo:"انتقل إلى {c}",onTeam:"أنت في {team}",
+  teamA:"الفريق الأزرق",teamB:"الفريق الأحمر",colA:"الأزرق",colB:"الأحمر",noOne:"لا أحد بعد",
+  diffEasy:"سهل",diffNormal:"عادي",diffHard:"صعب",
+  diffHelp_easy:"أسئلة أسهل · 20 ثانية · 50/50 متاحة",diffHelp_normal:"كل الأسئلة · 15 ثانية · 50/50 متاحة",diffHelp_hard:"أسئلة أصعب · 10 ثوانٍ · بلا مساعدة",
+  voteTitle:"صوّت لفئة الجولة التالية",pickTitle:"اختر فئة",
+  voteHelp:"تُعرض خمس فئات في كل جولة. صوت كل لاعب يُقسم على الفئات التي يختارها، وتُسحب الفئة حسب نسبة الأصوات.",
+  pickHelp:"الجولة التالية من إحدى الفئات التي اخترتها.",anyCat:"لا أصوات بعد، لذا قد تظهر أي فئة منها.",
+  boardRace:"لوحة السباق",teams:"الفرق",boardDaily:"ترتيب أسئلة اليوم",tabToday:"اليوم",tabYday:"أمس",tabSeason:"الموسم",
+  seasonN:"الموسم {n}",dayOf:"اليوم {d} من {t}",resetsTonight:"يبدأ من جديد الليلة",finalDays:"آخر {n} أيام",daysLeftShort:"باقي {n} أيام",
+  seasonEmpty:"يظهر ترتيب الموسم بعد أول مشاركة في أسئلة اليوم.",solvedOf:"{w} من {p} أيام بـ3 صحيحة أو أكثر · أفضل سلسلة {b}",
+  seasonNote:"الترتيب حسب مجموع نقاط أسئلة اليوم في هذا الموسم. كل شيء يبدأ من جديد مع الموسم {n}.",
+  todayEmpty:"لم يلعب أحد أسئلة اليوم بعد. كن الأول.",ydayEmpty:"لا نتائج ليوم أمس.",
+  dbErr:"تعذّر تحميل لوحة الترتيب. نتائجك محفوظة على الخادم.",dbNone:"تعذّر الوصول إلى خادم الترتيب.",
+  timesHidden:"تظهر النقاط بعد أن تلعب.",playedHidden:"لعب",
+  dailyIntro:"الكل يحصل على هذه الأسئلة الخمسة اليوم. محاولة واحدة، و15 ثانية لكل سؤال. أجب 3 إجابات صحيحة أو أكثر لتحافظ على سلسلتك.",
+  curStreak1:"سلسلتك الحالية: يوم واحد. أجب 3 صحيحة أو أكثر لتحافظ عليها.",curStreakN:"سلسلتك الحالية: {n} أيام. أجب 3 صحيحة أو أكثر لتحافظ عليها.",
+  doneTitle:"{c} من 5 صحيحة",statPoints:"النقاط",statRight:"صحيحة",statStreak:"السلسلة",statBest:"الأفضل",copyResult:"انسخ النتيجة",
+  nextSetUtc:"المجموعة التالية بعد {t}. تتغيّر عند منتصف الليل بتوقيت UTC.",shareHead:"سباق المعلومات · الموسم {s} · أسئلة اليوم #{n}",
+  archDone:"اليوم السابق #{n}: {c} من 5",archNote:"الإعادة لا تُحتسب في الترتيب.",backLobby:"العودة للبداية",
+  players:"اللاعبون: {n}",player1:"لاعب واحد",you:"أنت",hostTag:"المضيف",thinking:"يفكّر…",waitingNext:"ينضم في الجولة التالية",
+  resumed:"خرجت أثناء سؤال، فاحتُسب انتهاء الوقت.",pts:"{n} نقطة",hm:"{h}س {m}د",
+  cat_geography:"جغرافيا",cat_history:"تاريخ",cat_science:"علوم",cat_space:"فضاء",cat_animals:"حيوانات",cat_sports:"رياضة",
+  cat_football:"كرة القدم",cat_food:"أكل ومشروبات",cat_saudi:"السعودية",cat_tech:"تقنية",cat_gaming:"ألعاب الفيديو",cat_cars:"سيارات"
+}};
+let lang=LS.get("hr-lang",null);
+if(lang!=="ar"&&lang!=="en"){try{lang=localStorage.getItem("hr-lang")}catch(e){}}
+if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en";
+function t(k,v){let s=(I18N[lang][k]!=null)?I18N[lang][k]:(I18N.en[k]!=null?I18N.en[k]:k);if(v)s=s.replace(/\{(\w+)\}/g,(_,n)=>v[n]!=null?v[n]:"");return s}
+const catName=c=>t("cat_"+c);
+const tx=o=>o?(lang==="ar"?o.ar:o.en):"";
+const diffOf=k=>T.DIFF[k]?k:"normal";
+const diffName=k=>t("diff"+diffOf(k)[0].toUpperCase()+diffOf(k).slice(1));
+const teamName=k=>t(k==="A"?"teamA":"teamB"),teamCol=k=>t(k==="A"?"colA":"colB");
+const TEAMS={A:{color:"var(--accent)"},B:{color:"var(--hot)"}};
+const fmtS=ms=>(ms/1000).toFixed(1)+(lang==="ar"?" ث":"s");
+function untilNext(){const ms=R.msToMidnight();return t("hm",{h:Math.floor(ms/36e5),m:Math.floor(ms%36e5/6e4)})}
+
+/* ---------- player ---------- */
+// name, colour and language are shared with Hangman Rush (same browser storage)
+const uid=Rush.uid;
+let me={nick:"",color:R.COLORS[0]};
+try{const s=JSON.parse(localStorage.getItem("hr-me")||"null");if(s&&s.nick!=null)me=s}catch(e){}
+me.color=R.safeColor(me.color);
+const profile=()=>({n:me.nick,c:me.color});
+
+/* ---------- questions ---------- */
+let BANK=[],BYID=new Map(),bankErr=false;
+const toQ=r=>({id:r[0],c:r[1],d:r[2],q:{en:r[3],ar:r[4]},a:r[5].map((en,i)=>({en,ar:r[6][i]}))});
+Rush.trivia.bank().then(b=>{BANK=b.q.map(toQ);BYID=new Map(BANK.map(q=>[q.id,q]));render()}).catch(()=>{bankErr=true});
+// questions I've seen in rooms or practice, as a fallback when the server can't pick
+const COOL=60*R.DAY;
+let seen=LS.get("tr-seen",{});
+(function(){const now=Date.now();for(const k in seen)if(now-seen[k]>COOL)delete seen[k];LS.set("tr-seen",seen)})();
+function markSeen(ids){const now=Date.now();ids.forEach(id=>seen[id]=now);LS.set("tr-seen",seen)}
+
+/* ---------- daily state (the server keeps the real record) ---------- */
+let rec=null,allPlayers=[],dbErr=false,dbReady=false,boardTab="today";
+let dstate=null,dErr=false,dLoading=false,dTried=0;
+const sk=()=>R.clampSk(dstate?dstate.sk:(rec?rec.sk:0));
+function tidyRec(d){const r=Object.assign({n:"Player",c:R.COLORS[0],se:R.curSeason(),streak:0,best:0,ls:"",played:0,wins:0,h:{},sk:0},d||{});
+  r.n=nm16(r.n);r.c=R.safeColor(r.c);r.h=r.h&&typeof r.h==="object"?r.h:{};if(R.seasonOfRec(r)<R.curSeason())R.rollover(r);return r}
+async function loadDaily(force){
+  if(dLoading||(!force&&Date.now()-dTried<15000))return;
+  dLoading=true;dTried=Date.now();
+  try{await Rush.ready;dstate=await Rush.trivia.state(profile());dErr=false;
+    LS.set("tr-today",{d:R.todayKey(),n:dstate.n,entry:dstate.entry||null,i:dstate.i||0,unavailable:!!dstate.unavailable,streak:dstate.streak||0})}
+  catch(e){dErr=true}
+  dLoading=false;renderLobbyDaily();renderSkill();
+}
+const todayEntry=()=>dstate&&dstate.entry&&("ok" in dstate.entry)?dstate.entry:null;
+
+/* ---------- lobby ---------- */
+const nickIn=$("#nick");nickIn.value=me.nick||"";
+function saveMe(){me.nick=(nickIn.value.trim()||"Player").slice(0,16);try{localStorage.setItem("hr-me",JSON.stringify(me))}catch(e){}}
+function renderNameHint(){
+  const hint=$("#nameHint"),v=nickIn.value.trim();hint.textContent="";hint.classList.remove("warn");
+  if(v.length<2){hint.textContent=t("nameHintEmpty");return}
+  const b=el("b");b.append(document.createTextNode(v.slice(0,16)));const tg=R.tagOf(uid);if(tg)b.append(document.createTextNode(" #"+tg));
+  hint.append(document.createTextNode(t("nameHintAs")),b,document.createTextNode(t("nameHintTag")));
+}
+function requireName(){
+  if(nickIn.value.trim().length>=2){nickIn.classList.remove("need");return true}
+  const hint=$("#nameHint");hint.textContent=t("nameNeeded");hint.classList.add("warn");
+  nickIn.classList.add("need");nickIn.focus();nickIn.scrollIntoView({block:"center",behavior:"smooth"});return false;
+}
+nickIn.addEventListener("input",()=>{nickIn.classList.remove("need");renderNameHint()});
+nickIn.addEventListener("change",saveMe);
+const swWrap=$("#sw");
+R.COLORS.forEach((c,i)=>{const b=el("button","sw");b.type="button";b.style.background=c;b.setAttribute("aria-pressed",String(me.color===c));
+  b.onclick=()=>{me.color=c;saveMe();[...swWrap.children].forEach(x=>x.setAttribute("aria-pressed",String(x===b)))};swWrap.appendChild(b)});
+function renderSkill(){const p=R.cluePctFor(sk());$("#skillNote").textContent=t("skillNote",{p})+(R.bonusFor(sk())?t("skillBonus"):"")}
+function renderLobbyDaily(){
+  const n=R.dailyNo();
+  $("#dTitle").textContent=t("dailyTitle",{n});
+  const r=rec||tidyRec({});const s=dstate?num(dstate.streak):R.curStreak(r),best=dstate?num(dstate.best):num(r.best);
+  $("#dStreak").textContent=s?t("streakN",{n:s}):(best?t("bestN",{n:best}):"");
+  const left=R.seasonDaysLeft();
+  let sl=t("seasonLine",{s:R.curSeason(),left:left===1?t("lastDay"):t("daysLeft",{n:left})});
+  if(r.prev&&r.prev.se)sl+=t("lastSeason",{w:r.prev.wins,b:r.prev.best,p:r.prev.pts});
+  $("#dSeason").textContent=sl;
+  const st=$("#dStatus"),b=$("#dailyBtn");
+  if(dstate&&dstate.n!==n)dstate=null;
+  if(!dstate){b.disabled=true;b.textContent=t(dErr?"dailyErr":"loadingDaily");st.textContent=t("dailyIntroLobby",{t:untilNext()});loadDaily();return}
+  if(dstate.unavailable){b.disabled=true;b.textContent=t("dailyNone");st.textContent="";return}
+  b.disabled=false;
+  const e=todayEntry();
+  if(e){st.textContent=t("doneLine",{c:e.c,p:e.pts})+" · "+t("nextSetUtc",{t:untilNext()});b.textContent=t("seeBoard")}
+  else if(dstate.i>0){st.textContent=t("dailyIntroLobby",{t:untilNext()});b.textContent=t("resume",{i:dstate.i})}
+  else{st.textContent=t("dailyIntroLobby",{t:untilNext()});b.textContent=t("playToday")}
+}
+let netState="connecting",netMsg=null;
+function renderNet(){const n=$("#netNote");const down=Rush.server()==="down";n.classList.toggle("warn",down||!!netMsg);
+  n.textContent=netMsg?t(netMsg):down?t("netNone"):Rush.server()==="up"?t("netOk"):t("connecting")}
+Rush.onServer(()=>{renderNet();if(Rush.server()==="up"){loadDaily(true);loadArchive()}});
+
+/* past dailies */
+let info=null,archShown=7;
+async function loadArchive(){if(info)return;try{info=await Rush.trivia.info()}catch(e){info=null}renderArchive()}
+function renderArchive(){
+  const box=$("#archList");box.textContent="";
+  const n=R.dailyNo();
+  if(!info||info.first==null){box.appendChild(el("p","note",t("archEmpty")));$("#archMore").hidden=true;return}
+  const from=Math.max(info.first,1),to=Math.min(n-1,info.last==null?n-1:info.last);
+  if(to<from){box.appendChild(el("p","note",t("archEmpty")));$("#archMore").hidden=true;return}
+  const mine=(rec&&rec.h)||{},local=LS.get("tr-arch",{});
+  let shown=0;
+  for(let k=to;k>=from&&shown<archShown;k--,shown++){
+    const row=el("div","arow"),e=mine[R.keyOfDaily(k)],l=local[k];
+    row.append(el("span","an","#"+k));
+    const d=el("span","ad",e&&("ok" in e)?t("archPlayed",{c:e.c,p:e.pts}):l?t("archReplayed",{c:l.c,p:l.pts}):t("archMissed"));
+    const b=el("button","btn",e||l?t("archAgain"):t("archPlay"));b.type="button";b.onclick=()=>startArchive(k);
+    row.append(d,b);box.appendChild(row);
+  }
+  $("#archMore").hidden=to-from+1<=archShown;
+}
+$("#archMore").onclick=()=>{archShown+=14;renderArchive()};
+
+/* ---------- language ---------- */
+function applyStatic(){
+  const root=document.documentElement;root.lang=lang;root.dir=lang==="ar"?"rtl":"ltr";
+  document.querySelectorAll("[data-i18n]").forEach(n=>{n.textContent=t(n.dataset.i18n)});
+  document.querySelectorAll("[data-i18n-ph]").forEach(n=>{n.placeholder=t(n.dataset.i18nPh)});
+  [$("#langLobby"),$("#langGame")].forEach(b=>{b.textContent=t("langSwitch");b.lang=lang==="ar"?"en":"ar"});
+  [...swWrap.children].forEach((b,i)=>b.setAttribute("aria-label",t("colourAria",{c:i+1})));
+  document.title=t("brand");
+}
+function setLang(l){lang=l;try{localStorage.setItem("hr-lang",l)}catch(e){}
+  applyStatic();renderNameHint();renderSkill();renderLobbyDaily();renderNet();renderArchive();lastPanelKey="";render()}
+$("#langLobby").onclick=()=>setLang(lang==="ar"?"en":"ar");
+$("#langGame").onclick=()=>setLang(lang==="ar"?"en":"ar");
+
+/* ---------- leaderboard ---------- */
+Rush.db.collection("trivia").onSnapshot(snap=>{
+  dbReady=true;dbErr=false;
+  allPlayers=snap.docs.map(d=>Object.assign(tidyRec(d.data()),{id:d.id}));
+  const mine=allPlayers.find(p=>p.id===uid);if(mine)rec=mine;
+  renderLobbyDaily();renderArchive();render();
+},()=>{dbErr=true;render()});
+
+/* ---------- modes ----------
+   daily   : server-run, one question at a time, scored by the server's clock
+   archive : a past daily played locally, not saved
+   solo    : practice on this device (questions still picked by the server when it's up)
+   room    : live room; the host's device runs the round schedule, everyone answers on their own clock */
+let mode=null;
+let run=null;         // daily/archive run
+let room=null,roomApi=null,code=null,host=false,connected=true,unsubs=[],joinedAt=0;
+let hs=freshHost(),cur=null,score=0,lastRound=0,waitNext=false,myTeam=null,closing=false;
+let myVotes=new Set((LS.get("tr-cv",[])||[]).filter(c=>T.CATS.includes(c)));
+function freshHost(){return{hr:0,st:"waiting",at:0,ids:[],cat:null,df:"normal",md:"f",ts:{A:0,B:0},tr:null,vo:offer(null),used:[]}}
+function offer(last){const pool=T.CATS.filter(c=>c!==last);for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}return pool.slice(0,T.VOTE_OPTIONS)}
+
+function showGame(){$("#lobby").hidden=true;$("#game").hidden=false;lastPanelKey="";window.scrollTo(0,0);render()}
+function backToLobby(){
+  unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];
+  if(roomApi){try{roomApi.leave()}catch(e){}}
+  roomApi=null;code=null;mode=null;host=false;cur=null;run=null;score=0;lastRound=0;waitNext=false;myTeam=null;hs=freshHost();
+  $("#game").hidden=true;$("#lobby").hidden=false;renderLobbyDaily();renderArchive();loadDaily(true);
+}
+$("#leaveBtn").onclick=backToLobby;
+
+$("#dailyBtn").onclick=async()=>{
+  if(!requireName())return;saveMe();
+  mode="daily";boardTab="today";run={kind:"daily",n:R.dailyNo(),i:0,res:[],phase:"intro",q:null};
+  if(dstate){run.i=dstate.i;run.res=(dstate.res||[]).map(x=>({ok:!!x.ok,pts:x.pts}));
+    if(todayEntry())run.phase="done";
+    else if(dstate.open){run.resumeQ=dstate.open}}
+  showGame();
+  if(run.resumeQ){const q=run.resumeQ;run.resumeQ=null;openQuestion(q)}
+};
+$("#soloBtn").onclick=()=>{saveMe();mode="solo";host=true;hs=freshHost();showGame()};
+function newCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ";let s="";for(let i=0;i<4;i++)s+=A[Math.floor(Math.random()*A.length)];return s}
+$("#createBtn").onclick=()=>{if(!requireName())return;netMsg=null;saveMe();mode="room";host=true;hs=freshHost();enterRoom(newCode())};
+$("#joinBtn").onclick=()=>{if(!requireName())return;const c=$("#codeIn").value.trim().toUpperCase();if(!/^[A-Z]{4}$/.test(c)){netMsg="codeLen";renderNet();return}
+  netMsg=null;saveMe();mode="room";host=false;hs=freshHost();enterRoom(c)};
+$("#codeIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("#joinBtn").click()});
+async function enterRoom(c){
+  const btns=[$("#createBtn"),$("#joinBtn")];btns.forEach(b=>b.disabled=true);
+  netMsg="connecting";renderNet();
+  try{roomApi=await Rush.room.join("tr-"+c.toLowerCase())}catch(e){netMsg="roomFail";renderNet();btns.forEach(b=>b.disabled=false);mode=null;return}
+  netMsg=null;renderNet();
+  code=c;joinedAt=Date.now();
+  unsubs.push(roomApi.onPeers(()=>{tick();render()}));
+  unsubs.push(roomApi.onConnection(v=>{connected=v;renderTop()}));
+  pushPresence();showGame();btns.forEach(b=>b.disabled=false);
+}
+function copyText(txt,btn,key){navigator.clipboard.writeText(txt).then(()=>{btn.textContent=t("copied");setTimeout(()=>btn.textContent=t(key),1400)},()=>{btn.textContent=t("copyFail");setTimeout(()=>btn.textContent=t(key),2000)})}
+$("#copyBtn").onclick=()=>{if(code)copyText(code,$("#copyBtn"),"copy")};
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{boardTab=b.dataset.t;renderBoard()});
+
+/* ---------- daily and archive runs ---------- */
+// q: {i, c, q:{en,ar}, opts:[{en,ar}x4], ms, deadline, picked, correct, removed:[], pts, fiftyPct, fifty}
+async function startDaily(){
+  if(!run||run.kind!=="daily"||run.phase!=="intro")return;
+  run.phase="count";run.countEnd=Date.now()+T.COUNT_MS;render();
+  setTimeout(nextDaily,T.COUNT_MS);
+}
+async function nextDaily(){
+  if(!run||run.kind!=="daily")return;
+  run.phase="loading";render();
+  try{const q=await Rush.trivia.next(profile());openQuestion(q)}
+  catch(e){
+    if(e.status===409&&e.data&&e.data.state){applyDailyState(e.data.state);return}
+    run.phase="error";render();
+  }
+}
+function openQuestion(q){
+  run.q={i:q.i,c:q.c,q:q.q,opts:q.opts,ms:q.ms,deadline:Date.now()+q.left,picked:null,correct:null,removed:[],pts:0,fiftyPct:q.fiftyPct,fifty:q.fifty};
+  run.i=q.i;run.phase="question";lastPanelKey="";render();
+}
+function applyDailyState(s){
+  dstate=Object.assign(dstate||{},s);
+  run.res=(s.res||[]).map(x=>({ok:!!x.ok,pts:x.pts}));run.i=s.i;
+  LS.set("tr-today",{d:R.todayKey(),n:s.n,entry:s.entry||null,i:s.i,streak:s.streak||0});
+  if(s.done){run.phase="done";lastPanelKey="";render();return}
+  if(s.open){openQuestion(s.open);return}
+  nextDaily();
+}
+async function answerDaily(slot){
+  const q=run.q;if(!q||q.picked!=null||run.phase!=="question")return;
+  q.picked=slot;run.phase="checking";render();
+  try{
+    const r=await Rush.trivia.answer(q.i,slot);
+    q.correct=r.correct;q.pts=r.pts;q.ok=r.ok;run.res.push({ok:r.ok,pts:r.pts});
+    dstate=Object.assign(dstate||{},r.state);
+    LS.set("tr-today",{d:R.todayKey(),n:r.state.n,entry:r.state.entry||null,i:r.state.i,streak:r.state.streak||0});
+    run.phase="reveal";render();
+    setTimeout(()=>{if(!run||run.kind!=="daily")return;if(r.state.done){run.phase="done";lastPanelKey="";render();Rush.db.collection("trivia").refresh()}else nextDaily()},1800);
+  }catch(e){
+    if(e.data&&e.data.state){q.ok=false;run.phase="reveal";render();setTimeout(()=>applyDailyState(e.data.state),1500);return}
+    run.phase="error";render();
+  }
+}
+async function fiftyDaily(){
+  const q=run.q;if(!q||q.fifty||q.picked!=null)return;
+  q.fifty=true;render();
+  try{const r=await Rush.trivia.fifty(q.i);q.removed=r.removed||[];render()}catch(e){}
+}
+
+async function startArchive(n){
+  saveMe();
+  let data;try{data=await Rush.trivia.archive(n)}catch(e){return}
+  mode="archive";run={kind:"archive",n,i:0,res:[],phase:"count",countEnd:Date.now()+T.COUNT_MS,qs:data.q,q:null};
+  showGame();setTimeout(()=>openArchiveQ(0),T.COUNT_MS);
+}
+function openArchiveQ(i){
+  if(!run||run.kind!=="archive")return;
+  const raw=run.qs[i],ord=R.shuffledOrder(4,`${uid}|${run.n}|${i}`),ms=T.DIFF.normal.ms;
+  run.q={i,c:raw[0],q:{en:raw[2],ar:raw[3]},opts:ord.map(k=>({en:raw[4][k],ar:raw[5][k]})),ord,ms,startAt:Date.now(),deadline:Date.now()+ms,picked:null,correct:ord.indexOf(0),removed:[],pts:0,fiftyPct:R.cluePctFor(sk()),fifty:false};
+  run.i=i;run.phase="question";lastPanelKey="";render();
+}
+function answerArchive(slot){
+  const q=run.q;if(!q||q.picked!=null)return;
+  q.picked=slot;const ok=slot===q.correct,used=Math.min(q.ms,Date.now()-q.startAt);
+  q.ok=ok;q.pts=R.triviaPoints(ok,used,q.ms,q.fifty,q.fiftyPct);run.res.push({ok,pts:q.pts});
+  run.phase="reveal";render();
+  setTimeout(()=>{if(!run||run.kind!=="archive")return;
+    if(run.i+1<T.QUESTIONS)openArchiveQ(run.i+1);
+    else{run.phase="done";const a=LS.get("tr-arch",{});a[run.n]={c:run.res.filter(x=>x.ok).length,pts:run.res.reduce((s,x)=>s+x.pts,0)};LS.set("tr-arch",a);lastPanelKey="";render()}},1800);
+}
+function fiftyLocal(q,seed){
+  const wrong=[0,1,2,3].filter(s=>s!==q.correct),keep=R.shuffledOrder(3,seed)[0];
+  return wrong.filter((_,j)=>j!==keep);
+}
+
+/* ---------- rooms and practice ---------- */
+function myPresence(){
+  const p={n:me.nick,c:me.color,u:uid,h:host?1:0,s:score,tm:myTeam,cv:[...myVotes],r:cur?cur.round:0,a:cur?cur.ans.map(x=>x?(x.ok?1:0):-1):[],rs:cur?roundScore():0};
+  if(host){Object.assign(p,{hr:hs.hr,st:hs.st,at:hs.at,ids:hs.ids,cat:hs.cat,df:hs.df,md:hs.md,ts:hs.ts,tr:hs.tr,vo:hs.vo})}
+  else Object.assign(p,{hr:null,st:null,at:null,ids:null,cat:null,df:null,md:null,ts:null,tr:null,vo:null});
+  return p;
+}
+function pushPresence(){if(roomApi)roomApi.presence(myPresence()).catch(()=>{})}
+function peers(){return roomApi?roomApi.peers().filter(p=>p.presence&&p.presence.n):[]}
+function others(){return peers().filter(p=>!p.sameTab)}
+function hostPeer(){const l=others().filter(p=>p.presence.h===1).sort((a,b)=>a.peer<b.peer?-1:1);return l[0]||null}
+function myPeer(){return roomApi?roomApi.peers().find(p=>p.sameTab):null}
+function hostInfo(){
+  if(host||mode==="solo")return hs;
+  const hp=hostPeer();if(!hp)return null;const P=hp.presence;
+  return{hr:num(P.hr),st:P.st,at:num(P.at),ids:Array.isArray(P.ids)?P.ids.slice(0,10):[],cat:T.CATS.includes(P.cat)?P.cat:null,df:diffOf(P.df),md:P.md==="t"?"t":"f",
+    ts:{A:num(P.ts&&P.ts.A),B:num(P.ts&&P.ts.B)},tr:P.tr&&typeof P.tr==="object"?{A:num(P.tr.A),B:num(P.tr.B),n:num(P.tr.n)}:null,
+    vo:Array.isArray(P.vo)?P.vo.filter(c=>T.CATS.includes(c)).slice(0,T.VOTE_OPTIONS):T.CATS.slice(0,T.VOTE_OPTIONS)};
+}
+const teamsOn=()=>mode==="room"&&(hostInfo()||{}).md==="t";
+function ensureTeam(){
+  if(!teamsOn()){if(myTeam&&mode==="room"&&hostInfo()){myTeam=null;pushPresence()}return}
+  if(myTeam)return;
+  const o=others();const a=o.filter(p=>p.presence.tm==="A").length,b=o.filter(p=>p.presence.tm==="B").length;
+  myTeam=a<=b?"A":"B";pushPresence();
+}
+function roundScore(){return cur?cur.ans.reduce((s,x)=>s+(x?x.pts:0),0):0}
+
+/* the round schedule: countdown, then each question for its time, then the answer for REVEAL_MS */
+function phaseOf(c,now){
+  const t0=c.at+T.COUNT_MS,step=c.ms+T.REVEAL_MS;
+  if(now<t0)return{ph:"count",left:t0-now};
+  const k=Math.floor((now-t0)/step);if(k>=c.ids.length)return{ph:"over"};
+  const off=now-t0-k*step,start=t0+k*step;
+  return off<c.ms?{ph:"q",j:k,left:c.ms-off,start}:{ph:"reveal",j:k,start};
+}
+function beginRound(round,ids,at,cat,df){
+  df=diffOf(df);const D=T.DIFF[df];
+  cur={round,ids:ids.slice(0,T.QUESTIONS),at,cat,df,ms:D.ms,help:D.help,ans:[],fifty:{},removed:{},free:D.help&&R.bonusFor(sk())?1:0,cluePct:R.cluePctFor(sk())};
+  markSeen(cur.ids);waitNext=false;closing=false;pushPresence();lastPanelKey="";render();
+}
+function curQ(j){const q=BYID.get(cur.ids[j]);if(!q)return null;const ord=R.shuffledOrder(4,uid+"|"+q.id);return{q,ord,correct:ord.indexOf(0)}}
+function answerRoom(slot){
+  if(!cur)return;const P=phaseOf(cur,Date.now());if(P.ph!=="q"||cur.ans[P.j])return;
+  const x=curQ(P.j);if(!x)return;
+  const ok=slot===x.correct,used=Date.now()-P.start,fifty=!!cur.fifty[P.j];
+  const paid=fifty&&cur.fifty[P.j]!=="free";
+  const pts=R.triviaPoints(ok,used,cur.ms,paid,cur.cluePct);
+  cur.ans[P.j]={ok,pts,p:slot};score+=pts;
+  if(mode==="room")Rush.trivia.level(ok?1:-1,profile()).catch(()=>{});
+  pushPresence();render();
+}
+function fiftyRoom(){
+  if(!cur||!cur.help)return;const P=phaseOf(cur,Date.now());if(P.ph!=="q"||cur.ans[P.j]||cur.fifty[P.j])return;
+  const x=curQ(P.j);if(!x)return;
+  cur.fifty[P.j]=cur.free>0?"free":"paid";if(cur.free>0)cur.free--;
+  cur.removed[P.j]=fiftyLocal({correct:x.correct},uid+"|"+x.q.id+"|f");render();
+}
+
+/* category votes: like Hangman, every voter has one vote split across the categories they tap, and the
+   category is drawn by vote share — but only from the five on offer this round */
+function toggleVote(c){myVotes.has(c)?myVotes.delete(c):myVotes.add(c);LS.set("tr-cv",[...myVotes]);pushPresence();lastPanelKey="";render()}
+function voteShares(vo){
+  const ballots=[[...myVotes]];
+  if(mode==="room")others().forEach(p=>{if(Array.isArray(p.presence.cv))ballots.push(p.presence.cv)});
+  const sh={};let voters=0;
+  ballots.forEach(b=>{b=[...new Set(b)].filter(c=>vo.includes(c));if(!b.length)return;voters++;b.forEach(c=>sh[c]=(sh[c]||0)+1/b.length)});
+  for(const c in sh)sh[c]/=voters;return sh;
+}
+function pickCategory(vo){const sh=voteShares(vo),keys=Object.keys(sh);if(!keys.length)return vo[Math.floor(Math.random()*vo.length)];
+  let r=Math.random(),acc=0;for(const c of keys){acc+=sh[c];if(r<acc)return c}return keys[keys.length-1]}
+function voteBox(vo){
+  const sh=voteShares(vo),box=el("div","votes"),chips=el("div","chips");
+  box.appendChild(el("p","lbl",t(mode==="room"?"voteTitle":"pickTitle")));
+  vo.forEach(c=>{const b=el("button","catchip");b.type="button";b.setAttribute("aria-pressed",String(myVotes.has(c)));b.appendChild(el("span",null,catName(c)));
+    if(sh[c])b.appendChild(el("span","pct",Math.round(sh[c]*100)+"%"));b.onclick=()=>toggleVote(c);chips.appendChild(b)});
+  box.append(chips,el("p","diffhelp",Object.keys(sh).length?t(mode==="room"?"voteHelp":"pickHelp"):t("anyCat")));
+  return box;
+}
+// questions nobody in the room has seen lately: asked of the server, or picked here if it can't be reached
+async function chooseQuestions(cat,df){
+  const uids=[uid].concat(mode==="room"?others().map(p=>p.presence.u).filter(u=>typeof u==="string"):[]);
+  const exclude=hs.used.slice(-200);
+  try{const r=await Rush.trivia.pick(uids,cat,df,T.QUESTIONS,exclude);if(r.ids&&r.ids.length>=T.QUESTIONS)return r.ids;
+    const r2=await Rush.trivia.pick(uids,cat,df,T.QUESTIONS,[]);if(r2.ids&&r2.ids.length)return r2.ids}catch(e){}
+  const D=T.DIFF[diffOf(df)],fits=BANK.filter(q=>q.c===cat&&D.pool(q.d));
+  const now=Date.now(),fresh=fits.filter(q=>!exclude.includes(q.id)&&!(now-(seen[q.id]||0)<COOL));
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+  let pick=shuffle(fresh).slice(0,T.QUESTIONS);
+  if(pick.length<T.QUESTIONS)pick=pick.concat(fits.filter(q=>!pick.includes(q)).sort((a,b)=>(seen[a.id]||0)-(seen[b.id]||0)).slice(0,T.QUESTIONS-pick.length));
+  return pick.map(q=>q.id);
+}
+let starting=false;
+async function hostStart(){
+  if(!host||starting||!BANK.length)return;starting=true;lastPanelKey="";render();
+  const cat=pickCategory(hs.vo),df=diffOf(hs.df);
+  const ids=await chooseQuestions(cat,df);
+  starting=false;
+  if(!ids.length){render();return}
+  hs.used=hs.used.concat(ids).slice(-300);
+  hs.hr=Math.max(hs.hr,lastRound)+1;hs.st="playing";hs.at=Date.now();hs.ids=ids;hs.cat=cat;hs.tr=null;
+  lastRound=hs.hr;beginRound(hs.hr,ids,hs.at,cat,df);
+}
+function closeRoundAsHost(){
+  if(hs.st!=="playing")return;
+  hs.st="ended";
+  if(hs.md==="t"){
+    const rows=others().filter(p=>p.presence.r===hs.hr).map(p=>p.presence);rows.push(myPresence());
+    const avg=k=>{const m=rows.filter(r=>r.tm===k);return m.length?Math.round(m.reduce((a,r)=>a+num(r.rs),0)/m.length):0};
+    hs.tr={A:avg("A"),B:avg("B"),n:hs.hr};hs.ts={A:hs.ts.A+hs.tr.A,B:hs.ts.B+hs.tr.B};
+  }
+  hs.vo=offer(hs.cat);myVotes=new Set([...myVotes].filter(c=>hs.vo.includes(c)));
+  pushPresence();lastPanelKey="";render();
+}
+function setMode(md){if(!host||hs.st==="playing")return;hs.md=md;hs.ts={A:0,B:0};hs.tr=null;if(md==="t")ensureTeam();else myTeam=null;pushPresence();lastPanelKey="";render()}
+function setDiff(df){if(!host||hs.st==="playing")return;hs.df=diffOf(df);pushPresence();lastPanelKey="";render()}
+function switchTeam(){myTeam=myTeam==="A"?"B":"A";pushPresence();lastPanelKey="";render()}
+function takeOver(){const h=hostInfo();host=true;hs=Object.assign(freshHost(),h||{},{hr:lastRound,st:"ended",used:hs.used});pushPresence();lastPanelKey="";render()}
+
+function tick(){
+  const now=Date.now();
+  // daily/archive timers
+  if(run&&run.phase==="question"&&run.q&&run.q.picked==null&&now>=run.q.deadline){
+    if(run.kind==="daily")answerDaily(-1);else answerArchive(-1);
+  }
+  if(mode!=="room"&&mode!=="solo")return;
+  // a question that ran out without an answer counts as a miss
+  if(cur&&!waitNext){
+    const P=phaseOf(cur,now);
+    const last=P.ph==="over"?cur.ids.length:(P.ph==="reveal"?P.j+1:(P.ph==="q"?P.j:0));
+    for(let j=0;j<last;j++)if(!cur.ans[j]){cur.ans[j]={ok:false,pts:0,p:-1};if(mode==="room")Rush.trivia.level(-1,profile()).catch(()=>{});pushPresence()}
+    if(P.ph==="over"&&host&&hs.st==="playing"&&!closing){closing=true;setTimeout(closeRoundAsHost,600)}
+  }
+  if(mode!=="room")return;
+  ensureTeam();
+  if(host){
+    const other=hostPeer(),mine=myPeer();
+    if(other&&mine&&other.peer<mine.peer&&num(other.presence.hr)>=hs.hr){host=false;lastRound=Math.max(lastRound,hs.hr);pushPresence();lastPanelKey=""}
+    return;
+  }
+  const h=hostInfo();if(!h)return;
+  if(h.hr>lastRound&&h.st==="playing"&&h.ids.length){
+    lastRound=h.hr;
+    let at=h.at||now;const D=T.DIFF[h.df],total=T.COUNT_MS+h.ids.length*(D.ms+T.REVEAL_MS);
+    if(at>now+5000||at<now-total)at=now; // clocks too far apart: start our schedule now
+    if(now-joinedAt<2500&&now>at+T.COUNT_MS+2000){waitNext=true;cur=null;lastPanelKey="";render();return}
+    beginRound(h.hr,h.ids,at,h.cat,h.df);
+  }else if(h.hr>lastRound)lastRound=h.hr;
+}
+setInterval(()=>{if(!$("#game").hidden){tick();renderLive()}},150);
+
+/* ---------- input ---------- */
+function pick(slot){
+  if(mode==="daily")return answerDaily(slot);
+  if(mode==="archive")return answerArchive(slot);
+  if(mode==="room"||mode==="solo")return answerRoom(slot);
+}
+$("#fiftyBtn").onclick=()=>{
+  if(mode==="daily")return fiftyDaily();
+  if(mode==="archive"){const q=run.q;if(!q||q.fifty||q.picked!=null)return;q.fifty=true;q.removed=fiftyLocal(q,`${uid}|${run.n}|${run.i}|f`);render();return}
+  fiftyRoom();
+};
+document.addEventListener("keydown",e=>{
+  if($("#game").hidden||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
+  if(/^[1-4]$/.test(e.key)){const b=$("#opts").children[Number(e.key)-1];if(b&&!b.disabled){b.click();e.preventDefault()}}
+  else if(e.key==="Enter"){const b=$("#panel .primary");if(b&&!$("#overlay").hidden){b.click();e.preventDefault()}}
+});
+
+/* ---------- render ---------- */
+// what the play area shows right now, whatever the mode
+function view(){
+  const now=Date.now();
+  if(run){
+    const q=run.q,dots=[...Array(T.QUESTIONS)].map((_,i)=>i<run.res.length?(run.res[i].ok?"ok":"no"):(i===run.i&&run.phase!=="done"?"now":""));
+    if(!q||run.phase==="intro"||run.phase==="count"||run.phase==="done")return{dots,cat:null,q:null};
+    const live=run.phase==="question";
+    return{dots,cat:q.c,q:q.q,opts:q.opts,removed:q.removed,picked:q.picked,correct:run.phase==="reveal"?q.correct:null,
+      ok:q.ok,pts:q.pts,reveal:run.phase==="reveal",live,left:live?Math.max(0,q.deadline-now):0,ms:q.ms,
+      help:true,fifty:q.fifty,fiftyPct:q.fiftyPct,free:q.fiftyPct===0,num:q.i+1};
+  }
+  if(cur&&!waitNext){
+    const P=phaseOf(cur,now),dots=cur.ids.map((_,i)=>cur.ans[i]?(cur.ans[i].ok?"ok":"no"):(P.j===i?"now":""));
+    if(P.ph==="count"||P.ph==="over")return{dots,cat:cur.cat,q:null,count:P.ph==="count"?P.left:0};
+    const x=curQ(P.j);if(!x)return{dots,cat:cur.cat,q:null};
+    const a=cur.ans[P.j],opts=x.ord.map(k=>x.q.a[k]);
+    return{dots,cat:cur.cat,q:x.q.q,opts,removed:cur.removed[P.j]||[],picked:a?a.p:null,correct:P.ph==="reveal"?x.correct:null,
+      ok:a&&a.ok,pts:a?a.pts:0,reveal:P.ph==="reveal",live:P.ph==="q",left:P.ph==="q"?P.left:0,ms:cur.ms,
+      help:cur.help,fifty:!!cur.fifty[P.j],fiftyPct:cur.cluePct,free:cur.free>0,num:P.j+1};
+  }
+  return{dots:[...Array(T.QUESTIONS)].map(()=>""),cat:null,q:null};
+}
+let lastQKey="";
+function render(){if($("#game").hidden)return;renderTop();renderPlay(true);renderBoard();renderOverlay()}
+function renderLive(){renderTimer();renderPlay(false);renderOverlay();if(mode==="room"||mode==="solo")renderBoardLight()}
+function renderTop(){
+  const r=$("#roomTxt");r.textContent="";
+  $("#copyBtn").hidden=mode!=="room";$("#netDot").hidden=mode!=="room";
+  if(mode==="solo")r.textContent=t("soloPractice");
+  else if(mode==="daily")r.textContent=t("dailyMode");
+  else if(mode==="archive")r.textContent=t("archMode");
+  else if(mode==="room"){r.append(el("span",null,t("roomLbl")),ltr(code,"code"));$("#netDot").classList.toggle("off",!connected)}
+  const h=hostInfo();
+  $("#roundLbl").textContent=mode==="daily"?"#"+R.dailyNo():mode==="archive"?"#"+run.n:(cur?t("roundN",{n:cur.round})+" · "+diffName(cur.df):(h?diffName(h.df):""));
+}
+function renderTimer(){
+  const v=view(),tm=$("#timer"),bar=$("#tbar");
+  if(v.live){const s=Math.ceil(v.left/1000);tm.textContent=t("secs",{n:s});tm.classList.toggle("low",s<=5);bar.classList.toggle("low",s<=5);bar.firstChild.style.width=(100*v.left/v.ms)+"%"}
+  else{tm.textContent="";tm.classList.remove("low");bar.classList.remove("low");bar.firstChild.style.width=v.reveal?"0%":"100%"}
+}
+function renderPlay(force){
+  const v=view();
+  const key=[lang,v.cat,v.q&&v.q.en,v.picked,v.correct,v.removed&&v.removed.join(),v.fifty,v.live,v.reveal,v.dots.join(),v.free].join("|");
+  if(!force&&key===lastQKey)return;lastQKey=key;
+  const d=$("#dots");d.textContent="";v.dots.forEach(c=>d.appendChild(el("i",c)));
+  $("#cat").textContent=v.cat?catName(v.cat)+(v.num?" · "+t("qOf",{i:v.num,n:T.QUESTIONS}):""):t("category");
+  const qt=$("#qText");qt.classList.toggle("qwait",!v.q);qt.textContent=v.q?tx(v.q):t("getReady");
+  const box=$("#opts");box.textContent="";
+  if(v.opts)v.opts.forEach((o,i)=>{
+    const b=el("button","opt");b.type="button";b.append(el("span","k",String(i+1)),el("span",null,tx(o)));
+    const gone=v.removed&&v.removed.includes(i);
+    if(gone)b.classList.add("gone");
+    if(v.picked===i)b.classList.add("mine");
+    if(v.correct!=null){if(i===v.correct)b.classList.add("right");else if(v.picked===i)b.classList.add("wrong")}
+    b.disabled=!v.live||v.picked!=null||gone;b.onclick=()=>pick(i);box.appendChild(b)});
+  const hr=$("#hintRow");hr.hidden=!(v.live&&v.help&&v.picked==null);
+  if(!hr.hidden){const fb=$("#fiftyBtn");fb.textContent="";fb.append(document.createTextNode(t("fifty")+" "),el("b",null,v.free?t("fiftyFree"):"−"+v.fiftyPct+"%"));fb.disabled=!!v.fifty}
+  const f=$("#fb");f.className="feedback";f.textContent="";
+  if(v.reveal){
+    if(v.picked==null||v.picked<0){if(v.reveal){f.textContent=t("timeUp");f.classList.add("no")}}
+    else if(v.ok){f.textContent=t("right",{p:v.pts});f.classList.add("ok")}
+    else if(v.reveal){f.textContent=t("wrong");f.classList.add("no")}
+    if(v.reveal&&!v.ok&&v.correct!=null&&v.opts)f.textContent+=" · "+t("answerWas",{a:tx(v.opts[v.correct])});
+  }
+  renderTimer();
+}
+
+/* race board (rooms and practice) */
+function rowData(){
+  if(mode!=="room")return[Object.assign({me:true},myPresence(),{h:1})];
+  const list=others().map(p=>Object.assign({me:false,id:p.presence.u},p.presence));list.push(Object.assign({me:true,id:uid},myPresence()));return list;
+}
+function marks(a){const s=el("span","marks");(Array.isArray(a)?a:[]).slice(0,T.QUESTIONS).forEach(x=>{s.appendChild(x===1?el("b",null,"✓"):x===0?el("s",null,"✗"):document.createTextNode("·"))});return s}
+function playerRow(r,round,first){
+  const d=el("div","pl"+(first?" first":""));const dot=el("span","dot");dot.style.background=R.safeColor(r.c);
+  const nm=el("span","pn",nm16(r.n));if(r.me)nm.appendChild(el("small",null,t("you")));if(r.h===1&&mode==="room")nm.appendChild(el("small",null,t("hostTag")));
+  const pp=el("div","pp");
+  if(!round||r.r!==round)pp.appendChild(el("span",null,t("waitingNext")));
+  else{pp.appendChild(marks(r.a));pp.appendChild(el("span",null,"+"+num(r.rs)))}
+  d.append(dot,nm,el("span","ps",String(num(r.s))),pp);return d;
+}
+let boardKey="";
+function renderBoardLight(){const k=JSON.stringify(rowData().map(r=>[r.n,r.s,r.a,r.r,r.tm,r.h]))+lang+(cur&&cur.round);if(k!==boardKey)renderBoard()}
+function renderBoard(){
+  const box=$("#players");box.textContent="";
+  $("#tabs").hidden=mode!=="daily";
+  if(mode==="daily")return renderDailyBoard(box);
+  if(mode==="archive"){$("#boardLbl").textContent=t("archMode")+" #"+run.n;$("#pcount").textContent="";box.appendChild(el("p","note",t("archNote")));return}
+  boardKey=JSON.stringify(rowData().map(r=>[r.n,r.s,r.a,r.r,r.tm,r.h]))+lang+(cur&&cur.round);
+  $("#boardLbl").textContent=teamsOn()?t("teams"):t("boardRace");
+  const list=rowData().sort((a,b)=>num(b.s)-num(a.s)),round=cur?cur.round:0;
+  $("#pcount").textContent=list.length===1?t("player1"):t("players",{n:list.length});
+  if(teamsOn()){
+    const h=hostInfo();
+    ["A","B"].forEach(k=>{const head=el("div","teamhead");const l=el("span");const dot=el("span","dot");dot.style.background=TEAMS[k].color;
+      l.append(dot,document.createTextNode(" "+teamName(k)));head.append(l,el("span","ps",String(h?num(h.ts[k]):0)));box.appendChild(head);
+      const mem=list.filter(r=>r.tm===k);if(!mem.length)box.appendChild(el("div","empty",t("noOne")));
+      mem.forEach((r,i)=>box.appendChild(playerRow(r,round,i===0)))});
+    return;
+  }
+  list.forEach((r,i)=>box.appendChild(playerRow(r,round,i===0)));
+}
+/* daily board */
+function nameCell(p,i){const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=R.tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.id===uid)nm.appendChild(el("small",null,t("you")));return nm}
+function renderDailyBoard(box){
+  $("#boardLbl").textContent=t("boardDaily");
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===boardTab)));
+  const se=R.curSeason();$("#pcount").textContent=t("seasonN",{n:se});
+  const left=R.seasonDaysLeft(),bar=el("div","seasonbar"+(left<=3?" final":""));
+  const meter=el("span","meter");const fill=el("i");fill.style.width=Math.round(100*(R.seasonDay()-1)/R.SEASON_LEN)+"%";meter.appendChild(fill);
+  bar.append(el("span",null,t("dayOf",{d:R.seasonDay(),t:R.SEASON_LEN})),meter,el("span",null,left===1?t("resetsTonight"):left<=3?t("finalDays",{n:left}):t("daysLeftShort",{n:left})));
+  box.appendChild(bar);
+  const list=allPlayers.filter(p=>p.se===se);
+  const played=!!todayEntry();
+  if(boardTab==="season"){
+    const rows=list.filter(p=>p.played>0).sort((a,b)=>R.seasonPts(b)-R.seasonPts(a)||R.curStreak(b)-R.curStreak(a));
+    if(!rows.length)box.appendChild(el("div","empty",t("seasonEmpty")));
+    rows.forEach((p,i)=>{const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
+      const pp=el("div","pp");pp.appendChild(el("span",null,t("solvedOf",{w:p.wins,p:p.played,b:p.best})));
+      const s=R.curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
+      d.append(dot,nameCell(p,i),el("span","ps",String(R.seasonPts(p))),pp);box.appendChild(d)});
+    box.appendChild(el("p","note",t("seasonNote",{n:se+1})));
+  }else{
+    const k=boardTab==="today"?R.todayKey():R.ydayKey();
+    const rows=list.filter(p=>p.h[k]&&("ok" in p.h[k])).sort((a,b)=>num(b.h[k].pts)-num(a.h[k].pts)||num(a.h[k].t)-num(b.h[k].t));
+    if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?t("todayEmpty"):t("ydayEmpty")));
+    rows.forEach((p,i)=>{const e=p.h[k];const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
+      const hide=boardTab==="today"&&!played&&p.id!==uid;
+      const pp=el("div","pp");
+      if(hide)pp.appendChild(el("span",null,t("playedHidden")));
+      else{const m=String(e.s||"").split("").map(c=>c==="1"?1:0);pp.appendChild(marks(m));pp.appendChild(el("span",null,fmtS(num(e.t))))}
+      const s=R.curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
+      d.append(dot,nameCell(p,i),el("span","ps",hide?"•••":String(e.pts)),pp);box.appendChild(d)});
+    if(boardTab==="today"&&!played&&rows.length)box.appendChild(el("p","note",t("timesHidden")));
+  }
+  if(dbErr)box.appendChild(el("p","note",t("dbErr")));
+}
+
+/* overlay panels */
+let lastPanelKey="";
+function showCount(ov,panel,n){const key="cd"+n;ov.hidden=false;if(lastPanelKey===key)return;lastPanelKey=key;panel.hidden=true;
+  let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=String(n)}
+function setPanel(ov,panel,key,build){
+  key=lang+"|"+key;ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;
+  const c=ov.querySelector(".count");if(c)c.hidden=true;
+  panel.hidden=false;panel.textContent="";build().forEach(n=>panel.appendChild(n));
+}
+function hideOverlay(ov){if(!ov.hidden){ov.hidden=true;lastPanelKey=""}}
+function stats(items){const st=el("div","stats");items.forEach(([v,k])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,t(k)));st.appendChild(d)});return st}
+function renderOverlay(){
+  const ov=$("#overlay"),panel=$("#panel"),now=Date.now();
+  if(run){
+    if(run.phase==="count")return showCount(ov,panel,Math.max(1,Math.ceil((run.countEnd-now)/1000)));
+    if(run.kind==="daily"&&run.phase==="intro")return setPanel(ov,panel,"dintro"+(dstate?dstate.streak:0)+run.i,()=>{
+      const out=[el("h2",null,t("dailyTitle",{n:run.n})),el("p",null,t("dailyIntro"))];
+      const s=dstate?num(dstate.streak):0;if(s)out.push(el("p","streak",s===1?t("curStreak1"):t("curStreakN",{n:s})));
+      const b=el("button","btn primary",run.i>0?t("resume",{i:run.i}):t("start"));b.onclick=startDaily;out.push(b);return out});
+    if(run.phase==="error")return setPanel(ov,panel,"err",()=>{const b=el("button","btn primary",t("backLobby"));b.onclick=backToLobby;return[el("h2",null,t("dailyErr")),b]});
+    if(run.phase==="done")return setPanel(ov,panel,"done"+run.kind+run.res.length,()=>{
+      const c=run.res.filter(x=>x.ok).length,p=run.res.reduce((s,x)=>s+x.pts,0);
+      if(run.kind==="archive"){const b=el("button","btn primary",t("backLobby"));b.onclick=backToLobby;
+        return[el("h2",null,t("archDone",{n:run.n,c})),stats([[p,"statPoints"],[c+"/5","statRight"]]),el("p","note",t("archNote")),b]}
+      const e=todayEntry()||{c,pts:p,s:run.res.map(x=>x.ok?1:0).join("")};
+      const s=dstate?num(dstate.streak):0,best=dstate?num(dstate.best):0;
+      const grid=String(e.s||"").split("").map(x=>x==="1"?"🟩":"⬛").join("");
+      const share=t("shareHead",{s:R.curSeason(),n:run.n})+"\n"+grid+" "+t("pts",{n:e.pts})+"\n"+location.origin+location.pathname;
+      const cb=el("button","btn primary",t("copyResult"));cb.onclick=()=>copyText(share,cb,"copyResult");
+      return[el("h2",null,t("doneTitle",{c:e.c})),el("div","reveal",grid),stats([[e.pts,"statPoints"],[e.c+"/5","statRight"],[s,"statStreak"],[best,"statBest"]]),cb,el("p","note",t("nextSetUtc",{t:untilNext()}))]});
+    return hideOverlay(ov);
+  }
+  if(waitNext)return setPanel(ov,panel,"wait",()=>[el("h2",null,t("roundInProgress")),el("p",null,t("jumpIn"))]);
+  if(cur){const P=phaseOf(cur,now);if(P.ph==="count")return showCount(ov,panel,Math.max(1,Math.ceil(P.left/1000)));if(P.ph!=="over")return hideOverlay(ov)}
+  const h=hostInfo(),hp=hostPeer(),tm=teamsOn();
+  const ended=!cur||(P2=>P2.ph==="over")(phaseOf(cur,now));
+  const settled=!cur||(h&&h.st==="ended"&&h.hr===cur.round)||mode==="solo";
+  const rows=cur?rowData().filter(r=>r.r===cur.round):[];
+  const vo=h?h.vo:hs.vo;
+  const key=[mode,cur?cur.round:0,ended,settled,host,!!hp,tm,myTeam,h&&h.md,h&&h.df,h&&h.st,starting,BANK.length>0,[...myVotes].join(),vo.join(),
+    rows.map(r=>r.n+r.rs+r.tm).join(),mode==="room"?others().map(p=>(p.presence.cv||[]).join()).join("/"):""].join("|");
+  setPanel(ov,panel,key,()=>{
+    const out=[];
+    if(!cur){
+      if(host){out.push(el("h2",null,mode==="solo"?t("readyPractise"):t("shareStart")));
+        if(mode==="room"){const p=el("p",null,t("roomCodeLine"));const c=ltr(code);c.style.cssText="font-family:var(--f-mono);font-weight:700;letter-spacing:.2em";p.appendChild(c);out.push(p,el("p","note",t("startsAtOnce")))}}
+      else if(hp)out.push(el("h2",null,t("waitingFor",{name:nm16(hp.presence.n)})),el("p",null,t("startsAtOnce")));
+      else{out.push(el("h2",null,t("noHost",{c:code})),el("p",null,t("noHostHelp")));const b=el("button","btn",t("takeOver"));b.onclick=takeOver;out.push(b);return out}
+    }else{
+      out.push(el("h2",null,t("roundOver",{n:cur.round})));
+      if(settled&&tm&&h&&h.tr&&h.tr.n===cur.round){
+        const line=el("div","teamline");["A","B"].forEach(k=>{const s=el("span");const d=el("span","dot");d.style.background=TEAMS[k].color;s.append(d,document.createTextNode(teamName(k)+" +"+h.tr[k]));line.appendChild(s)});
+        out.push(line,el("p",null,h.tr.A===h.tr.B?t("deadEven"):t("takesRound",{team:teamName(h.tr.A>h.tr.B?"A":"B")})));
+      }
+      rows.sort((a,b)=>num(b.rs)-num(a.rs));
+      const ul=el("ol","res");rows.forEach((r,i)=>{const li=el("li");const dot=el("span","dot");dot.style.background=R.safeColor(r.c);
+        const st=el("span","st");st.append(marks(r.a),document.createTextNode(" "),el("b",null,"+"+num(r.rs)));
+        li.append(el("span","rk",String(i+1)),dot,el("span","nm",nm16(r.n)+(r.me?t("youParen"):"")),st);ul.appendChild(li)});
+      out.push(ul);
+      if(!settled){out.push(el("p","note",t("waitingMore")));return out}
+    }
+    if(mode==="room"){
+      if(host){const seg=el("div","seg");[["f","ffa"],["t","teamsBtn"]].forEach(([v,l])=>{const b=el("button",null,t(l));b.type="button";b.setAttribute("aria-pressed",String(hs.md===v));b.onclick=()=>setMode(v);seg.appendChild(b)});out.push(seg)}
+      if(tm&&myTeam){const p=el("div","row");const d=el("span","dot");d.style.background=TEAMS[myTeam].color;
+        const sw=el("button","btn ghost",t("switchTo",{c:teamCol(myTeam==="A"?"B":"A")}));sw.onclick=switchTeam;
+        p.append(d,el("span",null,t("onTeam",{team:teamName(myTeam)})),sw);out.push(p)}
+    }
+    if(host){const seg=el("div","seg");["easy","normal","hard"].forEach(v=>{const b=el("button",null,diffName(v));b.type="button";b.setAttribute("aria-pressed",String(diffOf(hs.df)===v));b.onclick=()=>setDiff(v);seg.appendChild(b)});
+      out.push(seg,el("p","diffhelp",t("diffHelp_"+diffOf(hs.df))))}
+    else if(h)out.push(el("p","diffhelp",diffName(h.df)+" · "+t("diffHelp_"+h.df)));
+    out.push(voteBox(vo));
+    if(host){const b=el("button","btn primary",cur?t("nextRound"):t("startRound1"));b.disabled=starting||!BANK.length;b.onclick=hostStart;out.push(b)}
+    else if(hp)out.push(el("p","note",t("waitingHostNext",{name:nm16(hp.presence.n)})));
+    else{out.push(el("p","note",t("hostLeft")));const b=el("button","btn primary",t("takeOver"));b.onclick=takeOver;out.push(b)}
+    return out;
+  });
+}
+
+applyStatic();renderNameHint();renderSkill();renderNet();renderLobbyDaily();renderArchive();
+setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},30000);
+})();
+</script>
+</body>
+</html>

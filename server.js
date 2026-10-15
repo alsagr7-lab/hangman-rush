@@ -1,4 +1,6 @@
-// Hangman Rush server: static files, live rooms over WebSocket, and the daily leaderboard API.
+// Rush Games server: the site's pages, live rooms over WebSocket for both games, the Hangman Rush daily word and
+// leaderboard, and the Trivia Rush API (trivia.js). The same pages can also be served by a free Render static site,
+// which never sleeps; they then talk to this server across origins (see SITE_URL and site/shared/config.js).
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -6,8 +8,10 @@ const crypto = require("crypto");
 const { WebSocketServer } = require("ws");
 
 const PORT = process.env.PORT || 3000;
-const PUBLIC = path.join(__dirname, "public");
+const PUBLIC = path.join(__dirname, "site");
+const SITE_URL = (process.env.SITE_URL || "").replace(/\/+$/, "");
 const store = require("./store");
+const trivia = require("./trivia");
 
 // ---------- daily word ----------
 // The list is stored encrypted (daily-words.enc) and unlocked with the DAILY_KEY environment variable,
@@ -22,11 +26,15 @@ try {
   console.warn("Daily words unavailable (set DAILY_KEY):", e.message);
 }
 
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json" };
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
+// The API is called from the static site's origin too. Players are identified by a token in the request body,
+// never by cookies, so allowing any origin is safe.
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "86400" };
+
 function send(res, code, body, type = "application/json") {
-  res.writeHead(code, { "Content-Type": type, "Cache-Control": "no-store" });
+  res.writeHead(code, { "Content-Type": type, "Cache-Control": "no-store", ...CORS });
   res.end(typeof body === "string" ? body : JSON.stringify(body));
 }
 
@@ -39,12 +47,21 @@ function readBody(req, limit = 32 * 1024) {
   });
 }
 
+async function readJson(req) {
+  try { const v = JSON.parse(await readBody(req)); return v && typeof v === "object" && !Array.isArray(v) ? v : null; } catch { return null; }
+}
+
 const hashToken = t => crypto.createHash("sha256").update(String(t)).digest("hex");
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
   try {
+    if (req.method === "OPTIONS") { res.writeHead(204, CORS); return res.end(); }
     if (url.pathname === "/healthz") return send(res, 200, "ok", "text/plain");
+    // pages served from here talk to this same server; SITE_URL points players at the static copy
+    if (url.pathname === "/shared/config.js")
+      return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)}};`, "text/javascript; charset=utf-8");
+    if (await trivia.handle(req, res, url, { send, readJson })) return;
 
     if (url.pathname === "/api/daily" && req.method === "GET") {
       if (!DAILY.length) return send(res, 503, { error: "Today's word isn't set up on this server yet" });
@@ -74,12 +91,17 @@ const server = http.createServer(async (req, res) => {
     }
 
     // static
-    let p = url.pathname === "/" ? "/index.html" : url.pathname;
-    const file = path.normalize(path.join(PUBLIC, p));
-    if (!file.startsWith(PUBLIC)) return send(res, 403, "Forbidden", "text/plain");
+    let p = url.pathname.endsWith("/") ? url.pathname + "index.html" : url.pathname;
+    const file = path.normalize(path.join(PUBLIC, decodeURIComponent(p)));
+    if (!file.startsWith(PUBLIC + path.sep)) return send(res, 403, "Forbidden", "text/plain");
+    // /trivia -> /trivia/ so the page's relative links work
+    if (!path.extname(file) && fs.existsSync(path.join(file, "index.html"))) {
+      res.writeHead(301, { Location: url.pathname + "/" + url.search });
+      return res.end();
+    }
     fs.readFile(file, (err, buf) => {
       if (err) return send(res, 404, "Not found", "text/plain");
-      res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] || "application/octet-stream" });
+      res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] || "application/octet-stream", "Cache-Control": "no-cache" });
       res.end(buf);
     });
   } catch (e) {
@@ -162,5 +184,5 @@ setInterval(() => {
 }, 30000);
 
 store.init().then(() => {
-  server.listen(PORT, () => console.log(`Hangman Rush listening on ${PORT} (storage: ${store.kind})`));
+  server.listen(PORT, () => console.log(`Rush Games listening on ${PORT} (storage: ${store.kind})`));
 }).catch(e => { console.error("Storage failed to start", e); process.exit(1); });
