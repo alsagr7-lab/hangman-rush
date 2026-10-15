@@ -87,7 +87,7 @@
 .rush-splash .st{font:600 14px var(--f-body,system-ui,sans-serif);min-height:20px}
 .rush-splash .why{font-size:13px;color:var(--muted,#5d6a80)}
 .rush-splash .slow{display:grid;gap:10px}
-.rush-splash .go{justify-self:center;text-decoration:none;font:700 15px var(--f-body,system-ui,sans-serif);color:var(--accent-ink,#fff);background:var(--accent,#2c56e0);
+.rush-splash .rush-go{justify-self:center;text-decoration:none;font:700 15px var(--f-body,system-ui,sans-serif);color:var(--accent-ink,#fff);background:var(--accent,#2c56e0);
   border:2px solid var(--ink,#1b2333);border-radius:10px;padding:11px 18px;box-shadow:3px 3px 0 var(--ink,#1b2333)}
 .rush-splash button{justify-self:center;font:700 15px var(--f-body,system-ui,sans-serif);color:var(--ink,#1b2333);background:var(--surface,#fff);
   border:2px solid var(--ink,#1b2333);border-radius:10px;padding:10px 16px;box-shadow:3px 3px 0 var(--ink,#1b2333);cursor:pointer}
@@ -107,7 +107,7 @@
     blockBox = document.createElement("div"); blockBox.className = "slow"; blockBox.hidden = true;
     blockMsg = document.createElement("p"); blockMsg.style.fontWeight = "700";
     const bh = document.createElement("p"); bh.textContent = T.blockedHelp;
-    const go = document.createElement("a"); go.className = "go"; go.textContent = T.direct; go.href = directLink();
+    const go = document.createElement("a"); go.className = "rush-go"; go.textContent = T.direct; go.href = directLink();
     blockBox.append(blockMsg, bh, go);
     const logo = document.querySelector(".brand svg");
     if (logo) { const ic = logo.cloneNode(true); ic.setAttribute("class", "ic"); inner.append(ic); }
