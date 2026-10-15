@@ -48,6 +48,7 @@ Without `DAILY_KEY` and `TRIVIA_KEY` the two dailies show as unavailable; everyt
 2. Set these environment variables:
    - On `hangman-rush`: `DAILY_KEY` (Hangman words), `TRIVIA_KEY` (trivia questions), `SITE_URL` = the static site's address (e.g. `https://rush-games.onrender.com`).
    - On `rush-games`: `API_URL` = the game server's address (e.g. `https://hangman-rush.onrender.com`), then redeploy it.
+     Its build command is `node scripts/build-site.js` and its publish directory is `dist`.
    - Optional on `hangman-rush`: `TRIVIA_START` (`YYYY-MM-DD`, the first day of trivia set 1; set it to your launch day), `TRIVIA_COOLDOWN_DAYS` (default 60).
 3. Share the static site's address. The old server address keeps working too; its home page offers players a one-tap move to the static site that keeps their identity and leaderboard place.
 
@@ -99,6 +100,10 @@ DAILY_KEY=... node scripts/daily-words.js encrypt words.json
 ```
 
 ## How it fits together
+
+Pages are delivered as single files: `scripts/build-site.js` writes the shared stylesheet and scripts into each page
+(the static site builds `dist/`; the game server does the same in memory at start-up). Some phones and networks were
+dropping the separate files, which left pages unstyled or offline.
 
 - `site/`: the pages, served by the static site and by the game server.
   - `index.html` home, `hangman/index.html`, `trivia/index.html`, `trivia/questions.json` (built).

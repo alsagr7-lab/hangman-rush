@@ -4,3 +4,4 @@ data/
 words.json
 *.key
 trivia-daily.json
+dist/
