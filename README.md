@@ -103,7 +103,7 @@ DAILY_KEY=... node scripts/daily-words.js encrypt words.json
 - `site/`: the pages, served by the static site and by the game server.
   - `index.html` home, `hangman/index.html`, `trivia/index.html`, `trivia/questions.json` (built).
   - `shared/rules.js`: days, seasons, streaks, levels, scoring and tags, used by both games and the server.
-  - `shared/api.js`: player identity, rooms (WebSocket), leaderboards, the trivia API and the wake-up notice.
+  - `shared/rush.js`: player identity, rooms (WebSocket), leaderboards, the trivia API and the wake-up notice.
   - `shared/rush.css`: the shared look. `shared/config.js`: where the game server is (rewritten by the static site's build).
 - `server.js`: serves `site/`, rooms at `/ws`, the Hangman daily word and leaderboard, and CORS so the static site can call it.
 - `trivia.js`: the Trivia daily, past dailies, leaderboard, question picks and levels (`/api/trivia/...`).

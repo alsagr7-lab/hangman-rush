@@ -1,4 +1,4 @@
-// Connects the pages to the game server: player identity, live rooms (WebSocket), the Hangman leaderboard,
+// Connects the pages to the game server (named rush.js rather than api.js, which some content blockers block): player identity, live rooms (WebSocket), the Hangman leaderboard,
 // the Trivia API and a "waking up" notice for the free server's cold start.
 // It also stands in for the claude.ai artifact runtime (window.claude), which Hangman Rush was first written for.
 (function () {
