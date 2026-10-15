@@ -122,6 +122,11 @@ input[type=text]{box-sizing:border-box;font:inherit;font-size:16px;border:2px so
 .catchip{border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;display:inline-flex;gap:6px;align-items:center}
 .catchip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
 .catchip .pct{font-family:var(--f-mono);font-size:11.5px;opacity:.85}
+.duelopts{display:grid;gap:8px}
+.duelw{display:flex;justify-content:space-between;align-items:baseline;gap:10px;text-align:start;box-shadow:2px 2px 0 var(--ink)}
+.duelw .dw{font-family:var(--f-latin-hand);font-size:24px;letter-spacing:.06em;font-weight:400}
+.duelw .dc{font-size:12.5px;color:var(--muted);font-weight:600}
+.duelres{font-family:var(--f-hand);font-size:24px;color:var(--good);margin:0}
 .hintnote{flex-basis:100%;text-align:center;color:var(--good)}
 .keys{display:grid;gap:6px;user-select:none;direction:ltr}
 .krow{display:flex;justify-content:center;gap:5px}
@@ -228,6 +233,7 @@ input.need{border-color:var(--hot)}
         <button class="btn" id="joinBtn" disabled data-i18n="joinRoom">Join room</button>
       </div>
       <p class="note" id="netNote"></p>
+      <button class="btn" id="duelBtn" disabled data-i18n="duelCreate">Challenge a friend (1v1)</button>
       <button class="btn ghost" id="soloBtn" data-i18n="solo">Practise solo</button>
     </div>
 
@@ -356,6 +362,13 @@ en:{
   noHost:"No host in room {c}",noHostHelp:"Check the code with your friend, or run the room yourself.",hostThis:"Host this room",
   hangedBang:"Hanged!",timesUp:"Time's up",deadEven:"Dead even this round.",takesRound:"{team} takes the round.",
   stillGuessing:"still guessing",hangedLower:"hanged",youParen:" (you)",waitingMore:"Waiting for {n} more to finish…",
+  duelCreate:"Challenge a friend (1v1)",duelBtn:"1v1",duelNeeds:"1v1 needs exactly 2 players in the room ({n} now).",
+  duelHelp:"Each of you gets 5 words and picks one for the other to solve. Same clock, same scoring.",
+  duelPick:"Pick a word for {name}",duelPickHelp:"They'll have to solve the one you choose. Pick something tricky.",
+  duelWaitPick:"Waiting for {name} to pick your word…",duelTheyPicked:"{name} has already picked your word.",
+  duelGave:"You gave {name}: ",duelWins:"{name} wins the round!",duelYouWin:"You win the round!",duelTie:"It's a tie.",
+  duelWatch:"1v1 in progress",duelWatchHelp:"Two players are duelling. You can watch the board until it's done.",duelLeft:"Your opponent left the room.",
+  boardDuel:"1v1",
   ffa:"Free-for-all",teamsBtn:"Teams",switchTo:"Switch to {c}",onTeam:"You're on {team}",
   nextRound:"Next round",startRound1:"Start round 1",waitingHostNext:"Waiting for {name} to start the next round.",hostLeft:"The host left.",
   dailyIntro:"Everyone gets this word today. You get one attempt, and the clock starts after the countdown.",
@@ -413,6 +426,13 @@ ar:{
   noHost:"لا يوجد مضيف في الغرفة {c}",noHostHelp:"تأكّد من الرمز مع صديقك، أو استضف الغرفة بنفسك.",hostThis:"استضف هذه الغرفة",
   hangedBang:"شُنقت!",timesUp:"انتهى الوقت",deadEven:"تعادل تام في هذه الجولة.",takesRound:"{team} يفوز بالجولة.",
   stillGuessing:"ما زال يخمّن",hangedLower:"شُنق",youParen:" (أنت)",waitingMore:"بانتظار بقية اللاعبين: {n}…",
+  duelCreate:"تحدَّ صديقاً (1 ضد 1)",duelBtn:"1 ضد 1",duelNeeds:"وضع 1 ضد 1 يحتاج لاعبَين بالضبط في الغرفة (العدد الآن {n}).",
+  duelHelp:"يحصل كل منكما على 5 كلمات ويختار واحدة ليحلّها الآخر. نفس الوقت ونفس طريقة النقاط.",
+  duelPick:"اختر كلمة لـ{name}",duelPickHelp:"سيحاول حلّ الكلمة التي تختارها. اختر كلمة صعبة.",
+  duelWaitPick:"بانتظار أن يختار {name} كلمتك…",duelTheyPicked:"{name} اختار كلمتك بالفعل.",
+  duelGave:"أعطيت {name}: ",duelWins:"{name} يفوز بالجولة!",duelYouWin:"فزت بالجولة!",duelTie:"تعادل.",
+  duelWatch:"مبارزة 1 ضد 1 جارية",duelWatchHelp:"لاعبان يتبارزان الآن. يمكنك متابعة اللوحة حتى تنتهي.",duelLeft:"غادر خصمك الغرفة.",
+  boardDuel:"1 ضد 1",
   ffa:"كل لاعب لنفسه",teamsBtn:"فرق",switchTo:"انتقل إلى {c}",onTeam:"أنت في {team}",
   nextRound:"الجولة التالية",startRound1:"ابدأ الجولة 1",waitingHostNext:"بانتظار {name} لبدء الجولة التالية.",hostLeft:"غادر المضيف.",
   dailyIntro:"الكل يحصل على هذه الكلمة اليوم. لديك محاولة واحدة، ويبدأ الوقت بعد العدّ التنازلي.",
@@ -469,7 +489,27 @@ let cur=null,score=0,lastRound=0,waitNext=false,joinedAt=0,unsubs=[],myTeam=null
 let db=null,uid=null,allPlayers=[],dbErr=false,boardTab="today",netState="connecting",netMsg=null;
 let rec; // set once the date helpers below exist
 
-function freshHost(){return{hr:0,hs:-1,st:"waiting",at:0,used:[],md:"f",df:"normal",ts:{A:0,B:0},tr:null}}
+function freshHost(){return{hr:0,hs:-1,st:"waiting",at:0,used:[],md:"f",df:"normal",ts:{A:0,B:0},tr:null,op:null}}
+/* 1v1 duel: both players get 5 words at the room's difficulty and each picks the word the other must solve.
+   duel = {r: round, opts: [word index x5], pick: word index or null, gave: the word I picked, op: opponent's name} */
+let duel=null,duelUsed=new Set();
+function duelOptions(r,df){
+  const D=DIFF[diffOf(df)],fits=WORDS.filter(x=>D.pool(x.w)&&!duelUsed.has(x.i));
+  const pool=fits.length>=5?fits:WORDS.filter(x=>D.pool(x.w));
+  // one word per category where possible, so the five feel different
+  const byCat={};pool.forEach(x=>(byCat[x.c]=byCat[x.c]||[]).push(x));
+  const cats=Object.keys(byCat).sort(()=>Math.random()-.5),opts=[];
+  while(opts.length<5&&cats.length){for(const c of [...cats]){const l=byCat[c];if(!l.length){cats.splice(cats.indexOf(c),1);continue}
+    const x=l.splice(Math.floor(Math.random()*l.length),1)[0];if(!opts.includes(x.i))opts.push(x.i);if(opts.length>=5)break}}
+  duel={r,opts,pick:null,gave:null};lastPanelKey="";
+}
+function duelPick(i){if(!duel||duel.pick!=null||!duel.opts.includes(i))return;duel.pick=i;duelUsed.add(i);pushPresence();lastPanelKey="";render()}
+const duelOn=()=>mode==="room"&&(hostInfo()||{}).md==="d";
+// the other duellist: for the host, the player chosen at the start of the round; for the guest, the host
+function duelOpp(){
+  if(host)return others().find(p=>p.presence.u===hs.op)||null;
+  return hostPeer();
+}
 
 /* ---------- daily helpers ---------- */
 const dayNum=(x=Date.now())=>Math.floor(x/DAY);
@@ -609,7 +649,7 @@ setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},30000);
   const [r,d,u,dw]=await Promise.all([use("room"),use("db"),use("user"),use("daily")]);
   if(dw&&typeof dw.today==="function"){dailyApi=dw;if(!DAILY_INLINE.length)todayDaily=null;loadDaily()}
   room=r;
-  if(room){$("#createBtn").disabled=false;$("#joinBtn").disabled=false;netState="ok"}else netState="none";
+  if(room){$("#createBtn").disabled=false;$("#joinBtn").disabled=false;$("#duelBtn").disabled=false;netState="ok"}else netState="none";
   renderNet();
   if(d&&u){try{uid=await u.id()}catch(e){uid=null}}
   renderNameHint();
@@ -628,6 +668,7 @@ setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},30000);
 function newCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ";let s="";for(let i=0;i<4;i++)s+=A[Math.floor(Math.random()*A.length)];return s}
 
 $("#createBtn").onclick=()=>{if(!requireName())return;netMsg=null;saveMe();mode="room";host=true;hs=freshHost();enterRoom(newCode())};
+$("#duelBtn").onclick=()=>{if(!requireName())return;netMsg=null;saveMe();mode="room";host=true;hs=freshHost();hs.md="d";enterRoom(newCode())};
 $("#joinBtn").onclick=()=>{if(!requireName())return;const c=$("#codeIn").value.trim().toUpperCase().replace(/[^A-Z]/g,"");if(c.length!==4){netMsg="codeLen";renderNet();return}netMsg=null;saveMe();mode="room";host=false;enterRoom(c)};
 $("#codeIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("#joinBtn").click()});
 $("#soloBtn").onclick=()=>{saveMe();mode="solo";host=true;hs=freshHost();showGame()};
@@ -641,7 +682,7 @@ $("#dailyBtn").onclick=()=>{if(!requireName())return;saveMe();mode="daily";host=
   showGame()};
 
 async function enterRoom(c){
-  const btns=[$("#createBtn"),$("#joinBtn")];btns.forEach(b=>b.disabled=true);
+  const btns=[$("#createBtn"),$("#joinBtn"),$("#duelBtn")];btns.forEach(b=>b.disabled=true);
   try{roomApi=await room.join("hr-"+c.toLowerCase())}catch(e){
     netMsg="roomFail";renderNet();btns.forEach(b=>b.disabled=false);mode=null;return}
   code=c;joinedAt=Date.now();
@@ -666,10 +707,10 @@ document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{boardTab=b.d
 
 /* ---------- presence ---------- */
 function myPresence(){
-  const p={n:me.nick,c:me.color,h:host?1:0,s:score,tm:myTeam,cv:[...myVotes],r:cur?cur.round:0,
+  const p={n:me.nick,c:me.color,u:uid||null,pk:duel&&duel.pick!=null?{r:duel.r,i:duel.pick}:null,h:host?1:0,s:score,tm:myTeam,cv:[...myVotes],r:cur?cur.round:0,
     p:cur?revealed():0,L:cur?cur.word.length:0,m:cur?cur.miss:0,mx:cur?cur.maxMiss:6,hn:hintsUsed(),d:cur?cur.done:0,t:cur?cur.t:0,pt:cur?cur.pts:0};
-  if(host){p.hr=hs.hr;p.hs=hs.hs;p.st=hs.st;p.at=hs.at;p.md=hs.md;p.df=hs.df;p.ts=hs.ts;p.tr=hs.tr}
-  else{p.hr=null;p.hs=null;p.st=null;p.at=null;p.md=null;p.df=null;p.ts=null;p.tr=null}
+  if(host){p.hr=hs.hr;p.hs=hs.hs;p.st=hs.st;p.at=hs.at;p.md=hs.md;p.df=hs.df;p.ts=hs.ts;p.tr=hs.tr;p.op=hs.op}
+  else{p.hr=null;p.hs=null;p.st=null;p.at=null;p.md=null;p.df=null;p.ts=null;p.tr=null;p.op=null}
   return p;
 }
 function pushPresence(){if(roomApi)roomApi.presence(myPresence()).catch(()=>{})}
@@ -678,7 +719,7 @@ function others(){return peers().filter(p=>!p.sameTab)}
 function hostPeer(){const l=others().filter(p=>p.presence.h===1).sort((a,b)=>a.peer<b.peer?-1:1);return l[0]||null}
 function myPeer(){return roomApi?roomApi.peers().find(p=>p.sameTab):null}
 function hostInfo(){if(host||mode==="solo")return hs;const hp=hostPeer();if(!hp)return null;const P=hp.presence;
-  return{hr:num(P.hr),st:P.st,md:P.md==="t"?"t":"f",df:diffOf(P.df),ts:{A:num(P.ts&&P.ts.A),B:num(P.ts&&P.ts.B)},tr:P.tr&&typeof P.tr==="object"?{A:num(P.tr.A),B:num(P.tr.B),n:num(P.tr.n)}:null,name:nm16(P.n)}}
+  return{hr:num(P.hr),st:P.st,md:P.md==="t"||P.md==="d"?P.md:"f",op:typeof P.op==="string"?P.op:null,df:diffOf(P.df),ts:{A:num(P.ts&&P.ts.A),B:num(P.ts&&P.ts.B)},tr:P.tr&&typeof P.tr==="object"?{A:num(P.tr.A),B:num(P.tr.B),n:num(P.tr.n)}:null,name:nm16(P.n)}}
 const teamsOn=()=>mode==="room"&&(hostInfo()||{}).md==="t";
 function ensureTeam(){
   if(!teamsOn()){if(myTeam&&mode==="room"&&hostInfo()){myTeam=null;pushPresence()}return}
@@ -768,6 +809,12 @@ function startDaily(){
 }
 function hostStart(){
   if(!host)return;
+  if(hs.md==="d"){
+    // 1v1: open the picking stage; the round itself starts once both words are chosen
+    const o=others();if(o.length!==1||!o[0].presence.u)return;
+    hs.hr=Math.max(hs.hr,lastRound)+1;hs.st="picking";hs.hs=-1;hs.at=0;hs.op=o[0].presence.u;
+    lastRound=hs.hr;duelOptions(hs.hr,hs.df);pushPresence();render();return;
+  }
   const cat=pickCategory(),D=DIFF[diffOf(hs.df)];
   const fits=WORDS.filter(x=>x.c===cat&&D.pool(x.w)).map(x=>x.i);
   let pool=fits.filter(i=>!hs.used.includes(i));
@@ -776,9 +823,9 @@ function hostStart(){
   hs.used.push(idx);hs.hr=Math.max(hs.hr,lastRound)+1;hs.hs=idx;hs.st="playing";hs.at=Date.now();
   lastRound=hs.hr;beginRound(hs.hr,WORDS[idx],hs.at+COUNT_MS,false,hs.df);
 }
-function setMode(md){if(!host||hs.st==="playing")return;hs.md=md;hs.ts={A:0,B:0};hs.tr=null;
+function setMode(md){if(!host||hs.st==="playing"||hs.st==="picking")return;hs.md=md;hs.ts={A:0,B:0};hs.tr=null;
   if(md==="t")ensureTeam();else myTeam=null;pushPresence();lastPanelKey="";render()}
-function setDiff(df){if(!host||hs.st==="playing")return;hs.df=diffOf(df);pushPresence();lastPanelKey="";render()}
+function setDiff(df){if(!host||hs.st==="playing"||hs.st==="picking")return;hs.df=diffOf(df);pushPresence();lastPanelKey="";render()}
 function switchTeam(){myTeam=myTeam==="A"?"B":"A";pushPresence();lastPanelKey="";render()}
 function takeOver(){host=true;hs.hr=lastRound;hs.st="ended";hs.hs=cur?cur.idx:-1;hs.at=0;pushPresence();render()}
 function closeRoundAsHost(){
@@ -799,6 +846,17 @@ function tickLogic(){
   if(host){
     const other=hostPeer(),mine=myPeer();
     if(other&&mine&&other.peer<mine.peer&&num(other.presence.hr)>=hs.hr){host=false;lastRound=Math.max(lastRound,hs.hr);pushPresence()}
+    if(host&&hs.st==="picking"){
+      const op=duelOpp();
+      if(!op){hs.st="ended";duel=null;netMsg=null;pushPresence();lastPanelKey="";render();return}
+      const pk=op.presence.pk;
+      if(duel&&duel.pick!=null&&pk&&pk.r===hs.hr&&WORDS[pk.i]){
+        duel.gave=WORDS[duel.pick].w;duel.op=nm16(op.presence.n);
+        hs.st="playing";hs.at=Date.now();pushPresence();
+        beginRound(hs.hr,WORDS[pk.i],hs.at+COUNT_MS,false,hs.df);
+      }
+      return;
+    }
     if(host&&hs.st==="playing"){
       const players=others().filter(p=>p.presence.r===hs.hr);
       const allDone=cur&&cur.done&&players.every(p=>p.presence.d>0);
@@ -808,6 +866,17 @@ function tickLogic(){
   }
   const hp=hostPeer();if(!hp)return;
   const P=hp.presence,hr=num(P.hr),RMS=DIFF[diffOf(P.df)].ms;
+  if(P.md==="d"&&(P.st==="picking"||(P.st==="playing"&&hr>lastRound))){
+    const mine=P.op===uid;
+    if(P.st==="picking"){if(mine&&(!duel||duel.r<hr))duelOptions(hr,P.df);return}
+    // the round has started: play the word the host picked for me
+    lastRound=hr;
+    if(!mine||!duel||duel.r!==hr||duel.pick==null||!P.pk||P.pk.r!==hr||!WORDS[P.pk.i]){waitNext=true;cur=null;lastPanelKey="";render();return}
+    duel.gave=WORDS[duel.pick].w;duel.op=nm16(P.n);
+    let startAt=(num(P.at)||now)+COUNT_MS;
+    if(startAt>now+COUNT_MS+2000||startAt<now-RMS)startAt=now+COUNT_MS;
+    beginRound(hr,WORDS[P.pk.i],startAt,false,P.df);return;
+  }
   if(hr>lastRound&&P.st==="playing"){
     lastRound=hr;
     let startAt=(num(P.at)||now)+COUNT_MS;
@@ -894,7 +963,7 @@ function renderBoard(){
   const box=$("#players");box.textContent="";
   $("#tabs").hidden=mode!=="daily";
   if(mode==="daily")return renderDailyBoard(box);
-  $("#boardLbl").textContent=teamsOn()?t("teams"):t("boardRace");
+  $("#boardLbl").textContent=teamsOn()?t("teams"):duelOn()?t("boardDuel"):t("boardRace");
   const list=rowData().sort((a,b)=>num(b.s)-num(a.s));const round=roundNo();
   $("#pcount").textContent=list.length===1?t("player1"):t("players",{n:list.length});
   if(teamsOn()){
@@ -963,8 +1032,27 @@ function renderOverlay(){
   if(cur&&!cur.done&&now<cur.startAt)return showCount(ov,panel,Math.ceil((cur.startAt-now)/1000));
   if(cur&&!cur.done){if(!ov.hidden){ov.hidden=true;renderPlay()}lastPanelKey="";return}
   if(mode==="daily")return dailyOverlay(ov,panel);
+  if(waitNext&&duelOn())return setPanel(ov,panel,"dwatch",()=>[el("h2",null,t("duelWatch")),el("p",null,t("duelWatchHelp"))]);
   if(waitNext)return setPanel(ov,panel,"wait",()=>[el("h2",null,t("roundInProgress")),el("p",null,t("jumpIn"))]);
   const h=hostInfo();const hp=hostPeer();
+  if(duelOn()&&h&&h.st==="picking"){
+    const op=duelOpp(),opName=op?nm16(op.presence.n):"…",theirs=op&&op.presence.pk&&op.presence.pk.r===h.hr;
+    if(!duel||duel.r!==h.hr)return setPanel(ov,panel,"dwatch",()=>[el("h2",null,t("duelWatch")),el("p",null,t("duelWatchHelp"))]);
+    return setPanel(ov,panel,["dpick",h.hr,duel.pick,theirs,opName].join("|"),()=>{
+      if(duel.pick==null){
+        const out=[el("h2",null,t("duelPick",{name:opName})),el("p","note",t("duelPickHelp"))];
+        const list=el("div","duelopts");
+        duel.opts.forEach(i=>{const W=WORDS[i];const b=el("button","btn duelw");b.type="button";
+          b.append(el("span","ltr dw",W.w),el("span","dc",catName(W.c)+" · "+W.w.length));b.onclick=()=>duelPick(i);list.appendChild(b)});
+        out.push(list,el("p","diffhelp",diffName(h.df)+" · "+t("diffHelp_"+h.df)));
+        if(theirs)out.push(el("p","note",t("duelTheyPicked",{name:opName})));
+        return out;
+      }
+      const out=[el("h2",null,t("duelWaitPick",{name:opName}))];
+      const gave=el("p","note");gave.append(document.createTextNode(t("duelGave",{name:opName})),ltr(WORDS[duel.pick].w,"code"));out.push(gave);
+      return out;
+    });
+  }
   const ended=cur&&h&&h.st==="ended"&&h.hr===cur.round||(mode==="solo"&&cur&&cur.done);
   const pending=cur&&cur.done&&!ended;
   const rows=rowData().filter(r=>cur&&r.r===cur.round);
@@ -981,6 +1069,11 @@ function renderOverlay(){
     } else {
       out.push(el("h2",null,cur.done===1?t("solvedIn",{t:fmtS(cur.t)}):cur.miss>=cur.maxMiss?t("hangedBang"):t("timesUp")));
       out.push(el("div","reveal",cur.word));
+      if(mode==="room"&&h&&h.md==="d"&&duel&&duel.r===cur.round&&duel.gave){
+        const g=el("p","note");g.append(document.createTextNode(t("duelGave",{name:duel.op||""})),ltr(duel.gave,"code"));out.push(g);
+        if(ended){const op=rows.find(r=>!r.me),mine=rows.find(r=>r.me);
+          if(op&&mine){const a=num(mine.pt),b=num(op.pt);out.push(el("p","duelres",a===b?t("duelTie"):a>b?t("duelYouWin"):t("duelWins",{name:nm16(op.n)})))}}
+      }
       if(ended&&tm&&h.tr&&h.tr.n===cur.round){
         const line=el("div","teamline");["A","B"].forEach(k=>{const s=el("span");const d=el("span","dot");d.style.background=TEAMS[k].color;s.append(d,document.createTextNode(teamCol(k)+" +"+h.tr[k]));line.appendChild(s)});
         out.push(line,el("p",null,h.tr.A===h.tr.B?t("deadEven"):t("takesRound",{team:teamName(h.tr.A>h.tr.B?"A":"B")})));
@@ -992,7 +1085,7 @@ function renderOverlay(){
       if(pending)out.push(el("p","note",t("waitingMore",{n:rows.filter(r=>!r.d).length})));
     }
     if(canSetup&&mode==="room"){
-      if(host){const seg=el("div","seg");[["f","ffa"],["t","teamsBtn"]].forEach(([v,l])=>{const b=el("button",null,t(l));b.setAttribute("aria-pressed",hs.md===v);b.onclick=()=>setMode(v);seg.appendChild(b)});out.push(seg)}
+      if(host){const seg=el("div","seg");[["f","ffa"],["t","teamsBtn"],["d","duelBtn"]].forEach(([v,l])=>{const b=el("button",null,t(l));b.setAttribute("aria-pressed",hs.md===v);b.onclick=()=>setMode(v);seg.appendChild(b)});out.push(seg)}
       if(tm&&myTeam){const p=el("div","row");const d=el("span","dot");d.style.background=TEAMS[myTeam].color;
         const sw=el("button","btn ghost",t("switchTo",{c:teamCol(myTeam==="A"?"B":"A")}));sw.onclick=switchTeam;
         p.append(d,el("span",null,t("onTeam",{team:teamName(myTeam)})),sw);out.push(p)}
@@ -1001,9 +1094,11 @@ function renderOverlay(){
       const seg=el("div","seg");["easy","normal","hard"].forEach(v=>{const b=el("button",null,diffName(v));b.setAttribute("aria-pressed",hs.df===v);b.onclick=()=>setDiff(v);seg.appendChild(b)});
       out.push(seg,el("p","diffhelp",t("diffHelp_"+diffOf(hs.df))));
     } else if(canSetup&&mode==="room"&&h){out.push(el("p","diffhelp",diffName(h.df)+" · "+t("diffHelp_"+h.df)))}
-    if(canSetup&&(mode==="room"||mode==="solo"))out.push(voteBox());
+    const dm=mode==="room"&&h&&h.md==="d";
+    if(canSetup&&dm){out.push(el("p","diffhelp",t("duelHelp")));if(peers().length!==2)out.push(el("p","note warn",t("duelNeeds",{n:peers().length})))}
+    if(canSetup&&(mode==="room"||mode==="solo")&&!dm)out.push(voteBox());
     if(canSetup){
-      if(host){const b=el("button","btn primary",cur?t("nextRound"):t("startRound1"));b.onclick=hostStart;out.push(b)}
+      if(host){const b=el("button","btn primary",cur?t("nextRound"):t("startRound1"));b.onclick=hostStart;b.disabled=dm&&(peers().length!==2||!others()[0].presence.u);out.push(b)}
       else if(cur){if(hp)out.push(el("p","note",t("waitingHostNext",{name:nm16(hp.presence.n)})));
         else{out.push(el("p","note",t("hostLeft")));const b=el("button","btn primary",t("hostThis"));b.onclick=takeOver;out.push(b)}}
     }
