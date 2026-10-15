@@ -34,43 +34,114 @@
 
   /* ---------- waking the free server ----------
      A free Render service sleeps after 15 idle minutes and takes up to a minute to wake. Pages load instantly from
-     the static site; this pings the server and shows a small notice until it answers. */
+     the static site; a welcome screen covers the page until the server answers. It asks "are you awake?" every
+     5 seconds (each try also nudges the server to start), and steps aside as soon as the answer is yes. */
   const serverListeners = new Set();
   let serverState = "checking"; // checking | waking | up | down
-  function setServer(s) { if (s === serverState) return; serverState = s; serverListeners.forEach(f => { try { f(s); } catch {} }); paintNotice(); }
-  let notice = null;
-  function paintNotice() {
-    const ar = (store.get("hr-lang") || document.documentElement.lang) === "ar";
-    const msg = serverState === "waking" ? (ar ? "جارٍ إيقاظ خادم اللعبة… قد يستغرق ذلك دقيقة." : "Waking up the game server… this can take up to a minute.")
-      : serverState === "down" ? (ar ? "تعذّر الوصول إلى خادم اللعبة. اللعب الفردي يعمل، وسنحاول مجدداً." : "Can't reach the game server. Solo practice still works; retrying.")
-      : "";
-    if (!msg) { if (notice) notice.hidden = true; return; }
-    if (!notice) {
-      notice = document.createElement("div");
-      notice.setAttribute("role", "status");
-      notice.style.cssText = "position:fixed;inset-inline:0;bottom:0;z-index:50;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));font:600 14px system-ui,sans-serif;text-align:center;background:#1b2333;color:#fff";
-      document.body.appendChild(notice);
-    }
-    notice.hidden = false; notice.dir = ar ? "rtl" : "ltr"; notice.textContent = msg;
+  function setServer(s) { if (s === serverState) return; serverState = s; serverListeners.forEach(f => { try { f(s); } catch {} }); }
+
+  const POLL_MS = 5000, TRY_MS = 8000, SLOW_MS = 90000;
+  const GAMES = {
+    hangman: { en: "Hangman Rush", ar: "سباق المشنقة" },
+    trivia: { en: "Trivia Rush", ar: "سباق المعلومات" },
+    hub: { en: "Rush Games", ar: "ألعاب السباق" },
+  };
+  const gameKey = /^\/hangman/.test(location.pathname) ? "hangman" : /^\/trivia/.test(location.pathname) ? "trivia" : "hub";
+  const isAr = () => (store.get("hr-lang") || (navigator.language || "").slice(0, 2)) === "ar";
+  const TXT = {
+    en: { welcome: "Welcome to", sub: "Give us a moment while the game server wakes up.", check: "Checking if the server is awake…",
+          tries: n => `Still waking up · asked ${n} time${n === 1 ? "" : "s"}`, ready: "Ready! Let's play.",
+          slow: "This is taking longer than usual. We'll keep asking every 10 seconds.", offline: "Practise offline meanwhile",
+          why: "The games run on a free server that naps when nobody's playing." },
+    ar: { welcome: "أهلاً بك في", sub: "لحظات من فضلك حتى يستيقظ خادم اللعبة.", check: "نتحقق إن كان الخادم مستيقظاً…",
+          tries: n => `ما زال يستيقظ · سألناه ${n} ${n === 1 ? "مرة" : "مرات"}`, ready: "جاهز! لنلعب.",
+          slow: "يستغرق الأمر أطول من المعتاد. سنواصل السؤال كل 10 ثوانٍ.", offline: "تدرّب بدون اتصال في هذه الأثناء",
+          why: "الألعاب تعمل على خادم مجاني يغفو عندما لا يلعب أحد." },
+  };
+
+  // the welcome screen; it uses the page's own colours and fonts, so it looks like part of the game
+  let splash = null, bar = null, line = null, slowBox = null, started = 0, tries = 0, dismissed = false, ticker = null;
+  function showSplash() {
+    if (splash || dismissed) return;
+    const ar = isAr(), T = TXT[ar ? "ar" : "en"], g = GAMES[gameKey][ar ? "ar" : "en"];
+    splash = document.createElement("div");
+    splash.className = "rush-splash"; splash.dir = ar ? "rtl" : "ltr"; splash.setAttribute("role", "status");
+    const st = document.createElement("style");
+    st.textContent = `
+.rush-splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px 16px;background:var(--bg,#eef2f7);color:var(--ink,#1b2333);
+  background-image:repeating-linear-gradient(to bottom,transparent 0 31px,var(--line,#d3dbe8) 31px 32px);transition:opacity .35s}
+.rush-splash.out{opacity:0;pointer-events:none}
+.rush-splash .in{width:min(420px,100%);display:grid;gap:14px;text-align:center}
+.rush-splash .ic{justify-self:center;width:56px;height:64px;color:var(--ink,#1b2333)}
+.rush-splash .wl{font:600 15px var(--f-body,system-ui,sans-serif);color:var(--muted,#5d6a80);letter-spacing:.04em}
+.rush-splash h1{font-family:var(--f-hand,cursive);font-weight:400;font-size:clamp(44px,13vw,64px);line-height:1.05;margin:0}
+:root[lang="ar"] .rush-splash h1,.rush-splash[dir="rtl"] h1{font-weight:700}
+.rush-splash p{margin:0;font:16px/1.45 var(--f-body,system-ui,sans-serif)}
+.rush-splash .track{height:12px;border:2px solid var(--ink,#1b2333);border-radius:99px;overflow:hidden;background:var(--surface,#fff)}
+.rush-splash .fill{height:100%;width:3%;background:var(--accent,#2c56e0);border-radius:99px;transition:width .6s ease-out}
+.rush-splash .ok .fill,.rush-splash .fill.ok{background:var(--good,#178a5c)}
+.rush-splash .st{font:600 14px var(--f-body,system-ui,sans-serif);min-height:20px}
+.rush-splash .why{font-size:13px;color:var(--muted,#5d6a80)}
+.rush-splash .slow{display:grid;gap:10px}
+.rush-splash button{justify-self:center;font:700 15px var(--f-body,system-ui,sans-serif);color:var(--ink,#1b2333);background:var(--surface,#fff);
+  border:2px solid var(--ink,#1b2333);border-radius:10px;padding:10px 16px;box-shadow:3px 3px 0 var(--ink,#1b2333);cursor:pointer}
+@media (prefers-reduced-motion:reduce){.rush-splash,.rush-splash .fill{transition:none}}`;
+    const inner = document.createElement("div"); inner.className = "in";
+    const wl = document.createElement("div"); wl.className = "wl"; wl.textContent = T.welcome;
+    const h = document.createElement("h1"); h.textContent = g;
+    const sub = document.createElement("p"); sub.textContent = T.sub;
+    const track = document.createElement("div"); track.className = "track"; track.setAttribute("role", "progressbar"); track.setAttribute("aria-label", T.check);
+    bar = document.createElement("div"); bar.className = "fill"; track.appendChild(bar);
+    line = document.createElement("div"); line.className = "st"; line.textContent = T.check;
+    const why = document.createElement("p"); why.className = "why"; why.textContent = T.why;
+    slowBox = document.createElement("div"); slowBox.className = "slow"; slowBox.hidden = true;
+    const sp = document.createElement("p"); sp.textContent = T.slow;
+    const off = document.createElement("button"); off.type = "button"; off.textContent = T.offline; off.onclick = () => hideSplash(true);
+    slowBox.append(sp, off);
+    const logo = document.querySelector(".brand svg");
+    if (logo) { const ic = logo.cloneNode(true); ic.setAttribute("class", "ic"); inner.append(ic); }
+    inner.append(wl, h, sub, track, line, slowBox, why);
+    splash.append(st, inner);
+    document.body.appendChild(splash);
+    // the bar creeps towards 95% over about a minute (a typical wake-up), then waits for the real answer
+    ticker = setInterval(() => {
+      const t = Date.now() - started;
+      if (bar && serverState !== "up") bar.style.width = Math.min(95, 3 + 92 * (1 - Math.exp(-t / 25000))).toFixed(1) + "%";
+      if (t > SLOW_MS && slowBox) slowBox.hidden = false;
+    }, 500);
+  }
+  function hideSplash(byUser) {
+    dismissed = true; clearInterval(ticker);
+    if (!splash) return;
+    const el = splash; splash = null;
+    if (byUser) { el.remove(); return; }
+    bar.style.width = "100%"; bar.classList.add("ok"); line.textContent = TXT[isAr() ? "ar" : "en"].ready;
+    setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 400); }, 450);
+  }
+
+  async function askOnce() {
+    tries++;
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), TRY_MS);
+    try { const r = await fetch(http("/healthz"), { cache: "no-store", signal: ctl.signal }); return r.ok; }
+    catch { return false; }
+    finally { clearTimeout(to); }
   }
   async function ping() {
-    const started = Date.now();
-    const slow = setTimeout(() => { if (serverState !== "up") setServer("waking"); }, 1500);
-    while (Date.now() - started < 120000) {
-      try {
-        const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 20000);
-        const r = await fetch(http("/healthz"), { cache: "no-store", signal: ctl.signal });
-        clearTimeout(to);
-        if (r.ok) { clearTimeout(slow); setServer("up"); return true; }
-      } catch {}
-      await new Promise(r => setTimeout(r, 2500));
+    started = Date.now();
+    // a server that's already awake answers in well under a second: only show the welcome screen if it doesn't
+    const show = setTimeout(() => { if (serverState !== "up") { setServer("waking"); onBody(showSplash); } }, 600);
+    for (;;) {
+      const t0 = Date.now();
+      if (await askOnce()) { clearTimeout(show); setServer("up"); hideSplash(false); return true; }
+      if (line && splash) line.textContent = TXT[isAr() ? "ar" : "en"].tries(tries);
+      if (Date.now() - started > SLOW_MS) setServer("down");
+      const gap = Date.now() - started > SLOW_MS ? 10000 : POLL_MS;
+      await new Promise(r => setTimeout(r, Math.max(0, gap - (Date.now() - t0))));
     }
-    clearTimeout(slow); setServer("down");
-    setTimeout(ping, 30000);
-    return false;
   }
+  function onBody(f) { if (document.body) f(); else document.addEventListener("DOMContentLoaded", f); }
   const ready = new Promise(res => { const f = s => { if (s === "up") { serverListeners.delete(f); res(); } }; serverListeners.add(f); });
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ping); else ping();
+  ping();
 
   /* ---------- room ---------- */
   let ws = null, open = false;
