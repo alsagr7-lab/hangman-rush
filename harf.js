@@ -41,7 +41,7 @@ function letterFor(n, lg) {
 }
 
 /* ---------- checking answers ---------- */
-const verdicts = new Map(); // "lang|category|key" -> 1 / 0, in memory on top of the database
+const verdicts = new Map(); // "lang|category|key" -> {ok: 1/0, fix: correct spelling or null}, in memory on top of the database
 const vkey = (lg, cat, w) => `${lg}|${cat}|${R.harfKey(w, lg)}`;
 
 // the built-in word lists: content/harf/<lang>.json = {category: [words]}
@@ -68,10 +68,12 @@ function prompt(lg, items) {
     system: `You referee the word game "Name, Animal, Plant, Object, Country" (Arabic: إنسان، حيوان، نبات، جماد، بلاد). ` +
       `Players write one word per category starting with a given letter. Decide for each answer whether it is a real word or name that fits its category.\n\n` +
       `Categories:\n` + Object.entries(CAT_RULES).map(([k, v]) => `- ${k}: ${v}`).join("\n") + `\n\n` +
-      `Be fair and lenient about spelling: accept common spellings, small typos, dialect words, plurals and well-known local names when the meaning is clear. ` +
+      `Be fair and lenient about spelling: accept misspellings when it's clear which word was meant (e.g. "catapilar" for caterpillar), as well as common spellings, dialect words, plurals and well-known local names. ` +
       `${lg === "ar" ? "Answers are in Arabic script; a leading ال doesn't count when checking the letter." : "Answers are in English; a leading \"the\" doesn't count when checking the letter."} ` +
       `Reject made-up words, random letters, words in the wrong category, and answers that don't start with the letter.\n\n` +
-      `Reply with JSON only, in the same order as the answers: {"r":[1,0,...]} where 1 means valid and 0 means not valid.`,
+      `Reply with JSON only, in the same order as the answers: {"r":[1,0,...],"fix":[null,"Caterpillar",...]}. ` +
+      `In "r", 1 means valid and 0 means not valid. In "fix", give the correctly spelled word for a valid answer that was misspelled, ` +
+      `and null when it was already spelled right (or isn't valid). Keep the same script as the answer and don't add "ال" or "the".`,
     user: `Language: ${lg === "ar" ? "Arabic" : "English"}\n${lines}`,
   };
 }
@@ -99,13 +101,20 @@ async function callModel(model, system, user, maxTokens) {
     return null;
   } catch (e) { console.warn("Harf: API call failed", e.message); return null; }
 }
-// -> array of 1/0, or null
+// -> array of {ok: 1/0, fix: correct spelling or null}, or null
 async function askClaude(lg, items) {
   if (!items.length) return null;
-  const p = prompt(lg, items), o = await callModel(MODEL, p.system, p.user, 300);
+  const p = prompt(lg, items), o = await callModel(MODEL, p.system, p.user, 300 + 30 * items.length);
   const arr = o && o.r;
   if (!Array.isArray(arr) || arr.length !== items.length) { if (o) console.warn("Harf: reply didn't match the answers"); return null; }
-  return arr.map(v => (Number(v) === 1 ? 1 : 0));
+  const fixes = Array.isArray(o.fix) ? o.fix : [];
+  return arr.map((v, i) => {
+    const ok = Number(v) === 1 || v === true ? 1 : 0;
+    let fix = ok && typeof fixes[i] === "string" ? clean(fixes[i]) : null;
+    // only a real correction: same first letter, and a different word once spelling variants are set aside
+    if (fix && (!R.harfLetterOk(fix, items[i].letter, lg) || R.harfKey(fix, lg) === R.harfKey(items[i].w, lg))) fix = null;
+    return { ok, fix };
+  });
 }
 
 /* ---------- appeals ----------
@@ -135,18 +144,18 @@ async function appealWord(lg, cat, w, letter) {
   const no = v === false || v === 0 || /^(0|false|no|invalid)$/i.test(String(v));
   if (!yes && !no) { if (o) console.warn("Harf: unexpected appeal reply", JSON.stringify(o).slice(0, 200)); return null; }
   const ok = yes ? 1 : 0, why = String(o.why || o.reason || "").slice(0, 200);
-  if (ok) { verdicts.set(k, 1); store.wordsPut([[k, 1]]).catch(e => console.error("Harf: saving verdict", e.message)); }
+  if (ok) { verdicts.set(k, { ok: 1, fix: null }); store.wordsPut([[k, { ok: 1, fix: null }]]).catch(e => console.error("Harf: saving verdict", e.message)); }
   console.log(`Harf appeal: ${lg} ${cat} ${w} -> ${ok ? "upheld" : "turned down"}`);
   return { ok, why };
 }
-// items [{cat, w, letter}] (letters already checked) -> array of 1 / 0 / null (not checked)
+// items [{cat, w, letter}] (letters already checked) -> array of {ok: 1/0, fix} or null (not checked)
 async function judge(lg, items) {
   const keys = items.map(x => vkey(lg, x.cat, x.w));
-  const out = keys.map(k => (KNOWN.has(k) ? 1 : verdicts.has(k) ? verdicts.get(k) : null));
+  const out = keys.map(k => (KNOWN.has(k) ? { ok: 1, fix: null } : verdicts.has(k) ? verdicts.get(k) : null));
   const missing = keys.filter((k, i) => out[i] == null);
   if (missing.length) {
     const found = await store.wordsGet([...new Set(missing)]).catch(() => new Map());
-    keys.forEach((k, i) => { if (out[i] == null && found.has(k)) { out[i] = Number(found.get(k)); verdicts.set(k, out[i]); } });
+    keys.forEach((k, i) => { if (out[i] == null && found.has(k)) { out[i] = found.get(k); verdicts.set(k, out[i]); } });
   }
   // ask about each unknown word once, in batches
   const ask = [], seen = new Set();
@@ -161,7 +170,7 @@ async function judge(lg, items) {
   return keys.map((k, i) => (out[i] != null ? out[i] : verdicts.has(k) ? verdicts.get(k) : null));
 }
 const clean = w => String(w == null ? "" : w).replace(/\s+/g, " ").trim().slice(0, H.MAXLEN);
-// -> [{w, ok: 1/0, u?: 1 (not checked), l?: 1 (wrong letter)}] x5
+// -> [{w, ok: 1/0, f?: correct spelling, u?: 1 (not checked), l?: 1 (wrong letter)}] x5
 async function check(lg, letter, raw) {
   const words = H.CATS.map((_, i) => clean(Array.isArray(raw) ? raw[i] : ""));
   const out = words.map(w => ({ w, ok: 0 })), todo = [];
@@ -171,7 +180,7 @@ async function check(lg, letter, raw) {
     todo.push(i);
   });
   const v = await judge(lg, todo.map(i => ({ cat: H.CATS[i], w: words[i], letter })));
-  todo.forEach((i, k) => { if (v[k] == null) { out[i].ok = 1; out[i].u = 1; } else out[i].ok = v[k]; });
+  todo.forEach((i, k) => { if (v[k] == null) { out[i].ok = 1; out[i].u = 1; } else { out[i].ok = v[k].ok; if (v[k].ok && v[k].fix) out[i].f = v[k].fix; } });
   return out;
 }
 
@@ -306,14 +315,15 @@ async function finalizeDays(today) {
       entries.forEach(x => { if (x.e.lg === lg) x.e.a.forEach((a, i) => { if (a.u && a.ok) items.push({ x, i, cat: H.CATS[i], w: a.w, letter: x.e.L }); }); });
       if (!items.length) continue;
       const v = await judge(lg, items);
-      items.forEach((it, j) => { if (v[j] != null) { const a = it.x.e.a[it.i]; a.ok = v[j]; delete a.u; } });
+      items.forEach((it, j) => { if (v[j] != null) { const a = it.x.e.a[it.i]; a.ok = v[j].ok; if (v[j].ok && v[j].fix) a.f = v[j].fix; delete a.u; } });
     }
     // count answers per language and category
     const counts = new Map(), players = { ar: 0, en: 0 };
     for (const { e } of entries) {
       if (!LANGS.includes(e.lg)) continue;
       players[e.lg]++;
-      e.a.forEach((a, i) => { if (a.ok) { const k = `${e.lg}|${i}|${R.harfKey(a.w, e.lg)}`; counts.set(k, (counts.get(k) || 0) + 1); } });
+      // a misspelt answer counts as its correct spelling
+      e.a.forEach((a, i) => { if (a.ok) { const k = `${e.lg}|${i}|${R.harfKey(a.f || a.w, e.lg)}`; counts.set(k, (counts.get(k) || 0) + 1); } });
     }
     const patch = new Map();
     for (const { id, e } of entries) {
@@ -321,7 +331,7 @@ async function finalizeDays(today) {
       let rb = 0;
       e.a.forEach((a, i) => {
         if (!a.ok) { delete a.n; return; }
-        const cnt = counts.get(`${e.lg}|${i}|${R.harfKey(a.w, e.lg)}`) || 1;
+        const cnt = counts.get(`${e.lg}|${i}|${R.harfKey(a.f || a.w, e.lg)}`) || 1;
         a.n = cnt;
         if (np < 2) return; // a bonus for rarity needs someone to compare with
         if (cnt === 1) rb += H.RARE_ONLY; else if (cnt / np < H.RARE_SHARE) rb += H.RARE_FEW;
