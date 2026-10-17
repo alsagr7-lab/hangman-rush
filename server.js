@@ -1,5 +1,5 @@
-// Rush Games server: the site's pages, live rooms over WebSocket for both games, the Hangman Rush daily word and
-// leaderboard, and the Trivia Rush API (trivia.js). The same pages can also be served by a free Render static site,
+// Rush Games server: the site's pages, live rooms over WebSocket for every game, the Hangman Rush daily word and
+// leaderboard, the Trivia Rush API (trivia.js) and the Harf Rush API (harf.js). The same pages can also be served by a free Render static site,
 // which never sleeps; they then talk to this server across origins (see SITE_URL and site/shared/config.js).
 const http = require("http");
 const fs = require("fs");
@@ -12,6 +12,7 @@ const PUBLIC = path.join(__dirname, "site");
 const SITE_URL = (process.env.SITE_URL || "").replace(/\/+$/, "");
 const store = require("./store");
 const trivia = require("./trivia");
+const harf = require("./harf");
 // pages are served as single files with the shared styles and scripts written in (see scripts/build-site.js)
 const PAGES = require("./scripts/build-site").build({ api: "", site: SITE_URL });
 
@@ -64,6 +65,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/shared/config.js")
       return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)}};`, "text/javascript; charset=utf-8");
     if (await trivia.handle(req, res, url, { send, readJson })) return;
+    if (await harf.handle(req, res, url, { send, readJson })) return;
 
     if (url.pathname === "/api/daily" && req.method === "GET") {
       if (!DAILY.length) return send(res, 503, { error: "Today's word isn't set up on this server yet" });

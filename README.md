@@ -1,11 +1,12 @@
 # Rush Games
 
-Two daily multiplayer games you play on your phone, in English or Arabic, sharing one profile:
+Three daily multiplayer games you play on your phone, in English or Arabic, sharing one profile:
 
 - **Hangman Rush** (`/hangman/`): everyone gets the same word at the same moment; fastest solve with the fewest misses wins.
 - **Trivia Rush** (`/trivia/`): five multiple-choice questions, fifteen seconds each; fast and right wins.
+- **Harf Rush** (`/harf/`), حيوان جماد إنسان: one letter, then a name, an animal, a plant, an object and a place that start with it.
 
-The home page (`/`) links both, with today's status for each.
+The home page (`/`) links all three, with today's status for each.
 
 ## What the games share
 
@@ -23,6 +24,25 @@ The home page (`/`) links both, with today's status for each.
 - **Rooms:** each round offers 5 of the 12 categories to vote on, then plays 5 questions from the winner. Easy uses easier questions with 20 seconds; Hard uses harder ones with 10 seconds and no 50/50.
 - **No repeats:** when a round starts, the server picks questions that nobody in the room has seen in the last 60 days, in any room or in practice, and marks them as seen for everyone there. If a category runs low, it tops up with the ones the group saw longest ago.
 - **Separate pools:** daily questions never appear in rooms or practice.
+
+## Harf Rush
+
+- **Daily:** one letter a day for everyone (an Arabic one and an English one; you play in your page language), one attempt, 90 seconds timed by the server. Drafts are saved as you type, so closing the page scores what you'd written.
+- **Points, straight away:** 10 for each valid answer. A day with all five valid adds a **perfect-streak bonus**: +1 per day in a row, up to +5. A missed or imperfect day resets it.
+- **Points, the next day:** after midnight (UTC) the server counts how many players gave each valid answer, per language: **+5** if nobody else wrote it, **+2** if under 20% of players did. Needs at least two players that day. Players see it on the lobby and the Yesterday board.
+- **Matching:** a leading "ال" or "the" doesn't count for the letter; أ/إ/آ/ا, ة/ه, ى/ي and diacritics count as the same, so "الأسد" and "اسد" are the same answer.
+- **Rooms:** the host picks Arabic or English letters and 60/90/120 seconds. Anyone who fills all five can press **STOP**; everyone else then has 5 seconds. Scoring: 10 for a valid answer nobody else in the round wrote, 5 if someone did.
+- **Practise solo:** any letter, 10 per valid answer.
+- Letters left out as too hard: ث ذ ض ظ غ and Q U X Z.
+
+### Checking answers
+
+The first letter is checked by the server. Whether a word fits its category ("is قنفذ an animal?") is asked of the Claude API when `ANTHROPIC_API_KEY` is set:
+
+- Every verdict is saved (`harf_words`), so each word is asked about once, ever. A day with five players is usually one small request.
+- At most `HARF_API_PER_HOUR` calls an hour (default 60). Set a monthly spend limit in the Claude Console too.
+- Without a key, or if the API is down, answers with the right first letter count and show "not checked"; the overnight pass asks again.
+- Optional: `HARF_MODEL` (default `claude-haiku-5-5`). The daily letter order is shuffled with `HARF_KEY` (falls back to `DAILY_KEY`), so the public code can't reveal tomorrow's letter.
 
 ## Run locally
 
@@ -47,6 +67,7 @@ Without `DAILY_KEY` and `TRIVIA_KEY` the two dailies show as unavailable; everyt
 1. On render.com: **Blueprints → your blueprint → Manual sync** (or **New → Blueprint** the first time).
 2. Set these environment variables:
    - On `hangman-rush`: `DAILY_KEY` (Hangman words), `TRIVIA_KEY` (trivia questions), `SITE_URL` = the static site's address (e.g. `https://rush-games.onrender.com`).
+     Optional: `ANTHROPIC_API_KEY` so Harf Rush checks categories (see above).
    - On `rush-games`: `API_URL` = the game server's address (e.g. `https://hangman-rush.onrender.com`), then redeploy it.
      Its build command is `node scripts/build-site.js` and its publish directory is `dist`.
    - Optional on `hangman-rush`: `TRIVIA_START` (`YYYY-MM-DD`, the first day of trivia set 1; set it to your launch day), `TRIVIA_COOLDOWN_DAYS` (default 60).
@@ -106,12 +127,13 @@ Pages are delivered as single files: `scripts/build-site.js` writes the shared s
 dropping the separate files, which left pages unstyled or offline.
 
 - `site/`: the pages, served by the static site and by the game server.
-  - `index.html` home, `hangman/index.html`, `trivia/index.html`, `trivia/questions.json` (built).
+  - `index.html` home, `hangman/index.html`, `trivia/index.html`, `trivia/questions.json` (built), `harf/index.html`.
   - `shared/rules.js`: days, seasons, streaks, levels, scoring and tags, used by both games and the server.
   - `shared/rush.js`: player identity, rooms (WebSocket), leaderboards, the trivia API and the wake-up notice.
   - `shared/rush.css`: the shared look. `shared/config.js`: where the game server is (rewritten by the static site's build).
 - `server.js`: serves `site/`, rooms at `/ws`, the Hangman daily word and leaderboard, and CORS so the static site can call it.
 - `trivia.js`: the Trivia daily, past dailies, leaderboard, question picks and levels (`/api/trivia/...`).
+- `harf.js`: the Harf daily, answer checks, the overnight rarity pass and its leaderboard (`/api/harf/...`).
 - `store.js`: Postgres when `DATABASE_URL` is set, otherwise a JSON file.
 
 Each device gets a random player id and a secret token in browser storage. Only that device can update its own records.
