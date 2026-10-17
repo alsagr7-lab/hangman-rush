@@ -64,6 +64,9 @@ function jsonStore() {
     },
     async metaGet(k) { return k in db.meta ? db.meta[k] : null; },
     async metaPut(k, v) { db.meta[k] = v; return flush(); },
+    // entries whose key starts with prefix and sorts at or after from -> [{k, v}]
+    async metaSince(prefix, from) { return Object.entries(db.meta).filter(([k]) => k.startsWith(prefix) && k >= from).map(([k, v]) => ({ k, v })); },
+    async metaPruneBefore(prefix, before) { for (const k of Object.keys(db.meta)) if (k.startsWith(prefix) && k < before) delete db.meta[k]; return flush(); },
 
     // -> Map(qid -> latest seen time in ms) across these players, only rows newer than sinceMs
     async seenGet(uids, sinceMs) {
@@ -156,6 +159,10 @@ function pgStore(url) {
     },
     async metaGet(k) { const r = await pool.query("SELECT v FROM harf_meta WHERE k=$1", [k]); return r.rows[0] ? r.rows[0].v : null; },
     async metaPut(k, v) { await pool.query("INSERT INTO harf_meta (k, v) VALUES ($1,$2) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v", [k, JSON.stringify(v)]); },
+    async metaSince(prefix, from) {
+      return (await pool.query("SELECT k, v FROM harf_meta WHERE k LIKE $1 AND k >= $2", [prefix + "%", from])).rows;
+    },
+    async metaPruneBefore(prefix, before) { await pool.query("DELETE FROM harf_meta WHERE k LIKE $1 AND k < $2", [prefix + "%", before]); },
 
     async seenGet(uids, sinceMs) {
       const r = await pool.query(
@@ -190,6 +197,6 @@ const store = {
     await impl.init();
   },
 };
-for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsRecent", "wordsPurge", "ipUids", "ipAdd", "metaGet", "metaPut"]) store[k] = (...a) => impl[k](...a);
+for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsRecent", "wordsPurge", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore"]) store[k] = (...a) => impl[k](...a);
 
 module.exports = store;
