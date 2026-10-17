@@ -177,3 +177,8 @@ input.need{border-color:var(--hot)}
 :root[lang="ar"] .lbl{font-size:13px}
 :root[lang="ar"] .stats span{font-size:12px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* small language switch in a board's header (the Arabic and English dailies have separate boards) */
+.lgsw{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.lgsw button{border:0;background:transparent;padding:2px 10px;font:700 12px/1.6 var(--f-body);color:var(--muted)}
+.lgsw button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.lgsw button:lang(ar){font-family:"IBM Plex Sans Arabic",system-ui,sans-serif}

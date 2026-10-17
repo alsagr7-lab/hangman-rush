@@ -231,6 +231,7 @@ en:{
   dbErr:"The leaderboard didn't load. Your results are still saved on the server.",
   players:"{n} players",player1:"1 player",you:"you",hostTag:"host",writing:"writing… {f}/5",locked:"done",waitingNext:"joins next round",
   pts:"{n} pts",hm:"{h}h {m}m",rareTag:"+{n} rare",
+  corrected:"Counted as \u201c{w}\u201d",fixMark:"spelling fixed",
   appeal:"Appeal",appealing:"Taking a second look…",appealWon:"Accepted on appeal",appealLost:"Appeal turned down",
   appealNone:"No appeals left today.",appealDown:"Appeals aren't available right now. Try again later.",appealsLeft:"{n} appeals left today",
   playIn:"Play today's letter in",playInHelp:"Arabic and English each have their own letter, streak and leaderboard. You can play both.",
@@ -286,6 +287,7 @@ ar:{
   dbErr:"تعذّر تحميل لوحة الترتيب. نتائجك محفوظة على الخادم.",
   players:"اللاعبون: {n}",player1:"لاعب واحد",you:"أنت",hostTag:"المضيف",writing:"يكتب… {f}/5",locked:"انتهى",waitingNext:"ينضم في الجولة التالية",
   pts:"{n} نقطة",hm:"{h}س {m}د",rareTag:"+{n} ندرة",
+  corrected:"احتُسبت: «{w}»",fixMark:"صُحّح الإملاء",
   appeal:"اعتراض",appealing:"نعيد النظر…",appealWon:"قُبلت بعد الاعتراض",appealLost:"رُفض الاعتراض",
   appealNone:"لا اعتراضات متبقية اليوم.",appealDown:"الاعتراض غير متاح الآن. حاول لاحقاً.",appealsLeft:"باقي {n} اعتراضات اليوم",
   playIn:"العب حرف اليوم بـ",playInHelp:"للعربية والإنجليزية حرف وسلسلة ولوحة ترتيب لكل منهما. تستطيع لعب الاثنين.",
@@ -377,6 +379,7 @@ function answerRow(cat,a,L,lg,np,opts,i){
   if(w&&!ok)why=a.l?t("wrongLetter",{L}):t("notAccepted");
   else if(ok&&a.u)why=t("notChecked");
   else if(ok&&opts.rare&&a.n)why=a.n===1?t("onlyYou"):t("nOf",{c:a.n,n:np});
+  if(ok&&a.f)li.append(el("span","why won","✎ "+t("corrected",{w:a.f})));
   if(a&&a.ap===1)li.append(el("span","why won",t("appealWon")));
   else if(why)li.append(el("span","why",why));
   if(a&&a.ap===-1)li.append(el("span","why",t("appealLost")+(a.why?": "+a.why:"")));
@@ -454,7 +457,7 @@ function marksFor(res){
   const L=curLetter(),lg=curLang();
   inputs.forEach((inp,i)=>{
     const mk=inp.parentElement.querySelector(".mk");mk.className="mk";mk.textContent="";
-    if(res&&res[i]){const a=res[i];if(!a.w)return;if(!a.ok){mk.textContent="✗";mk.classList.add("n")}else if(a.u){mk.textContent="?";mk.classList.add("q")}else{mk.textContent="✓";mk.classList.add("y")}inp.classList.toggle("badl",!a.ok);return}
+    if(res&&res[i]){const a=res[i];if(!a.w)return;if(!a.ok){mk.textContent="✗";mk.classList.add("n")}else if(a.u){mk.textContent="?";mk.classList.add("q")}else if(a.f){mk.textContent="✎";mk.classList.add("y");mk.title=a.f}else{mk.textContent="✓";mk.classList.add("y")}inp.classList.toggle("badl",!a.ok);return}
     // while typing: compare the first letter only, and wait if the word so far is just "ال"
     let n=R.harfNorm(inp.value,lg);if(lg==="ar"&&n.startsWith("ال"))n=n.length>2?n.slice(2).trim():"";
     if(lg==="en"&&n.startsWith("the "))n=n.slice(4);
@@ -610,7 +613,8 @@ async function lockAndCheck(){
   cur.locked=true;cur.words=words();inputs.forEach(i=>i.disabled=true);pushPresence();lastPanelKey="";render();
   const c=cur;
   for(;;){
-    try{const r=await Rush.harf.check(c.lg,c.L,c.words);if(cur!==c)return;c.res=r.a;c.v=r.a.map(x=>x.ok?1:0);if(apiOn==null){apiOn=!!r.api;renderCheckNote()}break}
+    try{const r=await Rush.harf.check(c.lg,c.L,c.words);if(cur!==c)return;c.res=r.a;c.v=r.a.map(x=>x.ok?1:0);
+      c.words=r.a.map((x,i)=>x.ok&&x.f?x.f:c.words[i]);/* a misspelt answer counts as its correct spelling */if(apiOn==null){apiOn=!!r.api;renderCheckNote()}break}
     catch(e){
       if(cur!==c)return;
       if(e.status===429&&++c.checkTry<5){await new Promise(r=>setTimeout(r,3200));continue}
@@ -775,18 +779,17 @@ function renderBoard(){
 // board rows are per language ("<uid>_ar", "<uid>_en"); the tag and "you" go by the player's own id
 const baseId=id=>String(id||"").replace(/_(ar|en)$/,"");
 function nameCell(p,i){const id=baseId(p.id);const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=R.tagOf(id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(id===uid)nm.appendChild(el("small",null,t("you")));return nm}
-function wordsLine(e){const s=el("div","words");(e.a||[]).forEach((a,i)=>{if(i)s.appendChild(document.createTextNode(" · "));const w=a&&a.w?a.w:"—";s.appendChild(a&&a.ok?el("b",null,w):el("s",null,w))});s.dir="auto";return s}
+function wordsLine(e){const s=el("div","words");(e.a||[]).forEach((a,i)=>{if(i)s.appendChild(document.createTextNode(" · "));const w=a&&(a.f||a.w)?(a.f||a.w):"—";s.appendChild(a&&a.ok?el("b",null,w):el("s",null,w))});s.dir="auto";return s}
 function renderDailyBoard(box){
   $("#boardLbl").textContent=t("boardDaily");
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===boardTab)));
-  const se=R.curSeason();$("#pcount").textContent=t("seasonN",{n:se});
+  const se=R.curSeason(),bl=boardLang||dl();
+  // a small switch in the header picks the Arabic or English board
+  const pc=$("#pcount");pc.textContent="";pc.appendChild(lgSwitch(bl,v=>{boardLang=v;renderBoard()}));
   const left=R.seasonDaysLeft(),bar=el("div","seasonbar"+(left<=3?" final":""));
   const meter=el("span","meter");const fill=el("i");fill.style.width=Math.round(100*(R.seasonDay()-1)/R.SEASON_LEN)+"%";meter.appendChild(fill);
-  bar.append(el("span",null,t("dayOf",{d:R.seasonDay(),t:R.SEASON_LEN})),meter,el("span",null,left===1?t("resetsTonight"):left<=3?t("finalDays",{n:left}):t("daysLeftShort",{n:left})));
+  bar.append(el("span",null,t("seasonN",{n:se})+" · "+t("dayOf",{d:R.seasonDay(),t:R.SEASON_LEN})),meter,el("span",null,left===1?t("resetsTonight"):left<=3?t("finalDays",{n:left}):t("daysLeftShort",{n:left})));
   box.appendChild(bar);
-  // Arabic and English players each have their own letter, so each has its own board
-  const bl=boardLang||dl();
-  box.appendChild(seg([["ar","عربي"],["en","English"]],bl,v=>{boardLang=v;renderBoard()}));
   const list=allPlayers.filter(p=>p.se===se);
   const inLang=p=>Object.values(p.h).filter(e=>e&&e.lg===bl);
   if(boardTab==="season"){
@@ -804,7 +807,7 @@ function renderDailyBoard(box){
     if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?t("todayEmpty"):t("ydayEmpty")));
     let pending=false;
     rows.forEach((p,i)=>{const e=p.h[k];const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
-      const pp=el("div","pp");pp.appendChild(el("span",null,e.c+"/5 · "+e.L));
+      const pp=el("div","pp");pp.appendChild(el("span",null,e.c+"/5"+(boardTab==="yday"&&e.L?" · "+e.L:"")));
       if(boardTab==="yday"){if(e.rb==null)pending=true;else if(e.rb)pp.appendChild(el("span","ok",t("rareTag",{n:e.rb})))}
       const s=R.curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
       if(boardTab==="yday"&&e.a)pp.appendChild(wordsLine(e));
@@ -826,6 +829,7 @@ function setPanel(ov,panel,key,build){
 }
 function hideOverlay(ov){if(!ov.hidden){ov.hidden=true;lastPanelKey=""}}
 function stats(items){const st=el("div","stats");items.forEach(([v,k])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,t(k)));st.appendChild(d)});return st}
+function lgSwitch(cur,onPick){const w=el("span","lgsw");[["ar","عربي"],["en","EN"]].forEach(([lg,l])=>{const b=el("button",null,l);b.type="button";b.lang=lg;b.setAttribute("aria-pressed",String(cur===lg));b.setAttribute("aria-label",lg==="ar"?"عربي":"English");b.onclick=()=>onPick(lg);w.appendChild(b)});return w}
 // the daily's language switch, with a tick on a language already played today
 function langSeg(){return seg(LGS.map(lg=>[lg,LGN[lg]+(todayEntry(lg)?" ✓":"")]),drun.lg,setDailyLang)}
 function seg(opts,cur,onPick){const s=el("div","seg");opts.forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(cur===v));b.onclick=()=>onPick(v);s.appendChild(b)});return s}
@@ -879,7 +883,8 @@ function renderOverlay(){
         const li=el("li"),rh=el("div","rh");const dot=el("span","dot");dot.style.background=r.c;
         rh.append(dot,el("span","nm",r.n+(r.me?" ("+t("you")+")":"")),el("span","ps","+"+r.pts.reduce((x,y)=>x+y,0)));
         const rw=el("div","rw");rw.dir=cur.lg==="ar"?"rtl":"ltr";
-        H.CATS.forEach((c,i)=>{const w=r.a[i]||"",p=r.pts[i];const s=el("span",w?"p"+p:"p0 blank",(w||t("blank"))+(w&&p?" +"+p:""));s.title=catName(c);rw.appendChild(s)});
+        H.CATS.forEach((c,i)=>{const w=r.a[i]||"",p=r.pts[i],fx=r.me&&cur.res&&cur.res[i]&&cur.res[i].f;
+          const s=el("span",w?"p"+p:"p0 blank",(w||t("blank"))+(fx?" ✎":"")+(w&&p?" +"+p:""));s.title=catName(c)+(fx?" · "+t("fixMark")+" ("+cur.res[i].w+")":"");rw.appendChild(s)});
         li.append(rh,rw);ol.appendChild(li)});
       out.push(ol,el("p","note",t(mode==="solo"?"soloScoring":"roomScoring")));
       // my answers turned down for their category can be appealed

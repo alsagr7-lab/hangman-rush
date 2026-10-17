@@ -40,8 +40,9 @@ function jsonStore() {
     async hPut(id, token, data) { db.harf[id] = { token, data }; return flush(); },
     async hSetData(id, data) { if (db.harf[id]) { db.harf[id].data = data; return flush(); } },
     async hDel(id) { delete db.harf[id]; return flush(); },
-    async wordsGet(keys) { const m = new Map(); for (const k of keys) if (k in db.words) m.set(k, db.words[k]); return m; },
-    async wordsPut(pairs) { for (const [k, v] of pairs) db.words[k] = v; return flush(); },
+    // verdicts: {ok: 1/0, fix: correct spelling or null}; older files hold a bare 1/0
+    async wordsGet(keys) { const m = new Map(); for (const k of keys) if (k in db.words) { const v = db.words[k]; m.set(k, typeof v === "object" && v ? { ok: Number(v.ok) ? 1 : 0, fix: v.fix || null } : { ok: Number(v) ? 1 : 0, fix: null }); } return m; },
+    async wordsPut(pairs) { for (const [k, v] of pairs) db.words[k] = { ok: v.ok ? 1 : 0, fix: v.fix || null }; return flush(); },
 
     // -> Map(qid -> latest seen time in ms) across these players, only rows newer than sinceMs
     async seenGet(uids, sinceMs) {
@@ -90,6 +91,7 @@ function pgStore(url) {
         id TEXT PRIMARY KEY, token TEXT NOT NULL, data JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT now())`);
       await pool.query(`CREATE TABLE IF NOT EXISTS harf_words (
         k TEXT PRIMARY KEY, ok SMALLINT NOT NULL, at TIMESTAMPTZ DEFAULT now())`);
+      await pool.query(`ALTER TABLE harf_words ADD COLUMN IF NOT EXISTS fix TEXT`);
     },
     async all() { return (await pool.query("SELECT id, data FROM players ORDER BY updated_at DESC LIMIT 500")).rows; },
     async get(id) { return (await pool.query("SELECT id, token, data FROM players WHERE id=$1", [id])).rows[0] || null; },
@@ -106,13 +108,14 @@ function pgStore(url) {
     async hDel(id) { await pool.query("DELETE FROM harf_players WHERE id=$1", [id]); },
     async wordsGet(keys) {
       if (!keys.length) return new Map();
-      const r = await pool.query("SELECT k, ok FROM harf_words WHERE k = ANY($1)", [keys]);
-      return new Map(r.rows.map(x => [x.k, x.ok]));
+      const r = await pool.query("SELECT k, ok, fix FROM harf_words WHERE k = ANY($1)", [keys]);
+      return new Map(r.rows.map(x => [x.k, { ok: Number(x.ok) ? 1 : 0, fix: x.fix || null }]));
     },
     async wordsPut(pairs) {
       if (!pairs.length) return;
-      await pool.query(`INSERT INTO harf_words (k, ok) SELECT * FROM unnest($1::text[], $2::smallint[])
-        ON CONFLICT (k) DO UPDATE SET ok = EXCLUDED.ok, at = now()`, [pairs.map(p => p[0]), pairs.map(p => p[1])]);
+      await pool.query(`INSERT INTO harf_words (k, ok, fix) SELECT * FROM unnest($1::text[], $2::smallint[], $3::text[])
+        ON CONFLICT (k) DO UPDATE SET ok = EXCLUDED.ok, fix = EXCLUDED.fix, at = now()`,
+        [pairs.map(p => p[0]), pairs.map(p => (p[1].ok ? 1 : 0)), pairs.map(p => p[1].fix || null)]);
     },
 
     async seenGet(uids, sinceMs) {
