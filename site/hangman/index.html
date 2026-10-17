@@ -17,7 +17,11 @@
 .word.ar .slot{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;font-weight:700;font-size:clamp(22px,6.5vw,34px)}
 .keys.ar .key{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;font-size:17px}
 .keys.ar .krow{direction:rtl}
-.dlseg{margin-bottom:2px}
+/* small language switch in the board's header (English and Arabic words have separate boards) */
+.lgsw{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.lgsw button{border:0;background:transparent;padding:2px 10px;font:700 12px/1.6 var(--f-body);color:var(--muted)}
+.lgsw button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.lgsw button:lang(ar){font-family:"IBM Plex Sans Arabic",system-ui,sans-serif}
 /* Layout: exercise-book page in light, chalk slate in dark. Play area left, live board right (stacked on phones).
    Arabic swaps the handwritten face for Ruqaa (everyday Arabic handwriting) and flips the layout; the English word, keyboard and codes stay left-to-right. */
 :root{
@@ -1056,6 +1060,7 @@ function renderBoard(){
   list.forEach((r,i)=>box.appendChild(playerRow(r,round,i===0)));
 }
 /* daily board */
+function lgSwitch(cur,onPick){const w=el("span","lgsw");[["ar","عربي"],["en","EN"]].forEach(([lg,l])=>{const b=el("button",null,l);b.type="button";b.lang=lg;b.setAttribute("aria-pressed",String(cur===lg));b.setAttribute("aria-label",lg==="ar"?"عربي":"English");b.onclick=()=>onPick(lg);w.appendChild(b)});return w}
 function nameCell(p,i){
   const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=tagOf(String(p.id).replace(/_ar$/,""));if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.isMe)nm.appendChild(el("small",null,t("you")));return nm;
 }
@@ -1065,15 +1070,13 @@ function renderDailyBoard(box){
   const se=curSeason();
   // the English and Arabic words each have their own board
   const bl=boardLg||dlg;
-  const sw=el("div","seg dlseg");LGS.forEach(lg=>{const b=el("button",null,LGN[lg]);b.type="button";b.setAttribute("aria-pressed",bl===lg);b.onclick=()=>{boardLg=lg;renderBoard()};sw.appendChild(b)});
-  box.appendChild(sw);
   const src=bl==="ar"?arPlayers:allPlayers,myId=bl==="ar"?uid+"_ar":uid;
   let list=(db&&!dbErr)?src.filter(p=>p.id!==myId&&p.se===se):[];
   list.push(Object.assign({},drec(bl),{id:uid||"me",isMe:true}));
-  $("#pcount").textContent=t("seasonN",{n:se});
+  const pc=$("#pcount");pc.textContent="";pc.appendChild(lgSwitch(bl,v=>{boardLg=v;renderBoard()}));
   const left=seasonDaysLeft(),bar=el("div","seasonbar"+(left<=3?" final":""));
   const meter=el("span","meter");const fill=el("i");fill.style.width=Math.round(100*(seasonDay()-1)/SEASON_LEN)+"%";meter.appendChild(fill);
-  bar.append(el("span",null,t("dayOf",{d:seasonDay(),t:SEASON_LEN})),meter,el("span",null,left<=3?(left===1?t("resetsTonight"):t("finalDays",{n:left})):t("daysLeft",{n:left})));
+  bar.append(el("span",null,t("seasonN",{n:se})+" · "+t("dayOf",{d:seasonDay(),t:SEASON_LEN})),meter,el("span",null,left<=3?(left===1?t("resetsTonight"):t("finalDays",{n:left})):t("daysLeft",{n:left})));
   box.appendChild(bar);
   const myEntry=todayEntry(drec(bl));const played=myEntry&&("ok" in myEntry);
   let rows;
