@@ -127,8 +127,12 @@ async function appealWord(lg, cat, w, letter) {
     `in the wrong category, or doesn't start with the letter (a leading ال or "the" doesn't count).\n\n` +
     `Reply with JSON only: {"ok":1 or 0,"why":"one short sentence for the player, in ${lg === "ar" ? "Arabic" : "English"}"}`,
     `Language: ${lg === "ar" ? "Arabic" : "English"}\ncategory=${cat} | letter=${letter} | answer=${JSON.stringify(w)}`, 200);
-  if (!o || (o.ok !== 0 && o.ok !== 1 && o.ok !== "0" && o.ok !== "1")) return null;
-  const ok = Number(o.ok) === 1 ? 1 : 0, why = String(o.why || "").slice(0, 200);
+  // the referee may answer 1/0, true/false or "yes"/"no"
+  const v = o && (o.ok !== undefined ? o.ok : o.valid);
+  const yes = v === true || v === 1 || /^(1|true|yes|valid)$/i.test(String(v));
+  const no = v === false || v === 0 || /^(0|false|no|invalid)$/i.test(String(v));
+  if (!yes && !no) { if (o) console.warn("Harf: unexpected appeal reply", JSON.stringify(o).slice(0, 200)); return null; }
+  const ok = yes ? 1 : 0, why = String(o.why || o.reason || "").slice(0, 200);
   if (ok) { verdicts.set(k, 1); store.wordsPut([[k, 1]]).catch(e => console.error("Harf: saving verdict", e.message)); }
   console.log(`Harf appeal: ${lg} ${cat} ${w} -> ${ok ? "upheld" : "turned down"}`);
   return { ok, why };
