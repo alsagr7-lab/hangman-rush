@@ -110,10 +110,12 @@ function prompt(lg, items) {
       `Categories:\n` + Object.entries(CAT_RULES).map(([k, v]) => `- ${k}: ${v}`).join("\n") + `\n\n` +
       `Be fair and lenient about spelling: accept misspellings when it's clear which word was meant (e.g. "catapilar" for caterpillar), as well as common spellings, dialect words, plurals and well-known local names. ` +
       `${lg === "ar" ? "Answers are in Arabic script; a leading ال doesn't count when checking the letter." : "Answers are in English; a leading \"the\" doesn't count when checking the letter."} ` +
-      `Reject made-up words, random letters, words in the wrong category, and answers that don't start with the letter.\n\n` +
+      `Reject made-up words, random letters, words in the wrong category, and answers that don't start with the letter. ` +
+      `Judge the letter by the correct spelling: if the intended word is really spelled with a different first letter ` +
+      `(e.g. "تاووس" for طاووس when the letter is ت, or "cangaroo" for kangaroo when the letter is C), mark it 0 and still give the correct spelling in "fix".\n\n` +
       `Reply with JSON only, in the same order as the answers: {"r":[1,0,...],"fix":[null,"Caterpillar",...]}. ` +
-      `In "r", 1 means valid and 0 means not valid. In "fix", give the correctly spelled word for a valid answer that was misspelled, ` +
-      `and null when it was already spelled right (or isn't valid). Keep the same script as the answer and don't add "ال" or "the".`,
+      `In "r", 1 means valid and 0 means not valid. In "fix", give the correctly spelled word whenever the answer is a misspelling of a real word ` +
+      `(even one marked 0 for its letter), and null when it was already spelled right or isn't a real word. Keep the same script as the answer and don't add "ال" or "the".`,
     user: `Language: ${lg === "ar" ? "Arabic" : "English"}\n${lines}`,
   };
 }
@@ -146,12 +148,21 @@ async function askClaude(lg, items) {
   if (!Array.isArray(arr) || arr.length !== items.length) { if (o) console.warn("Harf: reply didn't match the answers"); return null; }
   const fixes = Array.isArray(o.fix) ? o.fix : [];
   return arr.map((v, i) => {
-    const ok = Number(v) === 1 || v === true ? 1 : 0;
-    let fix = ok && typeof fixes[i] === "string" ? clean(fixes[i]) : null;
-    // only a real correction: same first letter, and a different word once spelling variants are set aside
-    if (fix && (!R.harfLetterOk(fix, items[i].letter, lg) || R.harfKey(fix, lg) === R.harfKey(items[i].w, lg))) fix = null;
+    let ok = Number(v) === 1 || v === true ? 1 : 0;
+    let fix = typeof fixes[i] === "string" ? clean(fixes[i]) : null;
+    // only a real correction: a different word once spelling variants are set aside
+    if (fix && R.harfKey(fix, lg) === R.harfKey(items[i].w, lg)) fix = null;
+    // the letter counts by the correct spelling: "تاووس" for ت is طاووس, which starts with ط
+    if (fix && !R.harfLetterOk(fix, items[i].letter, lg)) ok = 0;
     return { ok, fix };
   });
+}
+// puts a verdict on one answer: valid (maybe with its correct spelling), not valid, or wrong letter once corrected
+function applyVerdict(a, v, letter, lg) {
+  delete a.u; delete a.f; delete a.l;
+  if (v.fix && !R.harfLetterOk(v.fix, letter, lg)) { a.ok = 0; a.l = 1; a.f = v.fix; return; }
+  a.ok = v.ok ? 1 : 0;
+  if (a.ok && v.fix) a.f = v.fix;
 }
 
 /* ---------- appeals ----------
@@ -217,7 +228,7 @@ async function check(lg, letter, raw, useAI = true) {
     todo.push(i);
   });
   const v = await judge(lg, todo.map(i => ({ cat: H.CATS[i], w: words[i], letter })), useAI);
-  todo.forEach((i, k) => { if (v[k] == null) { out[i].ok = 1; out[i].u = 1; } else { out[i].ok = v[k].ok; if (v[k].ok && v[k].fix) out[i].f = v[k].fix; } });
+  todo.forEach((i, k) => { if (v[k] == null) { out[i].ok = 1; out[i].u = 1; } else applyVerdict(out[i], v[k], letter, lg); });
   return out;
 }
 
@@ -259,8 +270,42 @@ async function authorize(uid, token, lg) {
    "<uid>_ar" and "<uid>_en", with streaks counted again from the days themselves, and the old record removed. */
 let migrated = null;
 function ensureMigrated() {
-  if (!migrated) migrated = migrate().catch(e => { console.error("Harf: migration", e); migrated = null; });
+  if (!migrated) migrated = migrate().then(recheckCorrections).catch(e => { console.error("Harf: migration", e); migrated = null; });
   return migrated;
+}
+
+/* ---------- one-time re-check after the wrong-letter fix ----------
+   From the spelling-correction update until this fix, an answer whose correct spelling starts with another letter
+   could be saved as valid (with its correction dropped). Those verdicts (valid, no correction, saved in that window)
+   are cleared so the words are judged again, and the same answers in days not yet finished are marked "not checked",
+   so the nightly pass judges them again and recounts those players' points. */
+const CORRECTIONS_SINCE = Date.parse("2026-10-17T13:30:00Z");
+async function recheckCorrections() {
+  if (await store.metaGet("recheck_corrections_v1")) return;
+  const keys = new Set(await store.wordsPurge(CORRECTIONS_SINCE));
+  keys.forEach(k => verdicts.delete(k));
+  let marked = 0;
+  if (keys.size) {
+    for (const r of await store.hAll()) {
+      const d = tidy(r.data);
+      let changed = false;
+      for (const e of Object.values(d.h)) {
+        if (!e || e.rb != null || !Array.isArray(e.a)) continue; // finished days stay as they are
+        e.a.forEach((a, i) => { if (a.ok && !a.f && keys.has(vkey(e.lg, H.CATS[i], a.w))) { a.u = 1; changed = true; marked++; } });
+      }
+      if (changed) await withLock(r.id, async () => {
+        const fresh = await store.hGet(r.id); if (!fresh) return;
+        const f = tidy(fresh.data);
+        for (const [day, e] of Object.entries(f.h)) {
+          if (!e || e.rb != null || !Array.isArray(e.a)) continue;
+          e.a.forEach((a, i) => { if (a.ok && !a.f && keys.has(vkey(e.lg, H.CATS[i], a.w))) a.u = 1; });
+        }
+        await store.hSetData(r.id, f);
+      });
+    }
+  }
+  await store.metaPut("recheck_corrections_v1", { at: Date.now(), cleared: keys.size, marked });
+  console.log(`Harf: cleared ${keys.size} verdict(s) for a second look; ${marked} answer(s) to re-check tonight`);
 }
 async function migrate() {
   const legacy = (await store.hAll()).filter(r => !/_(ar|en)$/.test(r.id));
@@ -353,7 +398,7 @@ async function finalizeDays(today) {
       entries.forEach(x => { if (x.e.lg === lg) x.e.a.forEach((a, i) => { if (a.u && a.ok) items.push({ x, i, cat: H.CATS[i], w: a.w, letter: x.e.L }); }); });
       if (!items.length) continue;
       const v = await judge(lg, items);
-      items.forEach((it, j) => { if (v[j] != null) { const a = it.x.e.a[it.i]; a.ok = v[j].ok; if (v[j].ok && v[j].fix) a.f = v[j].fix; delete a.u; } });
+      items.forEach((it, j) => { if (v[j] != null) applyVerdict(it.x.e.a[it.i], v[j], it.letter, lg); });
     }
     // count answers per language and category
     const counts = new Map(), players = { ar: 0, en: 0 };

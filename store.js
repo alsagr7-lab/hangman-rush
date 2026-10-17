@@ -49,6 +49,12 @@ function jsonStore() {
       return Object.entries(db.words).map(([k, v]) => ({ k, ok: typeof v === "object" ? Number(v.ok) : Number(v), fix: (v && v.fix) || null, at: (v && v.at) || 0 }))
         .sort((a, b) => b.at - a.at).slice(0, limit);
     },
+    // clears verdicts saved as valid with no correction since a time; -> their keys
+    async wordsPurge(sinceMs) {
+      const out = [];
+      for (const [k, v] of Object.entries(db.words)) if (v && typeof v === "object" && Number(v.ok) === 1 && !v.fix && (v.at || 0) >= sinceMs) { out.push(k); delete db.words[k]; }
+      await flush(); return out;
+    },
     async ipUids(ip, month) { return ((db.ip[month] || {})[ip]) || []; },
     async ipAdd(ip, month, uid) {
       for (const m of Object.keys(db.ip)) if (m < month) delete db.ip[m]; // only this month matters
@@ -139,6 +145,10 @@ function pgStore(url) {
       const r = await pool.query("SELECT k, ok, fix, at FROM harf_words ORDER BY at DESC LIMIT $1", [limit]);
       return r.rows.map(x => ({ k: x.k, ok: Number(x.ok), fix: x.fix || null, at: new Date(x.at).getTime() }));
     },
+    async wordsPurge(sinceMs) {
+      const r = await pool.query("DELETE FROM harf_words WHERE ok = 1 AND fix IS NULL AND at >= $1 RETURNING k", [new Date(sinceMs)]);
+      return r.rows.map(x => x.k);
+    },
     async ipUids(ip, month) { return (await pool.query("SELECT uid FROM harf_ip WHERE ip=$1 AND month=$2", [ip, month])).rows.map(x => x.uid); },
     async ipAdd(ip, month, uid) {
       await pool.query("INSERT INTO harf_ip (ip, month, uid) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", [ip, month, uid]);
@@ -180,6 +190,6 @@ const store = {
     await impl.init();
   },
 };
-for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsRecent", "ipUids", "ipAdd", "metaGet", "metaPut"]) store[k] = (...a) => impl[k](...a);
+for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsRecent", "wordsPurge", "ipUids", "ipAdd", "metaGet", "metaPut"]) store[k] = (...a) => impl[k](...a);
 
 module.exports = store;

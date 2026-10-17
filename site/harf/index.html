@@ -231,7 +231,7 @@ en:{
   dbErr:"The leaderboard didn't load. Your results are still saved on the server.",
   players:"{n} players",player1:"1 player",you:"you",hostTag:"host",writing:"writing… {f}/5",locked:"done",waitingNext:"joins next round",
   pts:"{n} pts",hm:"{h}h {m}m",rareTag:"+{n} rare",
-  corrected:"Counted as \u201c{w}\u201d",fixMark:"spelling fixed",
+  corrected:"Counted as \u201c{w}\u201d",fixMark:"spelling fixed",wrongLetterFix:"Spelt correctly it's \u201c{w}\u201d, which doesn't start with {L}",
   appeal:"Appeal",appealing:"Taking a second look…",appealWon:"Accepted on appeal",appealLost:"Appeal turned down",
   appealNone:"No appeals left today.",appealDown:"Appeals aren't available right now. Try again later.",appealsLeft:"{n} appeals left today",
   playIn:"Play today's letter in",playInHelp:"Arabic and English each have their own letter, streak and leaderboard. You can play both.",
@@ -287,7 +287,7 @@ ar:{
   dbErr:"تعذّر تحميل لوحة الترتيب. نتائجك محفوظة على الخادم.",
   players:"اللاعبون: {n}",player1:"لاعب واحد",you:"أنت",hostTag:"المضيف",writing:"يكتب… {f}/5",locked:"انتهى",waitingNext:"ينضم في الجولة التالية",
   pts:"{n} نقطة",hm:"{h}س {m}د",rareTag:"+{n} ندرة",
-  corrected:"احتُسبت: «{w}»",fixMark:"صُحّح الإملاء",
+  corrected:"احتُسبت: «{w}»",fixMark:"صُحّح الإملاء",wrongLetterFix:"إملاؤها الصحيح «{w}» ولا تبدأ بحرف {L}",
   appeal:"اعتراض",appealing:"نعيد النظر…",appealWon:"قُبلت بعد الاعتراض",appealLost:"رُفض الاعتراض",
   appealNone:"لا اعتراضات متبقية اليوم.",appealDown:"الاعتراض غير متاح الآن. حاول لاحقاً.",appealsLeft:"باقي {n} اعتراضات اليوم",
   playIn:"العب حرف اليوم بـ",playInHelp:"للعربية والإنجليزية حرف وسلسلة ولوحة ترتيب لكل منهما. تستطيع لعب الاثنين.",
@@ -376,7 +376,7 @@ function answerRow(cat,a,L,lg,np,opts,i){
   }else if(w)pts="0";
   li.append(el("span",cls,pts));
   let why="";
-  if(w&&!ok)why=a.l?t("wrongLetter",{L}):t("notAccepted");
+  if(w&&!ok)why=a.l?(a.f?t("wrongLetterFix",{w:a.f,L}):t("wrongLetter",{L})):t("notAccepted");
   else if(ok&&a.u)why=t("notChecked");
   else if(ok&&opts.rare&&a.n)why=a.n===1?t("onlyYou"):t("nOf",{c:a.n,n:np});
   if(ok&&a.f)li.append(el("span","why won","✎ "+t("corrected",{w:a.f})));
