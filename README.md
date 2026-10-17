@@ -47,6 +47,7 @@ Answers are checked cheapest first:
 - Every verdict is saved (`harf_words`), so each word is asked about once, ever. A day with five players is usually one small request.
 - At most `HARF_API_PER_HOUR` calls an hour (default 60). Set a monthly spend limit in the Claude Console too.
 - Without a key, or if the API is down, answers with the right first letter count and show "not checked"; the overnight pass asks again.
+- **Appeals:** a player can appeal an answer turned down for its category (not one with the wrong first letter). A stronger model (`HARF_APPEAL_MODEL`, default `claude-sonnet-5-5`) takes a second look, allowing rare, classical, regional and dialect words. A win counts at once (in the daily it can complete a perfect day and its streak bonus) and the word is accepted for everyone from then on. Up to `HARF_APPEALS_PER_DAY` per player (default 5); daily appeals close at midnight UTC.
 - Optional: `HARF_MODEL` (default `claude-haiku-5-5`). The daily letter order is shuffled with `HARF_KEY` (falls back to `DAILY_KEY`), so the public code can't reveal tomorrow's letter.
 
 ## Run locally
