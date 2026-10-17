@@ -27,9 +27,9 @@ The home page (`/`) links all three, with today's status for each.
 
 ## Harf Rush
 
-- **Daily:** one letter a day for everyone (an Arabic one and an English one; you play in your page language), one attempt, 90 seconds timed by the server. Drafts are saved as you type, so closing the page scores what you'd written.
+- **Daily:** one letter a day for everyone (an Arabic one and an English one; players pick which at the start), one attempt, 90 seconds timed by the server. Drafts are saved as you type, so closing the page scores what you'd written.
 - **Points, straight away:** 10 for each valid answer. A day with all five valid adds a **perfect-streak bonus**: +1 per day in a row, up to +5. A missed or imperfect day resets it.
-- **Points, the next day:** after midnight (UTC) the server counts how many players gave each valid answer, per language: **+5** if nobody else wrote it, **+2** if under 20% of players did. Needs at least two players that day. Players see it on the lobby and the Yesterday board.
+- **Points, the next day:** after midnight (UTC) the server counts how many players gave each valid answer, per language: **+5** if nobody else wrote it, **+2** if under 20% of players did. Needs at least two players that day. Players see it on the lobby and the Yesterday board. Arabic and English each have their own leaderboard (a switch on the board).
 - **Matching:** a leading "ال" or "the" doesn't count for the letter; أ/إ/آ/ا, ة/ه, ى/ي and diacritics count as the same, so "الأسد" and "اسد" are the same answer.
 - **Rooms:** the host picks Arabic or English letters and 60/90/120 seconds. Anyone who fills all five can press **STOP**; everyone else then has 5 seconds. Scoring: 10 for a valid answer nobody else in the round wrote, 5 if someone did.
 - **Practise solo:** any letter, 10 per valid answer.

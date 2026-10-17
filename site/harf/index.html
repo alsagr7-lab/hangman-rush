@@ -232,6 +232,8 @@ en:{
   pts:"{n} pts",hm:"{h}h {m}m",rareTag:"+{n} rare",
   appeal:"Appeal",appealing:"Taking a second look…",appealWon:"Accepted on appeal",appealLost:"Appeal turned down",
   appealNone:"No appeals left today.",appealDown:"Appeals aren't available right now. Try again later.",appealsLeft:"{n} appeals left today",
+  playIn:"Play today's letter in",playInHelp:"One daily a day: pick Arabic or English. Each has its own letter and its own leaderboard.",
+  boardLangLbl:"Leaderboard",
   appealHelp:"Think a word was unfairly turned down? Appeal it and a stronger referee takes a second look.",appealMine:"Appeal your answers:"
 },
 ar:{
@@ -284,6 +286,8 @@ ar:{
   pts:"{n} نقطة",hm:"{h}س {m}د",rareTag:"+{n} ندرة",
   appeal:"اعتراض",appealing:"نعيد النظر…",appealWon:"قُبلت بعد الاعتراض",appealLost:"رُفض الاعتراض",
   appealNone:"لا اعتراضات متبقية اليوم.",appealDown:"الاعتراض غير متاح الآن. حاول لاحقاً.",appealsLeft:"باقي {n} اعتراضات اليوم",
+  playIn:"العب حرف اليوم بـ",playInHelp:"تحدٍّ واحد في اليوم: اختر العربية أو الإنجليزية. لكل منهما حرفه ولوحة ترتيبه.",
+  boardLangLbl:"لوحة الترتيب",
   appealHelp:"تظن أن كلمة رُفضت ظلماً؟ اعترض عليها ليعيد حَكَم أقوى النظر فيها.",appealMine:"اعترض على إجاباتك:"
 }};
 let lang=LS.get("hr-lang",null);
@@ -408,7 +412,7 @@ $("#langLobby").onclick=()=>setLang(lang==="ar"?"en":"ar");
 $("#langGame").onclick=()=>setLang(lang==="ar"?"en":"ar");
 
 /* ---------- leaderboard ---------- */
-let allPlayers=[],dbErr=false,boardTab="today";
+let allPlayers=[],dbErr=false,boardTab="today",boardLang=null;
 function tidyRec(d){const r=Object.assign({n:"Player",c:R.COLORS[0],se:R.curSeason(),streak:0,best:0,ls:"",played:0,wins:0,h:{}},d||{});
   r.n=nm16(r.n);r.c=R.safeColor(r.c);r.h=r.h&&typeof r.h==="object"?r.h:{};if(R.seasonOfRec(r)<R.curSeason())R.rollover(r);return r}
 Rush.db.collection("harf").onSnapshot(snap=>{
@@ -494,7 +498,7 @@ async function startDaily(){
   drun.phase="count";drun.countEnd=Date.now()+H.COUNT_MS;render();
   setTimeout(async()=>{
     if(!drun||mode!=="daily")return;
-    try{const s=await Rush.harf.start(lang,profile());dstate=s;saveToday();
+    try{const s=await Rush.harf.start(drun.lg,profile());dstate=s;saveToday();
       if(s.entry){drun.phase="done";drun.L=s.entry.L;drun.lg=s.entry.lg;setInputs(s.entry.a.map(a=>a.w),false,s.entry.lg);marksFor(s.entry.a);lastPanelKey="";render();return}
       openDaily(s.open)}
     catch(e){if(e.data&&e.data.state){dstate=e.data.state;drun.phase="done";render();return}drun.phase="error";lastPanelKey="";render()}
@@ -760,18 +764,23 @@ function renderDailyBoard(box){
   const meter=el("span","meter");const fill=el("i");fill.style.width=Math.round(100*(R.seasonDay()-1)/R.SEASON_LEN)+"%";meter.appendChild(fill);
   bar.append(el("span",null,t("dayOf",{d:R.seasonDay(),t:R.SEASON_LEN})),meter,el("span",null,left===1?t("resetsTonight"):left<=3?t("finalDays",{n:left}):t("daysLeftShort",{n:left})));
   box.appendChild(bar);
+  // Arabic and English players each have their own letter, so each has its own board
+  const bl=boardLang||(todayEntry()&&todayEntry().lg)||lang;
+  box.appendChild(seg([["ar","عربي"],["en","English"]],bl,v=>{boardLang=v;renderBoard()}));
   const list=allPlayers.filter(p=>p.se===se);
+  const inLang=p=>Object.values(p.h).filter(e=>e&&e.lg===bl);
   if(boardTab==="season"){
-    const rows=list.filter(p=>p.played>0).sort((a,b)=>R.seasonPts(b)-R.seasonPts(a)||R.curStreak(b)-R.curStreak(a));
+    const rows=list.map(p=>{const es=inLang(p);return Object.assign({},p,{lp:es.reduce((a,e)=>a+num(e.pts),0),ln:es.length,lw:es.filter(e=>e.ok).length})})
+      .filter(p=>p.ln>0).sort((a,b)=>b.lp-a.lp||R.curStreak(b)-R.curStreak(a));
     if(!rows.length)box.appendChild(el("div","empty",t("seasonEmpty")));
     rows.forEach((p,i)=>{const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
-      const pp=el("div","pp");pp.appendChild(el("span",null,t("solvedOf",{w:p.wins,p:p.played})));
+      const pp=el("div","pp");pp.appendChild(el("span",null,t("solvedOf",{w:p.lw,p:p.ln})));
       const s=R.curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
-      d.append(dot,nameCell(p,i),el("span","ps",String(R.seasonPts(p))),pp);box.appendChild(d)});
+      d.append(dot,nameCell(p,i),el("span","ps",String(p.lp)),pp);box.appendChild(d)});
     box.appendChild(el("p","note",t("seasonNote",{n:se+1})));
   }else{
     const k=boardTab==="today"?R.todayKey():R.ydayKey();
-    const rows=list.filter(p=>p.h[k]).sort((a,b)=>num(b.h[k].pts)-num(a.h[k].pts)||num(a.h[k].t)-num(b.h[k].t));
+    const rows=list.filter(p=>p.h[k]&&p.h[k].lg===bl).sort((a,b)=>num(b.h[k].pts)-num(a.h[k].pts)||num(a.h[k].t)-num(b.h[k].t));
     if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?t("todayEmpty"):t("ydayEmpty")));
     let pending=false;
     rows.forEach((p,i)=>{const e=p.h[k];const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
@@ -802,9 +811,11 @@ function renderOverlay(){
   const ov=$("#overlay"),panel=$("#panel"),now=Date.now();
   if(mode==="daily"&&drun){
     if(drun.phase==="count")return showCount(ov,panel,Math.max(1,Math.ceil((drun.countEnd-now)/1000)));
-    if(drun.phase==="intro")return setPanel(ov,panel,"dintro"+(dstate?dstate.streak:0),()=>{
+    if(drun.phase==="intro")return setPanel(ov,panel,"dintro"+(dstate?dstate.streak:0)+drun.lg,()=>{
       const s=dstate?num(dstate.streak):0;
       const out=[el("h2",null,t("dailyTitle",{n:R.dailyNo()})),el("p",null,t("dailyIntro")),
+        el("p","lbl",t("playIn")),seg([["ar","عربي"],["en","English"]],drun.lg,v=>{drun.lg=v;lastPanelKey="";render()}),
+        el("p","diffhelp",t("playInHelp")),
         el("p","streak",s?t("curStreak",{n:s,b:Math.min(H.STREAK_MAX,s+1)}):t("noStreak"))];
       const b=el("button","btn primary",t("start"));b.onclick=startDaily;out.push(b);return out});
     if(drun.phase==="error")return setPanel(ov,panel,"err",()=>{const b=el("button","btn primary",t("backLobby"));b.onclick=backToLobby;return[el("h2",null,t("dailyErr")),b]});
