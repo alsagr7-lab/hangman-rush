@@ -87,7 +87,7 @@ async function askClaude(lg, items) {
     const r = await fetch(API_URL, {
       method: "POST",
       headers: { "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 300, temperature: 0, system: p.system, messages: [{ role: "user", content: p.user }] }),
+      body: JSON.stringify({ model: MODEL, max_tokens: 300, system: p.system, messages: [{ role: "user", content: p.user }] }),
       signal: AbortSignal.timeout(20000),
     });
     const j = await r.json().catch(() => null);
