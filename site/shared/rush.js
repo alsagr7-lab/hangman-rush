@@ -330,6 +330,11 @@
     appeal: (lg, L, i, w, daily) => post("/api/harf/appeal", { lg, L, i, w, daily: !!daily }),
   };
 
+  // one visit count per page load (the admin page's visitor numbers): which game, and this device's player id
+  try {
+    const pg = (location.pathname.match(/\/(hangman|trivia|harf)(\/|$)/) || [])[1] || "home", b = JSON.stringify({ p: pg, v: uid });
+    if (!(navigator.sendBeacon && navigator.sendBeacon(http("/api/hit"), b))) fetch(http("/api/hit"), { method: "POST", body: b, keepalive: true }).catch(() => {});
+  } catch {}
   window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink,
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, db, user, daily };

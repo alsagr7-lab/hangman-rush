@@ -468,7 +468,7 @@ async function handle(req, res, url, { send, readJson }) {
 
   if (p === "/api/harf/players" && req.method === "GET") {
     await ensureFinal();
-    const rows = await store.hAll();
+    const rows = (await store.hAll()).filter(r => !require("./admin").isHidden("harf", r.id));
     send(res, 200, rows.map(r => ({ id: r.id, data: publicRec(tidy(r.data)) })));
     return true;
   }
