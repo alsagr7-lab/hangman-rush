@@ -327,6 +327,7 @@
     save: dr => post("/api/harf/daily/save", { dr }),
     submit: answers => post("/api/harf/daily/submit", { answers }),
     check: (lg, L, answers) => post("/api/harf/check", { lg, L, answers }),
+    appeal: (lg, L, i, w, daily) => post("/api/harf/appeal", { lg, L, i, w, daily: !!daily }),
   };
 
   window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink,

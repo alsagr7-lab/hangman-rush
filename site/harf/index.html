@@ -51,6 +51,13 @@
 .alist .ap{font-family:var(--f-mono);font-weight:700;font-size:13px;white-space:nowrap;direction:ltr;unicode-bidi:isolate}
 .alist .ap.rare{color:var(--good)}
 .alist .why{grid-column:2/4;font-size:12px;color:var(--muted)}
+.alist .why.won{color:var(--good);font-weight:600}
+.apbtn{grid-column:2/4;justify-self:start;border:2px dashed var(--line);background:transparent;border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700;color:var(--ink)}
+.apbtn:disabled{opacity:.5;cursor:default}
+.aprow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.aprow .apbtn{grid-column:auto}
+.apnote{font-size:12.5px;color:var(--muted)}
+.apnote.won{color:var(--good);font-weight:600}
 .bonus{display:flex;justify-content:space-between;gap:10px;font-weight:700}
 .bonus.soon{color:var(--muted);font-weight:600}
 .yday{border-top:2px dashed var(--line);padding-top:10px;display:grid;gap:8px}
@@ -222,7 +229,10 @@ en:{
   todayNote:"Today's answers stay hidden until tomorrow. Points here don't include rarity bonuses yet.",
   dbErr:"The leaderboard didn't load. Your results are still saved on the server.",
   players:"{n} players",player1:"1 player",you:"you",hostTag:"host",writing:"writing… {f}/5",locked:"done",waitingNext:"joins next round",
-  pts:"{n} pts",hm:"{h}h {m}m",rareTag:"+{n} rare"
+  pts:"{n} pts",hm:"{h}h {m}m",rareTag:"+{n} rare",
+  appeal:"Appeal",appealing:"Taking a second look…",appealWon:"Accepted on appeal",appealLost:"Appeal turned down",
+  appealNone:"No appeals left today.",appealDown:"Appeals aren't available right now. Try again later.",appealsLeft:"{n} appeals left today",
+  appealHelp:"Think a word was unfairly turned down? Appeal it and a stronger referee takes a second look.",appealMine:"Appeal your answers:"
 },
 ar:{
   brand:"سباق الحروف",tagline:"حرف واحد وخمس خانات: إنسان وحيوان ونبات وجماد وبلاد. املأها قبل أن ينتهي الوقت.",allGames:"كل الألعاب",
@@ -271,7 +281,10 @@ ar:{
   todayNote:"إجابات اليوم تبقى مخفية حتى الغد. النقاط هنا لا تشمل مكافآت الندرة بعد.",
   dbErr:"تعذّر تحميل لوحة الترتيب. نتائجك محفوظة على الخادم.",
   players:"اللاعبون: {n}",player1:"لاعب واحد",you:"أنت",hostTag:"المضيف",writing:"يكتب… {f}/5",locked:"انتهى",waitingNext:"ينضم في الجولة التالية",
-  pts:"{n} نقطة",hm:"{h}س {m}د",rareTag:"+{n} ندرة"
+  pts:"{n} نقطة",hm:"{h}س {m}د",rareTag:"+{n} ندرة",
+  appeal:"اعتراض",appealing:"نعيد النظر…",appealWon:"قُبلت بعد الاعتراض",appealLost:"رُفض الاعتراض",
+  appealNone:"لا اعتراضات متبقية اليوم.",appealDown:"الاعتراض غير متاح الآن. حاول لاحقاً.",appealsLeft:"باقي {n} اعتراضات اليوم",
+  appealHelp:"تظن أن كلمة رُفضت ظلماً؟ اعترض عليها ليعيد حَكَم أقوى النظر فيها.",appealMine:"اعترض على إجاباتك:"
 }};
 let lang=LS.get("hr-lang",null);
 if(lang!=="ar"&&lang!=="en"){try{lang=localStorage.getItem("hr-lang")}catch(e){}}
@@ -338,7 +351,7 @@ function renderLobbyDaily(){
   else{st.textContent=t("dailyIntroLobby",{t:untilNext()});b.textContent=t("playToday")}
 }
 // one answer from a finished day, with its count and bonus
-function answerRow(cat,a,L,lg,np,opts){
+function answerRow(cat,a,L,lg,np,opts,i){
   const li=el("li");li.append(el("span","ac",catName(cat)));
   const w=a&&a.w?a.w:"";const ok=a&&a.ok;
   const aw=el("span","aw"+(w&&!ok?" no":""),w||t("blank"));aw.dir="auto";li.append(aw);
@@ -353,8 +366,21 @@ function answerRow(cat,a,L,lg,np,opts){
   if(w&&!ok)why=a.l?t("wrongLetter",{L}):t("notAccepted");
   else if(ok&&a.u)why=t("notChecked");
   else if(ok&&opts.rare&&a.n)why=a.n===1?t("onlyYou"):t("nOf",{c:a.n,n:np});
-  if(why)li.append(el("span","why",why));
+  if(a&&a.ap===1)li.append(el("span","why won",t("appealWon")));
+  else if(why)li.append(el("span","why",why));
+  if(a&&a.ap===-1)li.append(el("span","why",t("appealLost")+(a.why?": "+a.why:"")));
+  if(opts.appeal&&w&&!ok&&!a.l&&!a.ap){
+    const b=el("button","apbtn",t("appeal"));b.type="button";b.onclick=()=>appealDaily(i,b);li.append(b);
+  }
   return li;
+}
+// the daily: appeal one of today's answers
+let appealMsg="";
+async function appealDaily(i,btn){
+  btn.disabled=true;btn.textContent=t("appealing");
+  try{const r=await Rush.harf.appeal(null,null,i,null,true);dstate=r.state;saveToday();appealMsg=""}
+  catch(e){if(e.data&&e.data.state){dstate=e.data.state;saveToday()}appealMsg=e.status===429?"appealNone":"appealDown"}
+  const ent=todayEntry();if(ent)marksFor(ent.a);lastPanelKey="";render();Rush.db.collection("harf").refresh();
 }
 function renderYday(){
   const box=$("#yBox"),y=dstate&&dstate.yday;box.textContent="";box.hidden=!y;if(!y)return;
@@ -538,7 +564,7 @@ function phaseOf(c,now){
   return{ph:"after",end};
 }
 function beginRound(round,L,lg,ms,at){
-  cur={round,L,lg,ms,at,shift:0,sa:0,sn:"",words:null,locked:false,v:null,res:null,pts:null,scored:false,stopSent:false,checkTry:0};
+  cur={round,L,lg,ms,at,shift:0,sa:0,sn:"",words:null,locked:false,v:null,res:null,pts:null,scored:false,stopSent:false,checkTry:0,ap:{},apMsg:""};
   lastFilled=-1;setInputs(null,false,lg);waitNext=false;closing=false;pushPresence();lastPanelKey="";render();
 }
 function hostStart(){
@@ -594,6 +620,19 @@ function scoreRound(){
   const rows=roundRows().filter(r=>r.a&&r.v),A={},V={};rows.forEach(r=>{A[r.id]=r.a;V[r.id]=r.v});
   cur.pts=R.harfRoomPoints(A,V,cur.lg)[uid]||H.CATS.map(()=>0);cur.scored=true;
   score+=cur.pts.reduce((x,y)=>x+y,0);pushPresence();lastPanelKey="";render();
+}
+// rooms and practice: a won appeal makes the answer valid and recounts my points for the round
+async function appealRoom(i){
+  const c=cur;if(!c||!c.res||c.ap[i]!=null)return;
+  c.ap[i]=0;c.apMsg="";lastPanelKey="";render();
+  try{const r=await Rush.harf.appeal(c.lg,c.L,i,c.res[i].w,false);if(cur!==c)return;
+    c.ap[i]=r.ok?1:-1;
+    if(r.ok){c.res[i].ok=1;c.v[i]=1;
+      const rows=roundRows().filter(x=>x.a&&x.v),A={},V={};rows.forEach(x=>{A[x.id]=x.a;V[x.id]=x.v});
+      const old=c.pts?c.pts.reduce((x,y)=>x+y,0):0;c.pts=R.harfRoomPoints(A,V,c.lg)[uid]||c.pts;
+      score+=c.pts.reduce((x,y)=>x+y,0)-old;marksFor(c.res);pushPresence()}}
+  catch(e){if(cur!==c)return;delete c.ap[i];c.apMsg=t(e.status===429?"appealNone":"appealDown")}
+  lastPanelKey="";render();
 }
 function setRoomLang(lg){if(!host||hs.st==="playing")return;hs.lg=lg;pushPresence();lastPanelKey="";render()}
 function setRoomTime(ms){if(!host||hs.st==="playing")return;hs.ms=ms;pushPresence();lastPanelKey="";render()}
@@ -769,10 +808,13 @@ function renderOverlay(){
         el("p","streak",s?t("curStreak",{n:s,b:Math.min(H.STREAK_MAX,s+1)}):t("noStreak"))];
       const b=el("button","btn primary",t("start"));b.onclick=startDaily;out.push(b);return out});
     if(drun.phase==="error")return setPanel(ov,panel,"err",()=>{const b=el("button","btn primary",t("backLobby"));b.onclick=backToLobby;return[el("h2",null,t("dailyErr")),b]});
-    if(drun.phase==="done"&&todayEntry())return setPanel(ov,panel,"done"+JSON.stringify(todayEntry()),()=>{
+    if(drun.phase==="done"&&todayEntry())return setPanel(ov,panel,"done"+JSON.stringify(todayEntry())+appealMsg,()=>{
       const e=todayEntry(),s=dstate?num(dstate.streak):0,best=dstate?num(dstate.best):0;
-      const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,e.a[i],e.L,e.lg,0,{base:true,rare:false})));
+      const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,e.a[i],e.L,e.lg,0,{base:true,rare:false,appeal:apiOn!==false},i)));
       const out=[el("h2",null,t("doneTitle",{c:e.c})),ul];
+      const canAppeal=e.a.some(a=>a.w&&!a.ok&&!a.l&&!a.ap);
+      if(appealMsg)out.push(el("p","note warn",t(appealMsg)));
+      else if(canAppeal&&apiOn!==false)out.push(el("p","note",t("appealHelp")+" "+t("appealsLeft",{n:num(dstate.appealsLeft)})));
       if(e.sb){const b=el("div","bonus");b.append(el("span",null,t("streakBonus")),el("span",null,"+"+e.sb));out.push(b)}
       const soon=el("div","bonus soon");soon.append(el("span",null,t("rareSoon")),el("span",null,t("rareSoonV")));out.push(soon);
       out.push(stats([[e.pts,"statPoints"],[e.c+"/5","statValid"],[s,"statStreak"],[best,"statBest"]]));
@@ -787,7 +829,7 @@ function renderOverlay(){
   if(cur){const P=phaseOf(cur,now);if(P.ph==="count")return showCount(ov,panel,Math.max(1,Math.ceil(P.left/1000)));if(P.ph==="write"||!cur.scored)return hideOverlay(ov)}
   const h=hostInfo(),hp=hostPeer();
   const rows=cur?roundRows():[];
-  const key=[mode,cur?cur.round:0,cur&&cur.scored,host,!!hp,h&&h.lg,h&&h.ms,h&&h.st,rows.map(r=>r.n+r.rp+(r.v||[]).join("")).join()].join("|");
+  const key=[mode,cur?cur.round:0,cur&&cur.scored,host,!!hp,h&&h.lg,h&&h.ms,h&&h.st,rows.map(r=>r.n+r.rp+(r.v||[]).join("")).join(),cur?JSON.stringify(cur.ap)+cur.apMsg:""].join("|");
   setPanel(ov,panel,key,()=>{
     const out=[];
     if(!cur){
@@ -807,6 +849,18 @@ function renderOverlay(){
         H.CATS.forEach((c,i)=>{const w=r.a[i]||"",p=r.pts[i];const s=el("span",w?"p"+p:"p0 blank",(w||t("blank"))+(w&&p?" +"+p:""));s.title=catName(c);rw.appendChild(s)});
         li.append(rh,rw);ol.appendChild(li)});
       out.push(ol,el("p","note",t(mode==="solo"?"soloScoring":"roomScoring")));
+      // my answers turned down for their category can be appealed
+      const mine=cur.res?cur.res.map((a,i)=>({a,i})).filter(x=>x.a.w&&!x.a.ok&&!x.a.l&&!x.a.u):[];
+      if(mine.length&&apiOn!==false){
+        const row=el("div","aprow");row.appendChild(el("span","apnote",t("appealMine")));
+        mine.forEach(({a,i})=>{const st=cur.ap[i];
+          if(st===1)row.appendChild(el("span","apnote won",a.w+" ✓"));
+          else if(st===-1)row.appendChild(el("span","apnote",a.w+" ✗"));
+          else{const b=el("button","apbtn",t("appeal")+": "+a.w);b.type="button";b.disabled=st===0;b.onclick=()=>appealRoom(i);row.appendChild(b)}});
+        out.push(row);
+        if(cur.apMsg)out.push(el("p","note warn",cur.apMsg));
+      }
+      const won=Object.keys(cur.ap).filter(i=>cur.ap[i]===1).length;if(won)out.push(el("p","apnote won",t("appealWon")+" ×"+won));
     }
     const H0=h||hs;
     if(host){

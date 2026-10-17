@@ -20,7 +20,7 @@ const path = require("path");
 const R = require("./site/shared/rules");
 const store = require("./store");
 
-const H = R.HARF, N = H.CATS.length;
+const H = R.HARF, N = H.CATS.length, num = R.num;
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 const hashToken = t => crypto.createHash("sha256").update(String(t)).digest("hex");
 // the daily letter order is shuffled with a secret, so the public code can't tell anyone tomorrow's letter
@@ -75,29 +75,63 @@ function prompt(lg, items) {
     user: `Language: ${lg === "ar" ? "Arabic" : "English"}\n${lines}`,
   };
 }
-// -> array of 1/0, or null when the API isn't set up, is over its hourly ceiling, or fails
-async function askClaude(lg, items) {
-  if (!API_KEY || !items.length) return null;
+// one request to the Claude API -> the parsed JSON object in its reply, or null when the API isn't set up, is over
+// its hourly ceiling, or fails
+async function callModel(model, system, user, maxTokens) {
+  if (!API_KEY) return null;
   const now = Date.now();
   calls = calls.filter(t => now - t < 36e5);
   if (calls.length >= CALLS_PER_HOUR) { console.warn("Harf: hourly API ceiling reached"); return null; }
   calls.push(now);
-  const p = prompt(lg, items);
   try {
     const r = await fetch(API_URL, {
       method: "POST",
       headers: { "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 300, system: p.system, messages: [{ role: "user", content: p.user }] }),
-      signal: AbortSignal.timeout(20000),
+      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
+      signal: AbortSignal.timeout(25000),
     });
     const j = await r.json().catch(() => null);
     if (!r.ok || !j) { console.warn("Harf: API error", r.status, j && j.error && j.error.message); return null; }
     const text = (j.content || []).map(c => c.text || "").join("");
     const m = text.match(/\{[\s\S]*\}/);
-    const arr = m ? JSON.parse(m[0]).r : null;
-    if (!Array.isArray(arr) || arr.length !== items.length) { console.warn("Harf: unexpected API reply", text.slice(0, 200)); return null; }
-    return arr.map(v => (Number(v) === 1 ? 1 : 0));
+    try { return m ? JSON.parse(m[0]) : null; } catch { console.warn("Harf: unexpected API reply", text.slice(0, 200)); return null; }
   } catch (e) { console.warn("Harf: API call failed", e.message); return null; }
+}
+// -> array of 1/0, or null
+async function askClaude(lg, items) {
+  if (!items.length) return null;
+  const p = prompt(lg, items), o = await callModel(MODEL, p.system, p.user, 300);
+  const arr = o && o.r;
+  if (!Array.isArray(arr) || arr.length !== items.length) { if (o) console.warn("Harf: reply didn't match the answers"); return null; }
+  return arr.map(v => (Number(v) === 1 ? 1 : 0));
+}
+
+/* ---------- appeals ----------
+   A player can appeal an answer that was turned down for its category (not one with the wrong first letter).
+   A stronger model takes a second look, told to allow rare, classical, regional and dialect words. If it agrees,
+   the saved verdict flips to valid, so the word counts for everyone from then on. A few appeals per player a day. */
+const APPEAL_MODEL = process.env.HARF_APPEAL_MODEL || "claude-sonnet-5-5";
+const APPEALS_PER_DAY = Math.max(1, Number(process.env.HARF_APPEALS_PER_DAY) || 5);
+const appealsToday = new Map(); // "day|uid" -> count, for rooms and practice (the daily counts in the record)
+// -> {ok: 1/0, why} or null when the second look couldn't happen
+async function appealWord(lg, cat, w, letter) {
+  if (!R.harfLetterOk(w, letter, lg)) return { ok: 0, why: "" };
+  const k = vkey(lg, cat, w);
+  if (KNOWN.has(k)) return { ok: 1, why: "" };
+  const o = await callModel(APPEAL_MODEL,
+    `You are the appeals referee for the word game "Name, Animal, Plant, Object, Country" (إنسان، حيوان، نبات، جماد، بلاد). ` +
+    `A first referee turned this answer down and the player has appealed. Take a careful second look.\n\n` +
+    `Categories:\n` + Object.entries(CAT_RULES).map(([c, v]) => `- ${c}: ${v}`).join("\n") + `\n\n` +
+    `Accept the answer if it is a genuine word or name that fits the category, including rare, classical (فصحى), regional, ` +
+    `dialect and transliterated words, alternative spellings, and well-known proper nouns. Turn it down if it is made up, ` +
+    `in the wrong category, or doesn't start with the letter (a leading ال or "the" doesn't count).\n\n` +
+    `Reply with JSON only: {"ok":1 or 0,"why":"one short sentence for the player, in ${lg === "ar" ? "Arabic" : "English"}"}`,
+    `Language: ${lg === "ar" ? "Arabic" : "English"}\ncategory=${cat} | letter=${letter} | answer=${JSON.stringify(w)}`, 200);
+  if (!o || (o.ok !== 0 && o.ok !== 1 && o.ok !== "0" && o.ok !== "1")) return null;
+  const ok = Number(o.ok) === 1 ? 1 : 0, why = String(o.why || "").slice(0, 200);
+  if (ok) { verdicts.set(k, 1); store.wordsPut([[k, 1]]).catch(e => console.error("Harf: saving verdict", e.message)); }
+  console.log(`Harf appeal: ${lg} ${cat} ${w} -> ${ok ? "upheld" : "turned down"}`);
+  return { ok, why };
 }
 // items [{cat, w, letter}] (letters already checked) -> array of 1 / 0 / null (not checked)
 async function judge(lg, items) {
@@ -149,7 +183,7 @@ function publicRec(r) {
   const o = Object.assign({}, r), today = R.todayKey();
   delete o.run;
   o.h = {};
-  for (const [k, e] of Object.entries(r.h || {})) { o.h[k] = Object.assign({}, e); if (k === today) delete o.h[k].a; }
+  for (const [k, e] of Object.entries(r.h || {})) { o.h[k] = Object.assign({}, e); delete o.h[k].pre; if (k === today) delete o.h[k].a; }
   return o;
 }
 // the device holding the player's token may write; a Hangman or Trivia record with the same id counts too
@@ -177,9 +211,10 @@ const deadline = run => run.at + H.DAILY_MS + H.GRACE_MS;
 async function finish(rec, run, raw, usedMs) {
   const a = await check(run.lg, run.L, raw);
   const c = a.filter(x => x.ok).length, perfect = c === N;
+  const before = { ls: rec.ls, streak: rec.streak, best: rec.best, wins: rec.wins };
   R.countDaily(rec, perfect); // a perfect day extends the streak; an imperfect or missed one resets it
   const b = c * H.BASE, sb = perfect ? Math.min(H.STREAK_MAX, rec.streak) : 0;
-  rec.h[run.d] = { lg: run.lg, L: run.L, a, c, b, sb, rb: null, pts: b + sb, ok: perfect ? 1 : 0, t: Math.min(H.DAILY_MS, Math.max(0, usedMs)) };
+  rec.h[run.d] = { lg: run.lg, L: run.L, a, c, b, sb, rb: null, pts: b + sb, ok: perfect ? 1 : 0, t: Math.min(H.DAILY_MS, Math.max(0, usedMs)), pre: before };
   rec.run = null;
 }
 // a run whose time ran out (the player closed the page) is scored with its last saved draft
@@ -191,10 +226,11 @@ async function expire(rec) {
   return true;
 }
 function stateOut(rec, lg) {
+  const appealsLeft = rec.apd === R.todayKey() ? Math.max(0, APPEALS_PER_DAY - num(rec.ap)) : APPEALS_PER_DAY;
   const today = R.todayKey(), n = R.dailyNo(), e = rec.h[today] || null, run = rec.run && rec.run.d === today ? rec.run : null;
   const y = rec.h[R.ydayKey()] || null;
   return {
-    n, cats: H.CATS, ms: H.DAILY_MS, api: !!API_KEY, streak: R.curStreak(rec), best: rec.best,
+    n, cats: H.CATS, ms: H.DAILY_MS, api: !!API_KEY, streak: R.curStreak(rec), best: rec.best, appealsLeft,
     entry: e, yday: y && y.rb != null ? y : null,
     open: run ? { lg: run.lg, L: run.L, left: Math.max(0, run.at + H.DAILY_MS - Date.now()), dr: run.dr || [] } : null,
   };
@@ -299,6 +335,22 @@ async function handle(req, res, url, { send, readJson }) {
     return true;
   }
 
+  // rooms and practice: a second look at one answer
+  if (p === "/api/harf/appeal" && !body.daily) {
+    const uid = String(body.uid || "");
+    if (!ID_RE.test(uid)) { send(res, 400, { error: "Expected uid" }); return true; }
+    const lg = lgOf(body.lg), letter = String(body.L || ""), cat = H.CATS[Number(body.i)], w = clean(body.w);
+    if (!H.LETTERS[lg].includes(letter) || !cat || !w) { send(res, 400, { error: "Expected {lg, L, i, w}" }); return true; }
+    const key = R.todayKey() + "|" + uid, used = appealsToday.get(key) || 0;
+    if (used >= APPEALS_PER_DAY) { send(res, 429, { error: "No appeals left today", left: 0 }); return true; }
+    const r = await appealWord(lg, cat, w, letter);
+    if (!r) { send(res, 503, { error: "Appeals aren't available right now" }); return true; }
+    appealsToday.set(key, used + 1);
+    if (appealsToday.size > 5000) appealsToday.clear();
+    send(res, 200, { ok: r.ok, why: r.why, left: APPEALS_PER_DAY - used - 1 });
+    return true;
+  }
+
   const uid = String(body.uid || "");
   return withLock(uid, async () => {
     const a = await authorize(uid, body.token);
@@ -338,6 +390,34 @@ async function handle(req, res, url, { send, readJson }) {
       run.dr = H.CATS.map((_, i) => clean(Array.isArray(body.dr) ? body.dr[i] : ""));
       await save();
       send(res, 200, { ok: true });
+      return true;
+    }
+
+    // the daily: appeal one of today's answers; a win adds its points (and the perfect streak, if that makes five)
+    if (p === "/api/harf/appeal") {
+      const e = rec.h[today], i = Number(body.i);
+      const a = e && Array.isArray(e.a) && Number.isInteger(i) ? e.a[i] : null;
+      if (!a || !a.w || a.ok || a.l || a.ap) { send(res, 409, { error: "That answer can't be appealed", state: stateOut(rec) }); return true; }
+      rec.ap = rec.apd === today ? num(rec.ap) : 0; rec.apd = today;
+      if (rec.ap >= APPEALS_PER_DAY) { send(res, 429, { error: "No appeals left today", left: 0, state: stateOut(rec) }); return true; }
+      const r = await appealWord(e.lg, H.CATS[i], a.w, e.L);
+      if (!r) { send(res, 503, { error: "Appeals aren't available right now", state: stateOut(rec) }); return true; }
+      rec.ap++;
+      a.ap = r.ok ? 1 : -1; if (r.why) a.why = r.why;
+      if (r.ok) {
+        a.ok = 1;
+        e.c = e.a.filter(x => x.ok).length; e.b = e.c * H.BASE;
+        if (e.c === N && !e.ok && e.pre) {
+          // count the day again as perfect, from the streak it started with
+          Object.assign(rec, { ls: e.pre.ls, streak: e.pre.streak, best: e.pre.best, wins: e.pre.wins });
+          rec.played = Math.max(0, num(rec.played) - 1);
+          R.countDaily(rec, true);
+          e.ok = 1; e.sb = Math.min(H.STREAK_MAX, rec.streak);
+        }
+        e.pts = e.b + e.sb + num(e.rb);
+      }
+      await save();
+      send(res, 200, { ok: r.ok, why: r.why, left: APPEALS_PER_DAY - rec.ap, state: stateOut(rec) });
       return true;
     }
 
