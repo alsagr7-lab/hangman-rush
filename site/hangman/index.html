@@ -12,6 +12,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Aref+Ruqaa:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
+/* the Arabic daily word: letters run right to left, with an Arabic keyboard */
+.word.ar{direction:rtl}
+.word.ar .slot{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;font-weight:700;font-size:clamp(22px,6.5vw,34px)}
+.keys.ar .key{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;font-size:17px}
+.keys.ar .krow{direction:rtl}
+.dlseg{margin-bottom:2px}
 /* Layout: exercise-book page in light, chalk slate in dark. Play area left, live board right (stacked on phones).
    Arabic swaps the handwritten face for Ruqaa (everyday Arabic handwriting) and flips the layout; the English word, keyboard and codes stay left-to-right. */
 :root{
@@ -394,7 +400,10 @@ en:{
   pts:"{n} pts",hm:"{h}h {m}m",
   diffEasy:"Easy",diffNormal:"Normal",diffHard:"Hard",
   diffHelp_easy:"Short words · 8 misses · 90 seconds · hints on",diffHelp_normal:"All words · 6 misses · 60 seconds · hints on",diffHelp_hard:"Long words · no hints · no free letter",
-  hintLetter:"Reveal a letter",hintClue:"Show a clue",meaningAr:"In Arabic: {m}",vowels:"Vowels: {n}",hint1:"1 hint",hintsN:"{n} hints",
+  hintLetter:"Reveal a letter",hintClue:"Show a clue",meaningAr:"In Arabic: {m}",meaningEn:"In English: {m}",
+  playIn:"Today's word in",playInHelp:"The Arabic and English words are different, each with its own streak and leaderboard. You can play both.",
+  lgDone:"solved · {p} pts",lgHanged:"hanged",lgWait:"not played",playOther:"Play the other word",
+  dailyTwo:"An Arabic word and an English word each day: play one or both. New words in {t}.",vowels:"Vowels: {n}",hint1:"1 hint",hintsN:"{n} hints",
   voteTitle:"Vote for categories",pickTitle:"Pick categories",
   voteHelp:"Each player's vote is split across the categories they tap. The next word's category is drawn by vote share.",
   pickHelp:"The next word comes from one of your picks.",anyCat:"No votes yet, so any category can come up.",
@@ -458,7 +467,10 @@ ar:{
   pts:"{n} نقطة",hm:"{h}س {m}د",
   diffEasy:"سهل",diffNormal:"عادي",diffHard:"صعب",
   diffHelp_easy:"كلمات قصيرة · 8 أخطاء · 90 ثانية · التلميحات متاحة",diffHelp_normal:"كل الكلمات · 6 أخطاء · 60 ثانية · التلميحات متاحة",diffHelp_hard:"كلمات طويلة · بدون تلميحات · بدون حرف مجاني",
-  hintLetter:"اكشف حرفاً",hintClue:"اعرض وصفاً",meaningAr:"بالعربي: {m}",vowels:"الحروف المتحركة: {n}",hint1:"تلميح واحد",hintsN:"تلميحات: {n}",
+  hintLetter:"اكشف حرفاً",hintClue:"اعرض وصفاً",meaningAr:"بالعربي: {m}",meaningEn:"بالإنجليزية: {m}",
+  playIn:"كلمة اليوم بـ",playInHelp:"الكلمة العربية والإنجليزية مختلفتان، ولكل منهما سلسلة ولوحة ترتيب. تستطيع لعب الاثنتين.",
+  lgDone:"حُلّت · {p} نقطة",lgHanged:"شُنقت",lgWait:"لم تلعب",playOther:"العب الكلمة الأخرى",
+  dailyTwo:"كلمة عربية وكلمة إنجليزية كل يوم: العب إحداهما أو كلتيهما. كلمات جديدة بعد {t}.",vowels:"الحروف المتحركة: {n}",hint1:"تلميح واحد",hintsN:"تلميحات: {n}",
   voteTitle:"صوّت للفئات",pickTitle:"اختر الفئات",
   voteHelp:"صوت كل لاعب يُقسم على الفئات التي يختارها، وتُسحب فئة الكلمة التالية حسب نسبة الأصوات.",
   pickHelp:"الكلمة التالية من إحدى الفئات التي اخترتها.",anyCat:"لا توجد أصوات بعد، لذا قد تأتي الكلمة من أي فئة.",
@@ -486,6 +498,11 @@ const teamCol=k=>t(k==="A"?"colA":"colB");
 const COLORS=["#2c56e0","#d93c30","#178a5c","#c27a00","#8a3ffc","#d6337f"];
 const TEAMS={A:{color:"var(--accent)"},B:{color:"var(--hot)"}};
 const COUNT_MS=3000,ROWS=["QWERTYUIOP","ASDFGHJKL","ZXCVBNM"];
+const ROWS_AR=["ضصثقفغعهخحج","شسيبلاتنمك","ءرزوظطذد"];
+/* Arabic letters that count as one key: أ إ آ under ا, ة under ه, ى and ئ under ي, ؤ under و */
+const AR_SAME={"أ":"ا","إ":"ا","آ":"ا","ٱ":"ا","ة":"ه","ى":"ي","ئ":"ي","ؤ":"و"};
+const keyOf=ch=>AR_SAME[ch]||ch;
+const LGN={en:"English",ar:"عربي"},LGS=["en","ar"];
 const DAY=864e5,EPOCH_DAY=Math.floor(Date.UTC(2026,9,13)/DAY);
 const $=s=>document.querySelector(s);
 const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
@@ -501,8 +518,12 @@ me.color=safeColor(me.color);
 let room=null,roomApi=null,code=null,mode=null,host=false,connected=true;
 let hs=freshHost();
 let cur=null,score=0,lastRound=0,waitNext=false,joinedAt=0,unsubs=[],myTeam=null;
-let db=null,uid=null,allPlayers=[],dbErr=false,boardTab="today",netState="connecting",netMsg=null;
-let rec; // set once the date helpers below exist
+let db=null,uid=null,allPlayers=[],dbErr=false,boardTab="today",boardLg=null,netState="connecting",netMsg=null;
+let rec; // the English daily record (also holds the player's level); set once the date helpers below exist
+let recAr; // the Arabic daily record
+let dlg="en"; // which daily is open: "en" or "ar"
+let arPlayers=[];
+const drec=(lg=dlg)=>lg==="ar"?recAr:rec;
 
 function freshHost(){return{hr:0,hs:-1,st:"waiting",at:0,used:[],md:"f",df:"normal",ts:{A:0,B:0},tr:null,op:null}}
 /* 1v1 duel: both players get 5 words at the room's difficulty and each picks the word the other must solve.
@@ -549,36 +570,43 @@ function rollover(r){
 }
 function seasonPts(r){return Object.values(r.h||{}).reduce((a,e)=>a+num(e.pts),0)}
 function untilNext(){const ms=(dayNum()+1)*DAY-Date.now();return t("hm",{h:Math.floor(ms/36e5),m:Math.floor(ms%36e5/6e4)})}
-function loadLocalRec(){try{const r=JSON.parse(localStorage.getItem("hr-daily")||"null");if(r&&typeof r==="object")return clean(r)}catch(e){}return clean({})}
+const recKey=lg=>lg==="ar"?"hr-daily-ar":"hr-daily";
+function loadLocalRec(lg="en"){try{const r=JSON.parse(localStorage.getItem(recKey(lg))||"null");if(r&&typeof r==="object")return clean(r)}catch(e){}return clean({})}
 function clean(r){const h={};const src=r.h&&typeof r.h==="object"?r.h:{};
   Object.keys(src).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort().slice(-40).forEach(k=>{const v=src[k]||{};h[k]=("ok" in v)?{ok:v.ok?1:0,t:num(v.t),m:num(v.m),pts:num(v.pts),hn:num(v.hn)}:{s:1}});
   return{n:nm16(r.n||me.nick),c:safeColor(r.c||me.color),streak:num(r.streak),best:num(r.best),ls:typeof r.ls==="string"?r.ls:"",played:num(r.played),wins:num(r.wins),h,se:num(r.se)||curSeason(),sk:clampSk(r.sk),
     prev:r.prev&&typeof r.prev==="object"?{se:num(r.prev.se),best:num(r.prev.best),wins:num(r.prev.wins),played:num(r.prev.played),pts:num(r.prev.pts)}:null}}
 function curStreak(r){return r.ls===todayKey()||r.ls===ydayKey()?num(r.streak):0}
-let saving=false,pendingSave=false;
-function saveRec(){
-  rec.n=me.nick||rec.n;rec.c=me.color;
-  try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch(e){}
+// each language's record is saved on its own: "players/<uid>" for English, "players/<uid>_ar" for Arabic
+const saving={en:false,ar:false},pendingSave={en:false,ar:false};
+function saveRec(lg="en"){
+  const r=drec(lg);
+  r.n=me.nick||r.n;r.c=me.color;
+  try{localStorage.setItem(recKey(lg),JSON.stringify(r))}catch(e){}
   if(!db||!uid||dbErr)return;
-  if(saving){pendingSave=true;return}
-  saving=true;
-  db.doc("players/"+uid).set(JSON.parse(JSON.stringify(rec))).catch(()=>{dbErr=true;render()}).finally(()=>{saving=false;if(pendingSave){pendingSave=false;saveRec()}});
+  if(saving[lg]){pendingSave[lg]=true;return}
+  saving[lg]=true;
+  db.doc("players/"+uid+(lg==="ar"?"_ar":"")).set(JSON.parse(JSON.stringify(r))).catch(()=>{dbErr=true;render()}).finally(()=>{saving[lg]=false;if(pendingSave[lg]){pendingSave[lg]=false;saveRec(lg)}});
 }
 function recordDaily(){
-  rollover(rec);
+  const lg=cur.lg==="ar"?"ar":"en";let r=drec(lg);
+  rollover(r);
   const k=todayKey(),y=ydayKey(),ok=cur.done===1;
-  if(rec.h[k]&&("ok" in rec.h[k]))return;
-  rec.h[k]={ok:ok?1:0,t:cur.t,m:cur.miss,pts:cur.pts,hn:hintsUsed()};
-  noteResult(ok);
-  rec.played++;
-  if(ok){rec.wins++;rec.streak=(rec.ls===y)?rec.streak+1:(rec.ls===k?rec.streak:1);rec.ls=k;rec.best=Math.max(rec.best,rec.streak)}
-  else{rec.streak=0}
-  rec=clean(rec);saveRec();renderLobbyDaily();
+  if(r.h[k]&&("ok" in r.h[k]))return;
+  r.h[k]={ok:ok?1:0,t:cur.t,m:cur.miss,pts:cur.pts,hn:hintsUsed()};
+  r.played++;
+  if(ok){r.wins++;r.streak=(r.ls===y)?r.streak+1:(r.ls===k?r.streak:1);r.ls=k;r.best=Math.max(r.best,r.streak)}
+  else{r.streak=0}
+  r=clean(r);if(lg==="ar")recAr=r;else rec=r;
+  noteResult(ok); // the level lives in the English record, shared by both words
+  saveRec(lg);if(lg==="ar")saveRec("en");renderLobbyDaily();
 }
 function todayEntry(r){return r&&r.h?r.h[todayKey()]:null}
 function noteResult(solved){rec.sk=clampSk(rec.sk+(solved?1:-1))}
 /* today's daily word: from the inline list here, or from the server when the page is hosted */
-let todayDaily=null,dailyApi=null,dailyErr=false,dailyLoading=false,dailyTried=0;
+// today's word in each language; the Arabic one only comes from the server
+let todayDaily=null,todayAr=null,dailyApi=null,dailyErr=false,dailyErrAr=false,dailyLoading=false,dailyLoadingAr=false,dailyTried=0,dailyTriedAr=0;
+const tdw=(lg=dlg)=>lg==="ar"?todayAr:todayDaily;
 function inlineDaily(n){const L=DAILY_INLINE.length;if(!L)return null;const [c,w,en,ar,m]=DAILY_INLINE[((n-1)%L+L)%L];return{w,c,en,ar,m,i:-1,n}}
 async function loadDaily(){
   const n=dailyNo();if(todayDaily&&todayDaily.n===n)return;
@@ -591,9 +619,20 @@ async function loadDaily(){
   catch(e){dailyErr=true}
   dailyLoading=false;renderLobbyDaily();
 }
+async function loadDailyAr(){
+  const n=dailyNo();if(todayAr&&todayAr.n===n)return;
+  if(!dailyApi||dailyLoadingAr||Date.now()-dailyTriedAr<15000)return;
+  dailyLoadingAr=true;dailyTriedAr=Date.now();
+  try{const d=await dailyApi.today("ar");
+    if(d&&d.lg==="ar"&&/^[\u0621-\u064A]{2,20}$/.test(d.w)&&CATS.includes(d.c)){todayAr={w:d.w,c:d.c,en:String(d.en||""),ar:String(d.ar||""),m:String(d.m||""),i:-1,n,lg:"ar"};dailyErrAr=false}
+    else dailyErrAr=true}
+  catch(e){dailyErrAr=true}
+  dailyLoadingAr=false;renderLobbyDaily();if(mode==="daily")render();
+}
 todayDaily=inlineDaily(dailyNo());
-rec=loadLocalRec();
+rec=loadLocalRec("en");recAr=loadLocalRec("ar");
 if(rollover(rec)){try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch(e){}}
+if(rollover(recAr)){try{localStorage.setItem("hr-daily-ar",JSON.stringify(recAr))}catch(e){}}
 
 /* ---------- language ---------- */
 function applyStatic(){
@@ -643,17 +682,22 @@ function renderLobbyDaily(){
   renderSkill();
   if(rollover(rec))saveRec();
   $("#dTitle").textContent=t("dailyTitle",{n:dailyNo()});
-  const s=curStreak(rec);$("#dStreak").textContent=s?t("streakN",{n:s}):(rec.best?t("bestN",{n:rec.best}):"");
+  $("#dStreak").textContent=LGS.map(lg=>{const s=curStreak(drec(lg));return s?LGN[lg]+" "+t("streakN",{n:s}):""}).filter(Boolean).join(" · ")||(rec.best?t("bestN",{n:rec.best}):"");
   const left=seasonDaysLeft();
   let sl=t("seasonLine",{s:curSeason(),left:left===1?t("lastDay"):t("daysLeft",{n:left})});
   if(rec.prev&&rec.prev.se)sl+=t("lastSeason",{w:rec.prev.wins,b:rec.prev.best,p:rec.prev.pts});
   $("#dSeason").textContent=sl;
   if(!todayDaily||todayDaily.n!==dailyNo())loadDaily();
-  const e=todayEntry(rec),st=$("#dStatus"),b=$("#dailyBtn");
-  if(e&&("ok" in e)){st.textContent=(e.ok?t("solvedIn",{t:fmtS(e.t)})+" · "+t("pts",{n:e.pts}):t("hangedToday"))+". "+t("nextWordIn",{t:untilNext()});b.textContent=t("seeBoard");b.classList.remove("primary")}
-  else{st.textContent=t("dailyIntroLobby",{t:untilNext()});b.textContent=t("playToday");b.classList.add("primary")}
-  const ready=!!todayDaily&&todayDaily.n===dailyNo();b.disabled=!ready;
-  if(!ready){b.textContent=t(dailyErr?"dailyErr":"loadingDaily")}
+  if(!todayAr||todayAr.n!==dailyNo())loadDailyAr();
+  if(rollover(recAr))saveRec("ar");
+  const st=$("#dStatus"),b=$("#dailyBtn");
+  const doneOf=lg=>{const e=todayEntry(drec(lg));return e&&("ok" in e)?e:null};
+  const line=LGS.map(lg=>{const e=doneOf(lg);return LGN[lg]+": "+(e?(e.ok?t("lgDone",{p:e.pts}):t("lgHanged")):t("lgWait"))}).join(" · ");
+  st.textContent=line+". "+t("dailyTwo",{t:untilNext()});
+  const done=LGS.filter(doneOf).length;
+  b.textContent=done===2?t("seeBoard"):done?t("playOther"):t("playToday");b.classList.toggle("primary",done<2);
+  const ready=!!todayDaily&&todayDaily.n===dailyNo();b.disabled=!ready&&!todayAr;
+  if(!ready&&!todayAr){b.textContent=t(dailyErr?"dailyErr":"loadingDaily")}
 }
 
 applyStatic();renderNameHint();renderNet();renderLobbyDaily();
@@ -670,11 +714,17 @@ setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},30000);
   renderNameHint();
   if(d&&uid){db=d;
     db.collection("players").onSnapshot(snap=>{
-      allPlayers=snap.docs.map(doc=>Object.assign(clean(doc.data()||{}),{id:doc.id}));
+      const all=snap.docs.map(doc=>Object.assign(clean(doc.data()||{}),{id:doc.id}));
+      // "<uid>_ar" records are the Arabic daily's
+      allPlayers=all.filter(p=>!/_ar$/.test(p.id));arPlayers=all.filter(p=>/_ar$/.test(p.id));
       const mine=allPlayers.find(p=>p.id===uid);
       const newer=mine&&(mine.se>rec.se||(mine.se===rec.se&&mine.played>=rec.played));
       if(newer){rec=clean(mine);const rolled=rollover(rec);try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch(e){}if(rolled)saveRec()}
       else if(rec.played>0||rec.prev)saveRec();
+      const mineAr=arPlayers.find(p=>p.id===uid+"_ar");
+      const newerAr=mineAr&&(mineAr.se>recAr.se||(mineAr.se===recAr.se&&mineAr.played>=recAr.played));
+      if(newerAr){recAr=clean(mineAr);const rolled=rollover(recAr);try{localStorage.setItem("hr-daily-ar",JSON.stringify(recAr))}catch(e){}if(rolled)saveRec("ar")}
+      else if(recAr.played>0||recAr.prev)saveRec("ar");
       renderLobbyDaily();render();
     },()=>{dbErr=true;render()});
   }
@@ -687,14 +737,23 @@ $("#duelBtn").onclick=()=>{if(!requireName())return;netMsg=null;saveMe();mode="r
 $("#joinBtn").onclick=()=>{if(!requireName())return;const c=$("#codeIn").value.trim().toUpperCase().replace(/[^A-Z]/g,"");if(c.length!==4){netMsg="codeLen";renderNet();return}netMsg=null;saveMe();mode="room";host=false;enterRoom(c)};
 $("#codeIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("#joinBtn").click()});
 $("#soloBtn").onclick=()=>{saveMe();mode="solo";host=true;hs=freshHost();showGame()};
-$("#dailyBtn").onclick=()=>{if(!requireName())return;saveMe();mode="daily";host=false;boardTab="today";
-  const e=todayEntry(rec);const W=todayDaily;if(!W)return;
-  if(e&&!("ok" in e)){ // started earlier but never finished
+$("#dailyBtn").onclick=()=>{if(!requireName())return;saveMe();mode="daily";host=false;boardTab="today";boardLg=null;
+  // the page language's word first, unless it's played already or not loaded
+  const free=lg=>{const e=todayEntry(drec(lg));return !(e&&("ok" in e))&&!!tdw(lg)};
+  const pick=[lang==="ar"?"ar":"en",lang==="ar"?"en":"ar"].find(free)||(tdw(lang==="ar"?"ar":"en")?(lang==="ar"?"ar":"en"):"en");
+  if(rec.n!==me.nick||rec.c!==me.color){if(rec.played)saveRec()}
+  showGame();setDailyLang(pick)};
+// open one language's daily: its result if played, otherwise the start screen
+function setDailyLang(lg){
+  if(cur&&!cur.done&&cur.daily)return; // not in the middle of a word
+  dlg=lg;boardLg=null;const r=drec(lg),W=tdw(lg),e=todayEntry(r);
+  if(!W){cur=null;if(lg==="ar")loadDailyAr();else loadDaily()}
+  else if(e&&!("ok" in e)){ // started earlier but never finished
     cur=makeCur(0,W,0,true,"normal");cur.done=2;cur.t=cur.ms;recordDaily();
   } else if(e){cur=makeCur(0,W,0,true,"normal");cur.miss=num(e.m);cur.done=e.ok?1:2;cur.t=num(e.t);cur.pts=num(e.pts);cur.hints=num(e.hn)}
   else cur=null;
-  if(rec.n!==me.nick||rec.c!==me.color){if(rec.played)saveRec()}
-  showGame()};
+  buildKeys();lastPanelKey="";render();
+}
 
 async function enterRoom(c){
   const btns=[$("#createBtn"),$("#joinBtn"),$("#duelBtn")];btns.forEach(b=>b.disabled=true);
@@ -744,14 +803,14 @@ function ensureTeam(){
 }
 
 /* ---------- rounds ---------- */
-function revealed(){if(!cur)return 0;let n=0;for(const ch of cur.word)if(cur.g.has(ch))n++;return n}
+function revealed(){if(!cur)return 0;let n=0;for(const ch of cur.word)if(cur.g.has(keyOf(ch)))n++;return n}
 function makeCur(round,W,startAt,daily,df){
   df=diffOf(df);const D=DIFF[df];
-  const c={round,idx:W.i,word:W.w,cat:W.c,en:W.en,ar:W.ar,m:W.m,startAt,g:new Set(),miss:0,done:0,t:0,pts:0,daily:!!daily,
+  const c={round,idx:W.i,word:W.w,cat:W.c,en:W.en,ar:W.ar,m:W.m,lg:W.lg==="ar"?"ar":"en",startAt,g:new Set(),miss:0,done:0,t:0,pts:0,daily:!!daily,
     df,maxMiss:D.miss,ms:D.ms,help:D.help,hints:0,clue:false,
     bonus:D.help?bonusLettersFor(rec.sk):0,cluePct:cluePctFor(rec.sk)};
   c.maxHints=D.help?letterHints(W.w)+c.bonus:0;
-  if(D.free)c.g.add(W.w[0]); // the first letter (every place it appears) is free
+  if(D.free)c.g.add(keyOf(W.w[0])); // the first letter (every place it appears) is free
   return c;
 }
 function beginRound(round,W,startAt,daily,df){
@@ -785,7 +844,7 @@ function voteBox(){
   return box;
 }
 function hintsUsed(){return cur?cur.hints+(cur.clue?1:0):0}
-function hiddenLetters(){return cur?[...new Set(cur.word)].filter(ch=>!cur.g.has(ch)):[]}
+function hiddenLetters(){return cur?[...new Set([...cur.word].map(keyOf))].filter(ch=>!cur.g.has(ch)):[]}
 function canPlay(){return cur&&!cur.done&&Date.now()>=cur.startAt&&!(mode==="room"&&!host&&(()=>{const h=hostInfo();return h&&h.st==="ended"&&h.hr===cur.round})())}
 function hintLetter(){
   if(!canPlay()||!cur.help||cur.hints>=cur.maxHints)return;
@@ -813,14 +872,15 @@ function finishMine(kind){
 function guess(L){
   if(!canPlay()||cur.g.has(L))return;
   cur.g.add(L);
-  if(cur.word.includes(L)){if([...cur.word].every(ch=>cur.g.has(ch)))return finishMine("solved")}
+  if([...cur.word].some(ch=>keyOf(ch)===L)){if([...cur.word].every(ch=>cur.g.has(keyOf(ch))))return finishMine("solved")}
   else{cur.miss++;if(cur.miss>=cur.maxMiss)return finishMine("hanged")}
   pushPresence();render();
 }
 function startDaily(){
-  if(todayEntry(rec)||!todayDaily)return;
-  rec.h[todayKey()]={s:1};saveRec();
-  beginRound(0,todayDaily,Date.now()+COUNT_MS,true,"normal");
+  const r=drec(),W=tdw();
+  if(todayEntry(r)||!W)return;
+  r.h[todayKey()]={s:1};saveRec(dlg);
+  beginRound(0,W,Date.now()+COUNT_MS,true,"normal");
 }
 function hostStart(){
   if(!host)return;
@@ -904,12 +964,14 @@ function tickLogic(){
 setInterval(()=>{if(!$("#game").hidden){tickLogic();renderTimer();renderOverlay()}},150);
 
 /* ---------- input ---------- */
-function buildKeys(){const k=$("#keys");if(k.childElementCount)return;
-  ROWS.forEach(r=>{const row=el("div","krow");for(const L of r){const b=el("button","key",L);b.dataset.k=L;b.onclick=()=>guess(L);row.appendChild(b)}k.appendChild(row)})}
+function buildKeys(){const k=$("#keys"),lg=mode==="daily"&&dlg==="ar"?"ar":"en";if(k.childElementCount&&k.dataset.lg===lg)return;
+  k.textContent="";k.dataset.lg=lg;k.classList.toggle("ar",lg==="ar");
+  (lg==="ar"?ROWS_AR:ROWS).forEach(r=>{const row=el("div","krow");for(const L of r){const b=el("button","key",L);b.dataset.k=L;b.onclick=()=>guess(L);row.appendChild(b)}k.appendChild(row)})}
 document.addEventListener("keydown",e=>{
   if($("#game").hidden||e.metaKey||e.ctrlKey||e.altKey)return;
   if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
-  if(/^[a-z]$/i.test(e.key)){guess(e.key.toUpperCase());e.preventDefault()}
+  if(cur&&cur.lg==="ar"){if(/^[\u0621-\u064A]$/.test(e.key)){guess(keyOf(e.key));e.preventDefault()}}
+  else if(/^[a-z]$/i.test(e.key)){guess(e.key.toUpperCase());e.preventDefault()}
   else if(e.key==="Enter"){const b=$("#panel .primary");if(b&&!$("#overlay").hidden){b.click();e.preventDefault()}}
 });
 
@@ -922,7 +984,7 @@ function renderTop(){
   else if(mode==="daily")r.textContent=t("dailyWord");
   else{r.append(el("span",null,t("roomLbl")),ltr(code,"code"));$("#netDot").classList.toggle("off",!connected)}
   const df=cur?cur.df:curDf();
-  $("#roundLbl").textContent=mode==="daily"?"#"+dailyNo():(cur?t("roundN",{n:cur.round})+" · "+diffName(df):diffName(df));
+  $("#roundLbl").textContent=mode==="daily"?"#"+dailyNo()+" · "+LGN[dlg]:(cur?t("roundN",{n:cur.round})+" · "+diffName(df):diffName(df));
 }
 function renderTimer(){
   const tm=$("#timer");
@@ -935,9 +997,10 @@ function renderPlay(){
   const miss=cur?cur.miss:0;for(let i=1;i<=8;i++)$("#p"+i).classList.toggle("on",i<=miss);
   const live=cur&&Date.now()>=cur.startAt;
   $("#cat").textContent=live?catName(cur.cat):t("category");
-  $("#vowels").textContent=live&&cur.help?t("vowels",{n:vowelCount(cur.word)}):"";
+  $("#vowels").textContent=live&&cur.help&&cur.lg!=="ar"?t("vowels",{n:vowelCount(cur.word)}):"";
   const cl=$("#clue");cl.hidden=!(live&&(cur.clue||cur.done));cl.textContent=live?(lang==="ar"?cur.ar:cur.en)||"":"";
-  const tr=$("#transl");tr.hidden=!(live&&cur.done&&lang==="ar");tr.textContent=live?t("meaningAr",{m:cur.m||""}):"";
+  // after the word: an English word's Arabic meaning (Arabic page), an Arabic word's English meaning (always)
+  const tr=$("#transl");tr.hidden=!(live&&cur.done&&(lang==="ar"||cur.lg==="ar"));tr.textContent=live?t(cur.lg==="ar"?"meaningEn":"meaningAr",{m:cur.m||""}):"";
   const hr=$("#hintRow");hr.hidden=!(live&&cur.help&&!cur.done);
   if(!hr.hidden){
     const hl=$("#hintLetterBtn"),hm=$("#hintClueBtn");hl.textContent="";hm.textContent="";
@@ -947,12 +1010,12 @@ function renderPlay(){
     hm.append(document.createTextNode(t("hintClue")+" "),el("b",null,"−"+cur.cluePct+"%"));hm.disabled=cur.clue;
     const hn=$("#hintNote");hn.hidden=!cur.bonus;hn.textContent=cur.bonus?t("bonusNote",{n:cur.bonus}):"";
   }
-  const w=$("#word");w.textContent="";
-  if(live){for(const ch of cur.word){const known=cur.g.has(ch);const s=el("span","slot",known||cur.done?ch:"");if(!known&&cur.done)s.classList.add("miss");w.appendChild(s)}}
+  const w=$("#word");w.textContent="";w.classList.toggle("ar",!!cur&&cur.lg==="ar");
+  if(live){for(const ch of cur.word){const known=cur.g.has(keyOf(ch));const s=el("span","slot",known||cur.done?ch:"");if(!known&&cur.done)s.classList.add("miss");w.appendChild(s)}}
   else for(let i=0;i<6;i++)w.appendChild(el("span","slot",""));
   $("#missTxt").textContent=cur?(cur.miss?t("missesOf",{n:cur.miss,m:cur.maxMiss}):t("noMisses")):"";
   document.querySelectorAll(".key").forEach(b=>{const L=b.dataset.k;b.classList.remove("hit","bad");
-    if(cur&&cur.g.has(L))b.classList.add(cur.word.includes(L)?"hit":"bad");
+    if(cur&&cur.g.has(L))b.classList.add([...cur.word].some(ch=>keyOf(ch)===L)?"hit":"bad");
     b.disabled=!cur||!!cur.done||cur.g.has(L)});
 }
 
@@ -994,20 +1057,25 @@ function renderBoard(){
 }
 /* daily board */
 function nameCell(p,i){
-  const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.isMe)nm.appendChild(el("small",null,t("you")));return nm;
+  const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=tagOf(String(p.id).replace(/_ar$/,""));if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.isMe)nm.appendChild(el("small",null,t("you")));return nm;
 }
 function renderDailyBoard(box){
   $("#boardLbl").textContent=t("boardDaily");
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===boardTab));
   const se=curSeason();
-  let list=(db&&!dbErr)?allPlayers.filter(p=>p.id!==uid&&p.se===se):[];
-  list.push(Object.assign({},rec,{id:uid||"me",isMe:true}));
+  // the English and Arabic words each have their own board
+  const bl=boardLg||dlg;
+  const sw=el("div","seg dlseg");LGS.forEach(lg=>{const b=el("button",null,LGN[lg]);b.type="button";b.setAttribute("aria-pressed",bl===lg);b.onclick=()=>{boardLg=lg;renderBoard()};sw.appendChild(b)});
+  box.appendChild(sw);
+  const src=bl==="ar"?arPlayers:allPlayers,myId=bl==="ar"?uid+"_ar":uid;
+  let list=(db&&!dbErr)?src.filter(p=>p.id!==myId&&p.se===se):[];
+  list.push(Object.assign({},drec(bl),{id:uid||"me",isMe:true}));
   $("#pcount").textContent=t("seasonN",{n:se});
   const left=seasonDaysLeft(),bar=el("div","seasonbar"+(left<=3?" final":""));
   const meter=el("span","meter");const fill=el("i");fill.style.width=Math.round(100*(seasonDay()-1)/SEASON_LEN)+"%";meter.appendChild(fill);
   bar.append(el("span",null,t("dayOf",{d:seasonDay(),t:SEASON_LEN})),meter,el("span",null,left<=3?(left===1?t("resetsTonight"):t("finalDays",{n:left})):t("daysLeft",{n:left})));
   box.appendChild(bar);
-  const myEntry=todayEntry(rec);const played=myEntry&&("ok" in myEntry);
+  const myEntry=todayEntry(drec(bl));const played=myEntry&&("ok" in myEntry);
   let rows;
   if(boardTab==="streak"){
     rows=list.filter(p=>p.played>0).sort((a,b)=>seasonPts(b)-seasonPts(a)||curStreak(b)-curStreak(a)||b.best-a.best);
@@ -1121,21 +1189,25 @@ function renderOverlay(){
   });
 }
 function dailyOverlay(ov,panel){
-  const e=todayEntry(rec);const done=e&&("ok" in e);const s=curStreak(rec);
-  const key=["daily",todayKey(),done,s,untilNext()].join("|");
+  const r=drec();const e=todayEntry(r);const done=e&&("ok" in e);const s=curStreak(r);
+  const playedOf=lg=>{const x=todayEntry(drec(lg));return x&&("ok" in x)};
+  const key=["daily",dlg,todayKey(),done,s,untilNext(),!!tdw(),LGS.map(playedOf).join()].join("|");
   setPanel(ov,panel,key,()=>{
     const out=[];
+    const sw=el("div","seg");LGS.forEach(lg=>{const b=el("button",null,LGN[lg]+(playedOf(lg)?" ✓":""));b.type="button";b.setAttribute("aria-pressed",dlg===lg);b.onclick=()=>setDailyLang(lg);sw.appendChild(b)});
+    out.push(el("p","lbl",t("playIn")),sw);
+    if(!tdw()){out.push(el("p","note",t(dlg==="ar"&&dailyErrAr?"dailyErr":"loadingDaily")));return out}
     if(!done){
-      out.push(el("h2",null,t("dailyTitle",{n:dailyNo()})),el("p",null,t("dailyIntro")),el("p","note",t("dailyHelp")));
+      out.push(el("h2",null,t("dailyTitle",{n:dailyNo()})+" · "+LGN[dlg]),el("p",null,t("dailyIntro")),el("p","note",t("dailyHelp")),el("p","diffhelp",t("playInHelp")));
       if(s)out.push(el("p","streak",s===1?t("curStreak1"):t("curStreakN",{n:s})));
       const b=el("button","btn primary",t("start"));b.onclick=startDaily;out.push(b);
       return out;
     }
-    const W=todayDaily;
+    const W=tdw();
     out.push(el("h2",null,e.ok?t("solvedIn",{t:fmtS(e.t)}):t("hangedToday")));
-    if(W)out.push(el("div","reveal",W.w));
-    const st=el("div","stats");[[e.pts,"statPoints"],[e.m,"statMisses"],[s,"statStreak"],[rec.best,"statBest"]].forEach(([v,l])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,t(l)));st.appendChild(d)});out.push(st);
-    const share=t("shareHead",{s:curSeason(),n:dailyNo()})+"\n"+(e.ok?t("shareSolved",{t:fmtS(e.t),m:missTxt(e.m)+(e.hn?"، ".replace("، ",lang==="ar"?"، ":", ")+hintTxt(e.hn):""),p:e.pts}):t("shareHanged"))+(s?"\n"+t("shareStreak",{n:s}):"");
+    if(W){const rv=el("div","reveal",W.w);if(dlg==="ar"){rv.dir="rtl";rv.style.fontFamily='"IBM Plex Sans Arabic",system-ui,sans-serif';rv.style.textAlign="center"}out.push(rv)}
+    const st=el("div","stats");[[e.pts,"statPoints"],[e.m,"statMisses"],[s,"statStreak"],[r.best,"statBest"]].forEach(([v,l])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,t(l)));st.appendChild(d)});out.push(st);
+    const share=t("shareHead",{s:curSeason(),n:dailyNo()})+" · "+LGN[dlg]+"\n"+(e.ok?t("shareSolved",{t:fmtS(e.t),m:missTxt(e.m)+(e.hn?"، ".replace("، ",lang==="ar"?"، ":", ")+hintTxt(e.hn):""),p:e.pts}):t("shareHanged"))+(s?"\n"+t("shareStreak",{n:s}):"");
     const b=el("button","btn primary",t("copyResult"));b.onclick=()=>copyText(share,b,"copyResult");out.push(b);
     out.push(el("p","note",t("nextWordUtc",{t:untilNext()})));
     return out;

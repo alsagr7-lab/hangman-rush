@@ -192,15 +192,54 @@ function publicRec(r) {
   for (const [k, e] of Object.entries(r.h || {})) { o.h[k] = Object.assign({}, e); delete o.h[k].pre; if (k === today) delete o.h[k].a; }
   return o;
 }
+// Each player has one record per language ("<uid>_ar", "<uid>_en"): the Arabic and English dailies have their own
+// letter, streak, perfect streak and leaderboard, and a player may play both each day.
+const rowId = (uid, lg) => `${uid}_${lg}`;
 // the device holding the player's token may write; a Hangman or Trivia record with the same id counts too
-async function authorize(uid, token) {
+async function authorize(uid, token, lg) {
   if (!ID_RE.test(uid || "") || typeof token !== "string" || token.length < 16) return { error: [400, "Expected {uid, token}"] };
   const th = hashToken(token);
-  const [hr, tri, hm] = await Promise.all([store.hGet(uid), store.tGet(uid), store.get(uid)]);
+  const [hr, tri, hm] = await Promise.all([store.hGet(rowId(uid, lg)), store.tGet(uid), store.get(uid)]);
   if ([hr, tri, hm].some(x => x && x.token !== th)) return { error: [403, "This player belongs to another device"] };
   const rec = tidy(hr && hr.data);
+  rec.lg = lg;
   if (R.rollover(rec)) rec.run = null;
   return { th, rec };
+}
+
+/* ---------- one-time move to per-language records ----------
+   Records from before the split (id "<uid>", both languages in one) are split by each day's language into
+   "<uid>_ar" and "<uid>_en", with streaks counted again from the days themselves, and the old record removed. */
+let migrated = null;
+function ensureMigrated() {
+  if (!migrated) migrated = migrate().catch(e => { console.error("Harf: migration", e); migrated = null; });
+  return migrated;
+}
+async function migrate() {
+  const legacy = (await store.hAll()).filter(r => !/_(ar|en)$/.test(r.id));
+  for (const { id } of legacy) {
+    const old = await store.hGet(id);
+    if (!old) continue;
+    const d = tidy(old.data);
+    for (const lg of LANGS) {
+      const days = Object.keys(d.h).filter(k => d.h[k] && d.h[k].lg === lg).sort();
+      const runHere = d.run && d.run.lg === lg ? d.run : null;
+      if (!days.length && !runHere) continue;
+      const r = Object.assign(EMPTY(), { n: d.n, c: d.c, se: d.se, lg, h: {}, run: runHere });
+      let prev = null;
+      for (const k of days) {
+        const e = d.h[k]; r.h[k] = e; r.played++;
+        const dn = Math.round(Date.parse(k + "T00:00:00Z") / R.DAY);
+        if (e.ok) { r.wins++; r.streak = prev === dn - 1 ? r.streak + 1 : 1; r.ls = k; r.best = Math.max(r.best, r.streak); } else r.streak = 0;
+        prev = dn;
+      }
+      if (d.apd) { r.apd = d.apd; r.ap = d.ap; }
+      const existing = await store.hGet(rowId(id, lg));
+      if (!existing) await store.hPut(rowId(id, lg), old.token, r);
+    }
+    await store.hDel(id);
+  }
+  if (legacy.length) console.log(`Harf: split ${legacy.length} record(s) by language`);
 }
 const locks = new Map();
 function withLock(uid, fn) {
@@ -231,12 +270,12 @@ async function expire(rec) {
   await finish(rec, run, run.dr || [], H.DAILY_MS);
   return true;
 }
-function stateOut(rec, lg) {
+function stateOut(rec) {
   const appealsLeft = rec.apd === R.todayKey() ? Math.max(0, APPEALS_PER_DAY - num(rec.ap)) : APPEALS_PER_DAY;
   const today = R.todayKey(), n = R.dailyNo(), e = rec.h[today] || null, run = rec.run && rec.run.d === today ? rec.run : null;
   const y = rec.h[R.ydayKey()] || null;
   return {
-    n, cats: H.CATS, ms: H.DAILY_MS, api: !!API_KEY, streak: R.curStreak(rec), best: rec.best, appealsLeft,
+    n, lg: rec.lg, cats: H.CATS, ms: H.DAILY_MS, api: !!API_KEY, streak: R.curStreak(rec), best: rec.best, appealsLeft,
     entry: e, yday: y && y.rb != null ? y : null,
     open: run ? { lg: run.lg, L: run.L, left: Math.max(0, run.at + H.DAILY_MS - Date.now()), dr: run.dr || [] } : null,
   };
@@ -311,6 +350,7 @@ const checkCalls = new Map();
 async function handle(req, res, url, { send, readJson }) {
   const p = url.pathname;
   if (!p.startsWith("/api/harf/")) return false;
+  await ensureMigrated();
 
   if (p === "/api/harf/players" && req.method === "GET") {
     await ensureFinal();
@@ -357,34 +397,31 @@ async function handle(req, res, url, { send, readJson }) {
     return true;
   }
 
-  const uid = String(body.uid || "");
-  return withLock(uid, async () => {
-    const a = await authorize(uid, body.token);
+  const uid = String(body.uid || ""), lg = lgOf(body.lg), id = rowId(uid, lg);
+  return withLock(id, async () => {
+    const a = await authorize(uid, body.token, lg);
     if (a.error) { send(res, a.error[0], { error: a.error[1] }); return true; }
     const { th, rec } = a;
     if (typeof body.n === "string" && body.n.trim().length >= 2) rec.n = R.nm16(body.n.trim());
     if (body.c) rec.c = R.safeColor(body.c);
-    const save = () => store.hPut(uid, th, rec);
+    const save = () => store.hPut(id, th, rec);
     const today = R.todayKey(), n = R.dailyNo();
 
     if (p === "/api/harf/daily/state") {
       await ensureFinal();
       // the finishing pass may have just updated this record
-      const fresh = await store.hGet(uid);
+      const fresh = await store.hGet(id);
       if (fresh) { const d = tidy(fresh.data); rec.h = d.h; }
       const changed = await expire(rec);
       if (changed || (fresh && (body.n || body.c))) await save();
-      send(res, 200, stateOut(rec, lgOf(body.lg)));
+      send(res, 200, stateOut(rec));
       return true;
     }
 
     if (p === "/api/harf/daily/start") {
       await expire(rec);
       if (rec.h[today]) { await save(); send(res, 409, { error: "Today's daily is finished", state: stateOut(rec) }); return true; }
-      if (!rec.run || rec.run.d !== today) {
-        const lg = lgOf(body.lg);
-        rec.run = { d: today, n, lg, L: letterFor(n, lg), at: Date.now(), dr: [] };
-      }
+      if (!rec.run || rec.run.d !== today) rec.run = { d: today, n, lg, L: letterFor(n, lg), at: Date.now(), dr: [] };
       await save();
       send(res, 200, stateOut(rec));
       return true;

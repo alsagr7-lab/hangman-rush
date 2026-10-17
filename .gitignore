@@ -5,3 +5,4 @@ words.json
 *.key
 trivia-daily.json
 dist/
+words-ar.json

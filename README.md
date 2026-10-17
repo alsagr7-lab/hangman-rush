@@ -2,7 +2,7 @@
 
 Three daily multiplayer games you play on your phone, in English or Arabic, sharing one profile:
 
-- **Hangman Rush** (`/hangman/`): everyone gets the same word at the same moment; fastest solve with the fewest misses wins.
+- **Hangman Rush** (`/hangman/`): everyone gets the same word at the same moment; fastest solve with the fewest misses wins. There's an English daily word and a different Arabic one (Arabic keyboard), each with its own streak and leaderboard; play one or both.
 - **Trivia Rush** (`/trivia/`): five multiple-choice questions, fifteen seconds each; fast and right wins.
 - **Harf Rush** (`/harf/`), حيوان جماد إنسان: one letter, then a name, an animal, a plant, an object and a place that start with it.
 
@@ -27,7 +27,7 @@ The home page (`/`) links all three, with today's status for each.
 
 ## Harf Rush
 
-- **Daily:** one letter a day for everyone (an Arabic one and an English one; players pick which at the start), one attempt, 90 seconds timed by the server. Drafts are saved as you type, so closing the page scores what you'd written.
+- **Daily:** an Arabic letter and an English letter each day, the same for everyone; play one or both, one attempt each, 90 seconds timed by the server. Each language has its own record (`<id>_ar`, `<id>_en`), streak, perfect streak and leaderboard. Drafts are saved as you type, so closing the page scores what you'd written.
 - **Points, straight away:** 10 for each valid answer. A day with all five valid adds a **perfect-streak bonus**: +1 per day in a row, up to +5. A missed or imperfect day resets it.
 - **Points, the next day:** after midnight (UTC) the server counts how many players gave each valid answer, per language: **+5** if nobody else wrote it, **+2** if under 20% of players did. Needs at least two players that day. Players see it on the lobby and the Yesterday board. Arabic and English each have their own leaderboard (a switch on the board).
 - **Matching:** a leading "ال" or "the" doesn't count for the letter; أ/إ/آ/ا, ة/ه, ى/ي and diacritics count as the same, so "الأسد" and "اسد" are the same answer.
@@ -72,7 +72,7 @@ Without `DAILY_KEY` and `TRIVIA_KEY` the two dailies show as unavailable; everyt
 
 1. On render.com: **Blueprints → your blueprint → Manual sync** (or **New → Blueprint** the first time).
 2. Set these environment variables:
-   - On `hangman-rush`: `DAILY_KEY` (Hangman words), `TRIVIA_KEY` (trivia questions), `SITE_URL` = the static site's address (e.g. `https://rush-games.onrender.com`).
+   - On `hangman-rush`: `DAILY_KEY` (Hangman words), `DAILY_AR_KEY` (Arabic Hangman words), `TRIVIA_KEY` (trivia questions), `SITE_URL` = the static site's address (e.g. `https://rush-games.onrender.com`).
      Optional: `ANTHROPIC_API_KEY` so Harf Rush checks categories (see above).
    - On `rush-games`: `API_URL` = the game server's address (e.g. `https://hangman-rush.onrender.com`), then redeploy it.
      Its build command is `node scripts/build-site.js` and its publish directory is `dist`.
@@ -118,6 +118,14 @@ TRIVIA_KEY=... node scripts/trivia-daily.js encrypt trivia-daily.json
 ```
 
 ### Hangman daily words
+
+There are two lists: English words in `daily-words.enc` (`DAILY_KEY`) and Arabic words in `daily-words-ar.enc` (`DAILY_AR_KEY`, 167 words, repeating after that). Arabic words use Arabic letters only; on the keyboard أ/إ/آ count as ا, ة as ه, ى/ئ as ي and ؤ as و. Hangman's level (and so the hint cost) is shared by both words.
+
+```bash
+DAILY_AR_KEY=... node scripts/daily-words.js decrypt --ar > words-ar.json   # [category, word, English clue, Arabic clue, English meaning]
+DAILY_AR_KEY=... node scripts/daily-words.js encrypt words-ar.json --ar
+```
+
 
 The 160 daily words live only in `daily-words.enc`, unlocked with `DAILY_KEY`. To change or extend them (they repeat after 160 days, around 22 March 2027):
 

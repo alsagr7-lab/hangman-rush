@@ -28,6 +28,15 @@ try {
 } catch (e) {
   console.warn("Daily words unavailable (set DAILY_KEY):", e.message);
 }
+// the Arabic daily word: its own list (daily-words-ar.enc, unlocked with DAILY_AR_KEY), so it's a different word
+let DAILY_AR = [];
+try {
+  const { decrypt, FILE_AR } = require("./scripts/daily-words");
+  DAILY_AR = decrypt(fs.readFileSync(FILE_AR, "utf8"), "DAILY_AR_KEY");
+  console.log(`Arabic daily words loaded: ${DAILY_AR.length}`);
+} catch (e) {
+  console.warn("Arabic daily words unavailable (set DAILY_AR_KEY):", e.message);
+}
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json" };
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
@@ -68,10 +77,11 @@ const server = http.createServer(async (req, res) => {
     if (await harf.handle(req, res, url, { send, readJson })) return;
 
     if (url.pathname === "/api/daily" && req.method === "GET") {
-      if (!DAILY.length) return send(res, 503, { error: "Today's word isn't set up on this server yet" });
+      const lg = url.searchParams.get("lg") === "ar" ? "ar" : "en", list = lg === "ar" ? DAILY_AR : DAILY;
+      if (!list.length) return send(res, 503, { error: "Today's word isn't set up on this server yet" });
       const n = Math.floor(Date.now() / DAY) - EPOCH_DAY;
-      const [c, w, en, ar, m] = DAILY[((n - 1) % DAILY.length + DAILY.length) % DAILY.length];
-      return send(res, 200, { n, c, w, en, ar, m });
+      const [c, w, en, ar, m] = list[((n - 1) % list.length + list.length) % list.length];
+      return send(res, 200, { n, lg, c, w, en, ar, m });
     }
 
     if (url.pathname === "/api/players" && req.method === "GET") {

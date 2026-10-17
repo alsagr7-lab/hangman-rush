@@ -20,6 +20,9 @@ services:
           property: connectionString
       - key: DAILY_KEY
         sync: false
+      # unlocks daily-words-ar.enc, the Arabic Hangman daily word
+      - key: DAILY_AR_KEY
+        sync: false
       - key: TRIVIA_KEY
         sync: false
       # optional: lets Harf Rush check that answers fit their category (without it, only the first letter is checked)
