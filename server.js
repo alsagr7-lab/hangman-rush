@@ -70,6 +70,12 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "OPTIONS") { res.writeHead(204, CORS); return res.end(); }
     if (url.pathname === "/healthz") return send(res, 200, "ok", "text/plain");
+    // the Harf admin page (needs ADMIN_KEY; only on this server, never on the static site)
+    if (url.pathname === "/admin/harf") {
+      if (!process.env.ADMIN_KEY) return send(res, 404, "Not found", "text/plain");
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex" });
+      return res.end(fs.readFileSync(path.join(__dirname, "admin", "harf.html")));
+    }
     // pages served from here talk to this same server; SITE_URL points players at the static copy
     if (url.pathname === "/shared/config.js")
       return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)}};`, "text/javascript; charset=utf-8");
