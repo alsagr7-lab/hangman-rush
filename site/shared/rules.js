@@ -82,6 +82,62 @@
     return p;
   }
 
+  /* ---------- harf (حيوان جماد إنسان): one letter, five categories ---------- */
+  const HARF = {
+    CATS: ["name", "animal", "plant", "object", "place"], // إنسان، حيوان، نبات، جماد، بلاد
+    DAILY_MS: 90000,       // the daily: one attempt, 90 seconds
+    ROOM_MS: [60000, 90000, 120000],
+    COUNT_MS: 3000,        // countdown before a round or the daily
+    GRACE_MS: 5000,        // network allowance on the daily's deadline
+    STOP_MS: 5000,         // after someone presses STOP in a room, everyone else gets this long
+    MAXLEN: 30,
+    BASE: 10,              // daily: per valid answer, shown at once
+    STREAK_MAX: 5,         // daily: +1 per day in a row with all five valid, up to +5
+    RARE_ONLY: 5,          // daily, revealed next day: nobody else wrote it
+    RARE_FEW: 2,           //   fewer than RARE_SHARE of that day's players wrote it
+    RARE_SHARE: 0.2,
+    ROOM_UNIQUE: 10,       // rooms: valid and nobody else in the round wrote it
+    ROOM_SHARED: 5,        //   valid but someone else wrote it too
+    // hard letters (ث ذ ض ظ غ, q u x z) are left out
+    LETTERS: {
+      ar: ["ا", "ب", "ت", "ج", "ح", "خ", "د", "ر", "ز", "س", "ش", "ص", "ط", "ع", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ي"],
+      en: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "R", "S", "T", "V", "W", "Y"],
+    },
+  };
+  // Arabic: drop diacritics and tatweel, treat أ/إ/آ/ا, ة/ه, ى/ي, ؤ/و and ئ/ي alike.
+  // English: lower case, no accents. Both keep letters and single spaces only.
+  function harfNorm(s, lg) {
+    s = String(s || "").normalize("NFC");
+    if (lg === "ar") {
+      s = s.replace(/[ً-ٰٟۖ-ۭـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ة/g, "ه")
+        .replace(/ى/g, "ي").replace(/ؤ/g, "و").replace(/ئ/g, "ي").replace(/[^ء-ي ]+/g, " ");
+    } else {
+      s = s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z ]+/g, " ");
+    }
+    return s.replace(/\s+/g, " ").trim();
+  }
+  // the word without its leading "ال" or "the", which don't count for the letter or for matching
+  function harfStem(s, lg) {
+    const n = harfNorm(s, lg);
+    if (lg === "ar") return n.startsWith("ال") && n.replace(/ /g, "").length > 4 ? n.slice(2).trim() : n;
+    return n.startsWith("the ") ? n.slice(4) : n;
+  }
+  const harfKey = (s, lg) => harfStem(s, lg).replace(/ /g, "");
+  const harfLetterOk = (s, letter, lg) => { const k = harfKey(s, lg); return k.length >= 2 && k[0] === harfNorm(letter, lg)[0]; };
+  // a room round: answers {player: [5 words]}, valid {player: [1/0 x5]} -> points {player: [pts x5]}
+  function harfRoomPoints(answers, valid, lg) {
+    const counts = HARF.CATS.map(() => new Map()), out = {};
+    for (const p of Object.keys(answers)) HARF.CATS.forEach((_, i) => {
+      if (!(valid[p] && valid[p][i])) return;
+      const k = harfKey(answers[p][i], lg); counts[i].set(k, (counts[i].get(k) || 0) + 1);
+    });
+    for (const p of Object.keys(answers)) out[p] = HARF.CATS.map((_, i) => {
+      if (!(valid[p] && valid[p][i])) return 0;
+      return counts[i].get(harfKey(answers[p][i], lg)) > 1 ? HARF.ROOM_SHARED : HARF.ROOM_UNIQUE;
+    });
+    return out;
+  }
+
   /* ---------- tags: a short, permanent code per player so same-named players stay distinguishable ---------- */
   const TAG_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   function tagOf(id) {
@@ -100,5 +156,6 @@
     num, DAY, EPOCH_DAY, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight,
     COLORS, safeColor, nm16, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
+    HARF, harfNorm, harfStem, harfKey, harfLetterOk, harfRoomPoints,
   };
 });

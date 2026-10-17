@@ -8,7 +8,7 @@ const fs = require("fs");
 const path = require("path");
 
 const SITE = path.join(__dirname, "..", "site");
-const PAGES = ["index.html", "hangman/index.html", "trivia/index.html"];
+const PAGES = ["index.html", "hangman/index.html", "trivia/index.html", "harf/index.html"];
 
 // text that is safe inside an inline <script> or <style> element
 const safe = s => s.replace(/<\/(script|style)/gi, "<\\/$1");

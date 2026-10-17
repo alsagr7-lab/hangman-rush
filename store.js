@@ -6,12 +6,14 @@
 //   players         Hangman Rush daily records, written by each player's device
 //   trivia_players  Trivia Rush daily records, written by the server (it times every answer)
 //   trivia_seen     which room/practice questions each player has seen, and when
+//   harf_players    Harf Rush daily records, written by the server (it times and checks every answer)
+//   harf_words      verdicts on Harf Rush answers ("lang|category|word" -> valid or not), so each word is checked once
 const fs = require("fs");
 const path = require("path");
 
 function jsonStore() {
   const file = process.env.DATA_FILE || path.join(__dirname, "data", "players.json");
-  let db = { players: {}, trivia: {}, seen: {} };
+  let db = { players: {}, trivia: {}, seen: {}, harf: {}, words: {} };
   let writing = Promise.resolve();
   const flush = () => (writing = writing.then(() => fs.promises.writeFile(file, JSON.stringify(db))).catch(e => console.error(e)));
   return {
@@ -21,7 +23,8 @@ function jsonStore() {
       try {
         const raw = JSON.parse(fs.readFileSync(file, "utf8"));
         // older files held only the Hangman players
-        db = raw && raw.players ? { players: raw.players, trivia: raw.trivia || {}, seen: raw.seen || {} } : { players: raw || {}, trivia: {}, seen: {} };
+        db = raw && raw.players ? { players: raw.players, trivia: raw.trivia || {}, seen: raw.seen || {}, harf: raw.harf || {}, words: raw.words || {} }
+          : { players: raw || {}, trivia: {}, seen: {}, harf: {}, words: {} };
       } catch { /* fresh file */ }
     },
     async all() { return Object.entries(db.players).map(([id, r]) => ({ id, data: r.data })); },
@@ -31,6 +34,13 @@ function jsonStore() {
     async tAll() { return Object.entries(db.trivia).map(([id, r]) => ({ id, data: r.data })); },
     async tGet(id) { return db.trivia[id] ? { id, ...db.trivia[id] } : null; },
     async tPut(id, token, data) { db.trivia[id] = { token, data }; return flush(); },
+
+    async hAll() { return Object.entries(db.harf).map(([id, r]) => ({ id, data: r.data })); },
+    async hGet(id) { return db.harf[id] ? { id, ...db.harf[id] } : null; },
+    async hPut(id, token, data) { db.harf[id] = { token, data }; return flush(); },
+    async hSetData(id, data) { if (db.harf[id]) { db.harf[id].data = data; return flush(); } },
+    async wordsGet(keys) { const m = new Map(); for (const k of keys) if (k in db.words) m.set(k, db.words[k]); return m; },
+    async wordsPut(pairs) { for (const [k, v] of pairs) db.words[k] = v; return flush(); },
 
     // -> Map(qid -> latest seen time in ms) across these players, only rows newer than sinceMs
     async seenGet(uids, sinceMs) {
@@ -75,6 +85,10 @@ function pgStore(url) {
       await pool.query(`CREATE TABLE IF NOT EXISTS trivia_seen (
         uid TEXT NOT NULL, qid TEXT NOT NULL, seen_at TIMESTAMPTZ NOT NULL, PRIMARY KEY (uid, qid))`);
       await pool.query(`CREATE INDEX IF NOT EXISTS trivia_seen_at ON trivia_seen (seen_at)`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS harf_players (
+        id TEXT PRIMARY KEY, token TEXT NOT NULL, data JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT now())`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS harf_words (
+        k TEXT PRIMARY KEY, ok SMALLINT NOT NULL, at TIMESTAMPTZ DEFAULT now())`);
     },
     async all() { return (await pool.query("SELECT id, data FROM players ORDER BY updated_at DESC LIMIT 500")).rows; },
     async get(id) { return (await pool.query("SELECT id, token, data FROM players WHERE id=$1", [id])).rows[0] || null; },
@@ -83,6 +97,21 @@ function pgStore(url) {
     async tAll() { return (await pool.query("SELECT id, data FROM trivia_players ORDER BY updated_at DESC LIMIT 500")).rows; },
     async tGet(id) { return (await pool.query("SELECT id, token, data FROM trivia_players WHERE id=$1", [id])).rows[0] || null; },
     tPut: upsert("trivia_players"),
+
+    async hAll() { return (await pool.query("SELECT id, data FROM harf_players ORDER BY updated_at DESC LIMIT 1000")).rows; },
+    async hGet(id) { return (await pool.query("SELECT id, token, data FROM harf_players WHERE id=$1", [id])).rows[0] || null; },
+    hPut: upsert("harf_players"),
+    async hSetData(id, data) { await pool.query("UPDATE harf_players SET data=$2 WHERE id=$1", [id, data]); },
+    async wordsGet(keys) {
+      if (!keys.length) return new Map();
+      const r = await pool.query("SELECT k, ok FROM harf_words WHERE k = ANY($1)", [keys]);
+      return new Map(r.rows.map(x => [x.k, x.ok]));
+    },
+    async wordsPut(pairs) {
+      if (!pairs.length) return;
+      await pool.query(`INSERT INTO harf_words (k, ok) SELECT * FROM unnest($1::text[], $2::smallint[])
+        ON CONFLICT (k) DO UPDATE SET ok = EXCLUDED.ok, at = now()`, [pairs.map(p => p[0]), pairs.map(p => p[1])]);
+    },
 
     async seenGet(uids, sinceMs) {
       const r = await pool.query(
@@ -117,6 +146,6 @@ const store = {
     await impl.init();
   },
 };
-for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune"]) store[k] = (...a) => impl[k](...a);
+for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "wordsGet", "wordsPut"]) store[k] = (...a) => impl[k](...a);
 
 module.exports = store;

@@ -44,9 +44,10 @@
   const GAMES = {
     hangman: { en: "Hangman Rush", ar: "سباق المشنقة" },
     trivia: { en: "Trivia Rush", ar: "سباق المعلومات" },
+    harf: { en: "Harf Rush", ar: "سباق الحروف" },
     hub: { en: "Rush Games", ar: "ألعاب السباق" },
   };
-  const gameKey = /^\/hangman/.test(location.pathname) ? "hangman" : /^\/trivia/.test(location.pathname) ? "trivia" : "hub";
+  const gameKey = /^\/hangman/.test(location.pathname) ? "hangman" : /^\/trivia/.test(location.pathname) ? "trivia" : /^\/harf/.test(location.pathname) ? "harf" : "hub";
   const isAr = () => (store.get("hr-lang") || (navigator.language || "").slice(0, 2)) === "ar";
   const TXT = {
     en: { welcome: "Welcome to", sub: "Give us a moment while the game server wakes up.", check: "Checking if the server is awake…",
@@ -240,11 +241,11 @@
   };
 
   /* ---------- leaderboards ----------
-     collection("players") is Hangman's (each device writes its own record); collection("trivia") is read-only here,
-     because the server writes Trivia records itself. */
+     collection("players") is Hangman's (each device writes its own record); collection("trivia") and collection("harf") are
+     read-only here, because the server writes those records itself. */
   function collection(kind) {
     const listeners = new Set();
-    const url = kind === "trivia" ? "/api/trivia/players" : "/api/players";
+    const url = kind === "trivia" ? "/api/trivia/players" : kind === "harf" ? "/api/harf/players" : "/api/players";
     async function refresh() {
       try {
         const r = await fetch(http(url), { cache: "no-store" });
@@ -266,7 +267,7 @@
   const cols = {};
   const colOf = k => (cols[k] = cols[k] || collection(k));
   const db = {
-    collection(path) { return colOf(path === "trivia" ? "trivia" : "players"); },
+    collection(path) { return colOf(path === "trivia" || path === "harf" ? path : "players"); },
     doc(path) {
       const id = path.split("/")[1];
       return {
@@ -318,7 +319,17 @@
     bank: () => fetch("/trivia/questions.json", { cache: "no-cache" }).then(r => { if (!r.ok) throw new Error("bank " + r.status); return r.json(); }),
   };
 
-  window.Rush = { api: API, http, uid, token, store, room, db, trivia, ready, moveLink,
+  /* ---------- Harf ---------- */
+  const harf = {
+    info: () => get("/api/harf/info"),
+    state: profile => post("/api/harf/daily/state", profile),
+    start: (lg, profile) => post("/api/harf/daily/start", Object.assign({ lg }, profile || {})),
+    save: dr => post("/api/harf/daily/save", { dr }),
+    submit: answers => post("/api/harf/daily/submit", { answers }),
+    check: (lg, L, answers) => post("/api/harf/check", { lg, L, answers }),
+  };
+
+  window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink,
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, db, user, daily };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };

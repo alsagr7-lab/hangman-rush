@@ -22,6 +22,9 @@ services:
         sync: false
       - key: TRIVIA_KEY
         sync: false
+      # optional: lets Harf Rush check that answers fit their category (without it, only the first letter is checked)
+      - key: ANTHROPIC_API_KEY
+        sync: false
       # the static site's address, e.g. https://rush-games.onrender.com (offers players a move to it)
       - key: SITE_URL
         sync: false
