@@ -94,7 +94,9 @@ async function callModel(model, system, user, maxTokens) {
     if (!r.ok || !j) { console.warn("Harf: API error", r.status, j && j.error && j.error.message); return null; }
     const text = (j.content || []).map(c => c.text || "").join("");
     const m = text.match(/\{[\s\S]*\}/);
-    try { return m ? JSON.parse(m[0]) : null; } catch { console.warn("Harf: unexpected API reply", text.slice(0, 200)); return null; }
+    try { if (m) return JSON.parse(m[0]); } catch {}
+    console.warn("Harf: unexpected API reply", j.stop_reason, text.slice(0, 200));
+    return null;
   } catch (e) { console.warn("Harf: API call failed", e.message); return null; }
 }
 // -> array of 1/0, or null
@@ -125,8 +127,8 @@ async function appealWord(lg, cat, w, letter) {
     `Accept the answer if it is a genuine word or name that fits the category, including rare, classical (فصحى), regional, ` +
     `dialect and transliterated words, alternative spellings, and well-known proper nouns. Turn it down if it is made up, ` +
     `in the wrong category, or doesn't start with the letter (a leading ال or "the" doesn't count).\n\n` +
-    `Reply with JSON only: {"ok":1 or 0,"why":"one short sentence for the player, in ${lg === "ar" ? "Arabic" : "English"}"}`,
-    `Language: ${lg === "ar" ? "Arabic" : "English"}\ncategory=${cat} | letter=${letter} | answer=${JSON.stringify(w)}`, 200);
+    `Reply with JSON only, nothing else: {"ok":1 or 0,"why":"one short sentence (under 20 words) for the player, in ${lg === "ar" ? "Arabic" : "English"}"}`,
+    `Language: ${lg === "ar" ? "Arabic" : "English"}\ncategory=${cat} | letter=${letter} | answer=${JSON.stringify(w)}`, 600);
   // the referee may answer 1/0, true/false or "yes"/"no"
   const v = o && (o.ok !== undefined ? o.ok : o.valid);
   const yes = v === true || v === 1 || /^(1|true|yes|valid)$/i.test(String(v));
