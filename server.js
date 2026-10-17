@@ -13,6 +13,7 @@ const SITE_URL = (process.env.SITE_URL || "").replace(/\/+$/, "");
 const store = require("./store");
 const trivia = require("./trivia");
 const harf = require("./harf");
+const admin = require("./admin");
 // pages are served as single files with the shared styles and scripts written in (see scripts/build-site.js)
 const PAGES = require("./scripts/build-site").build({ api: "", site: SITE_URL });
 
@@ -71,16 +72,17 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "OPTIONS") { res.writeHead(204, CORS); return res.end(); }
     if (url.pathname === "/healthz") return send(res, 200, "ok", "text/plain");
     // the Harf admin page (needs ADMIN_KEY; only on this server, never on the static site)
-    if (url.pathname === "/admin/harf") {
+    if (url.pathname === "/admin" || url.pathname === "/admin/" || url.pathname === "/admin/harf") {
       if (!process.env.ADMIN_KEY) return send(res, 404, "Not found", "text/plain");
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex" });
-      return res.end(fs.readFileSync(path.join(__dirname, "admin", "harf.html")));
+      return res.end(fs.readFileSync(path.join(__dirname, "admin", "index.html")));
     }
     // pages served from here talk to this same server; SITE_URL points players at the static copy
     if (url.pathname === "/shared/config.js")
       return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)}};`, "text/javascript; charset=utf-8");
     if (await trivia.handle(req, res, url, { send, readJson })) return;
     if (await harf.handle(req, res, url, { send, readJson })) return;
+    if (await admin.handle(req, res, url, { send, readJson })) return;
 
     if (url.pathname === "/api/daily" && req.method === "GET") {
       const lg = url.searchParams.get("lg") === "ar" ? "ar" : "en", list = lg === "ar" ? DAILY_AR : DAILY;
@@ -92,7 +94,7 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/players" && req.method === "GET") {
       const rows = await store.all();
-      return send(res, 200, rows.map(r => ({ id: r.id, data: r.data })));
+      return send(res, 200, rows.filter(r => !admin.isHidden("hangman", r.id)).map(r => ({ id: r.id, data: r.data })));
     }
 
     const m = url.pathname.match(/^\/api\/players\/([^/]+)$/);
@@ -208,6 +210,6 @@ setInterval(() => {
   }
 }, 30000);
 
-store.init().then(() => {
+store.init().then(() => admin.loadHidden()).then(() => {
   server.listen(PORT, () => console.log(`Rush Games listening on ${PORT} (storage: ${store.kind})`));
 }).catch(e => { console.error("Storage failed to start", e); process.exit(1); });
