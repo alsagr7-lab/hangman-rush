@@ -130,7 +130,7 @@ async function load(){
     const [o,h]=await Promise.all([call("/api/admin/overview"),call("/api/harf/admin/verdicts")]);
     ov=o;list=h.list;
     st.textContent="";$("#login").hidden=true;$("#out").hidden=false;$("#tabs").hidden=false;
-    $("#hStatus").textContent=list.length+" saved verdicts (latest 400). API calls this hour: "+(h.hour?h.hour.n:0)+" of "+h.perHour+". AI checks: "+h.ipAccounts+" player ids per network a month.";
+    $("#hStatus").textContent=list.length+" saved verdicts (latest 400). API calls this hour: "+(h.hour?h.hour.n:0)+" of "+h.perHour+" ("+(h.hour?h.hour.r||0:0)+" of "+h.roomShare+" for rooms and practice). Rooms: "+h.roomPerIp+" AI checks per network a day.";
     overview();render();usage(h.usage);show(tab);
   }catch(e){st.className="note err";st.textContent=e.message;$("#login").hidden=false;$("#tabs").hidden=true;document.querySelectorAll("section").forEach(x=>x.hidden=true)}
 }

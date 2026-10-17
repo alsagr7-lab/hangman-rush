@@ -14,6 +14,9 @@ const store = require("./store");
 const trivia = require("./trivia");
 const harf = require("./harf");
 const admin = require("./admin");
+const limits = require("./limits");
+const ident = require("./ident");
+const R = require("./site/shared/rules");
 // pages are served as single files with the shared styles and scripts written in (see scripts/build-site.js)
 const PAGES = require("./scripts/build-site").build({ api: "", site: SITE_URL });
 
@@ -45,9 +48,11 @@ const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 // The API is called from the static site's origin too. Players are identified by a token in the request body,
 // never by cookies, so allowing any origin is safe.
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "86400" };
+// sent with everything: no MIME guessing, no framing by other sites, no full addresses leaked in Referer
+const SECURE = { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", "Content-Security-Policy": "frame-ancestors 'none'", "X-Frame-Options": "DENY" };
 
 function send(res, code, body, type = "application/json") {
-  res.writeHead(code, { "Content-Type": type, "Cache-Control": "no-store", ...CORS });
+  res.writeHead(code, { "Content-Type": type, "Cache-Control": "no-store", ...CORS, ...SECURE });
   res.end(typeof body === "string" ? body : JSON.stringify(body));
 }
 
@@ -67,22 +72,33 @@ async function readJson(req) {
 const hashToken = t => crypto.createHash("sha256").update(String(t)).digest("hex");
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, "http://x");
   try {
+    const url = new URL(req.url, "http://x");
     if (req.method === "OPTIONS") { res.writeHead(204, CORS); return res.end(); }
     if (url.pathname === "/healthz") return send(res, 200, "ok", "text/plain");
+    const ip = limits.clientIp(req);
+    // the address the server sees for this visitor, so the limits below can be checked against the real one
+    if (url.pathname === "/api/whoami" && req.method === "GET") {
+      const h = req.headers;
+      return send(res, 200, { ip, cf: h["cf-connecting-ip"] ? 1 : 0, tci: h["true-client-ip"] ? 1 : 0, xff: String(h["x-forwarded-for"] || "").split(",").map(s => s.trim()).filter(Boolean).length });
+    }
+    // every write: a generous limit per address, so a script can't hammer the server or fill the database
+    if ((req.method === "POST" || req.method === "PUT") && url.pathname.startsWith("/api/") && url.pathname !== "/api/hit") {
+      if (!limits.take("w|" + ip, 120, 60)) return send(res, 429, { error: "Too many requests. Slow down a little." });
+    }
     // the Harf admin page (needs ADMIN_KEY; only on this server, never on the static site)
     if (url.pathname === "/admin" || url.pathname === "/admin/" || url.pathname === "/admin/harf") {
       if (!process.env.ADMIN_KEY) return send(res, 404, "Not found", "text/plain");
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex" });
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex", ...SECURE });
       return res.end(fs.readFileSync(path.join(__dirname, "admin", "index.html")));
     }
     // pages served from here talk to this same server; SITE_URL points players at the static copy
     if (url.pathname === "/shared/config.js")
       return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)}};`, "text/javascript; charset=utf-8");
-    if (await trivia.handle(req, res, url, { send, readJson })) return;
-    if (await harf.handle(req, res, url, { send, readJson })) return;
-    if (await admin.handle(req, res, url, { send, readJson })) return;
+    const ctx = { send, readJson, ip };
+    if (await trivia.handle(req, res, url, ctx)) return;
+    if (await harf.handle(req, res, url, ctx)) return;
+    if (await admin.handle(req, res, url, ctx)) return;
 
     if (url.pathname === "/api/daily" && req.method === "GET") {
       const lg = url.searchParams.get("lg") === "ar" ? "ar" : "en", list = lg === "ar" ? DAILY_AR : DAILY;
@@ -103,11 +119,15 @@ const server = http.createServer(async (req, res) => {
       if (!ID_RE.test(id)) return send(res, 400, { error: "Bad player id" });
       let body;
       try { body = JSON.parse(await readBody(req)); } catch { return send(res, 400, { error: "Body must be JSON under 32 KB" }); }
-      if (!body || typeof body.token !== "string" || body.token.length < 16 || typeof body.data !== "object" || Array.isArray(body.data))
+      if (!body || typeof body.token !== "string" || body.token.length < 16 || !body.data || typeof body.data !== "object" || Array.isArray(body.data))
         return send(res, 400, { error: "Expected {token, data}" });
-      const existing = await store.get(id);
+      if (!limits.take("hm|" + ip, 30, 20)) return send(res, 429, { error: "Too many saves. Slow down a little." });
       const th = hashToken(body.token);
-      if (existing && existing.token !== th) return send(res, 403, { error: "This player belongs to another device" });
+      // the id must belong to this device in every game, not just Hangman
+      const own = await ident.owner(id, th);
+      if (!own.ok) return send(res, 403, { error: "This player belongs to another device" });
+      if (own.isNew && !limits.allowNewId(ip, ident.baseId(id))) return send(res, 429, { error: "Too many new players from this network today" });
+      body.data.n = R.nm16(body.data.n);
       await store.put(id, th, body.data);
       return send(res, 200, { ok: true });
     }
@@ -116,10 +136,12 @@ const server = http.createServer(async (req, res) => {
     let p = url.pathname.endsWith("/") ? url.pathname + "index.html" : url.pathname;
     const page = PAGES.get(p.replace(/^\/+/, ""));
     if (page) {
-      res.writeHead(200, { "Content-Type": TYPES[".html"], "Cache-Control": "no-cache" });
+      res.writeHead(200, { "Content-Type": TYPES[".html"], "Cache-Control": "no-cache", ...SECURE });
       return res.end(page);
     }
-    const file = path.normalize(path.join(PUBLIC, decodeURIComponent(p)));
+    let decoded;
+    try { decoded = decodeURIComponent(p); } catch { return send(res, 400, "Bad address", "text/plain"); }
+    const file = path.normalize(path.join(PUBLIC, decoded));
     if (!file.startsWith(PUBLIC + path.sep)) return send(res, 403, "Forbidden", "text/plain");
     // /trivia -> /trivia/ so the page's relative links work
     if (!path.extname(file) && fs.existsSync(path.join(file, "index.html"))) {
@@ -128,7 +150,7 @@ const server = http.createServer(async (req, res) => {
     }
     fs.readFile(file, (err, buf) => {
       if (err) return send(res, 404, "Not found", "text/plain");
-      res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] || "application/octet-stream", "Cache-Control": "no-cache" });
+      res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] || "application/octet-stream", "Cache-Control": "no-cache", ...SECURE });
       res.end(buf);
     });
   } catch (e) {
@@ -160,14 +182,28 @@ function leave(ws, name) {
   if (room.size === 0) rooms.delete(name); else broadcast(name);
 }
 
+// limits that keep one visitor from overloading the rooms: connections per address, rooms per connection,
+// players per room, and messages per second (each message is re-sent to everyone in the room)
+const WS_PER_IP = 12, ROOMS_PER_WS = 4, ROOM_MAX = 20, MSG_PER_SEC = 10, MSG_BURST = 20;
+const wsByIp = new Map(); // ip -> open connections
 const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 16 * 1024 });
-wss.on("connection", ws => {
+wss.on("connection", (ws, req) => {
+  const ip = limits.clientIp(req);
+  const n = (wsByIp.get(ip) || 0) + 1;
+  if (n > WS_PER_IP) { ws.close(1008, "Too many connections"); return; }
+  wsByIp.set(ip, n);
+  ws.on("close", () => { const m = (wsByIp.get(ip) || 1) - 1; if (m <= 0) wsByIp.delete(ip); else wsByIp.set(ip, m); });
   ws.peerId = crypto.randomBytes(8).toString("hex");
   ws.rooms = new Set();
   ws.alive = true;
+  ws.tokens = MSG_BURST; ws.tokAt = Date.now(); ws.dropped = 0;
   ws.on("pong", () => (ws.alive = true));
 
   ws.on("message", raw => {
+    const now = Date.now();
+    ws.tokens = Math.min(MSG_BURST, ws.tokens + ((now - ws.tokAt) / 1000) * MSG_PER_SEC); ws.tokAt = now;
+    if (ws.tokens < 1) { if (++ws.dropped > 200) ws.terminate(); return; } // far over the limit: a script, not a player
+    ws.tokens -= 1;
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
     if (!msg || typeof msg.room !== "string" || !ROOM_RE.test(msg.room)) return;
@@ -175,10 +211,10 @@ wss.on("connection", ws => {
 
     if (msg.t === "join") {
       if (!ws.rooms.has(name)) {
-        if (ws.rooms.size >= 16) return ws.send(JSON.stringify({ t: "error", room: name, code: "limit_reached" }));
-        if (!rooms.has(name)) rooms.set(name, new Map());
-        const room = rooms.get(name);
-        if (room.size >= 64) return ws.send(JSON.stringify({ t: "error", room: name, code: "limit_reached" }));
+        if (ws.rooms.size >= ROOMS_PER_WS) return ws.send(JSON.stringify({ t: "error", room: name, code: "limit_reached" }));
+        const room = rooms.get(name) || new Map();
+        if (room.size >= ROOM_MAX) return ws.send(JSON.stringify({ t: "error", room: name, code: "limit_reached" }));
+        rooms.set(name, room);
         room.set(ws.peerId, { ws, presence: {} });
         ws.rooms.add(name);
       }

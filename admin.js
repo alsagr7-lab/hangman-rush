@@ -3,6 +3,7 @@
 const crypto = require("crypto");
 const R = require("./site/shared/rules");
 const store = require("./store");
+const limits = require("./limits");
 
 const ADMIN_KEY = process.env.ADMIN_KEY || "";
 const PAGES = ["home", "hangman", "trivia", "harf"];
@@ -139,16 +140,19 @@ async function gameSummary(game) {
   return { langs, total: players.size, list };
 }
 
-async function handle(req, res, url, { send, readJson }) {
+async function handle(req, res, url, { send, readJson, ip }) {
   const p = url.pathname;
   if (p === "/api/hit" && req.method === "POST") {
     const body = (await readJson(req)) || {};
     const page = PAGES.includes(body.p) ? body.p : null;
-    if (page) await hit(page, ID_RE.test(String(body.v || "")) ? String(body.v) : "");
+    // a few page loads a minute per address count; anything faster is a script inflating the numbers, ignored quietly
+    if (page && limits.take("hit|" + ip, 20, 10)) await hit(page, ID_RE.test(String(body.v || "")) ? String(body.v) : "");
     send(res, 204, "");
     return true;
   }
   if (!p.startsWith("/api/admin/")) return false;
+  // admin requests: a limited number a minute per address, so the key can't be guessed by trying many
+  if (!limits.take("adm|" + ip, 20, 20)) { send(res, 429, { error: "Too many tries. Wait a minute." }); return true; }
   if (!adminOk(req)) { send(res, 403, { error: "Wrong admin key" }); return true; }
   if (p === "/api/admin/overview" && req.method === "GET") {
     const [visitsOut, hangman, trivia, harf] = await Promise.all([visitSummary(), gameSummary("hangman"), gameSummary("trivia"), gameSummary("harf")]);

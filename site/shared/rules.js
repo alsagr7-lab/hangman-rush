@@ -26,7 +26,10 @@
      {n name, c colour, se season, streak, best, ls last solved day, played, wins, h:{day:{ok,t,m,pts,hn,...}}, prev, sk level} */
   const COLORS = ["#2c56e0", "#d93c30", "#178a5c", "#c27a00", "#8a3ffc", "#d6337f"];
   const safeColor = c => (COLORS.includes(c) ? c : COLORS[0]);
-  const nm16 = v => String(v || "Player").slice(0, 16);
+  // names that would pass for the site's staff show as "Player"
+  const RESERVED = /^(admin|administrator|moderator|mod|system|staff|support|owner|official|rushgames|مشرف|المشرف|الاداره|اداره|ادمن|الادمن|الدعم|دعم)$/;
+  const nameKey = s => String(s).toLowerCase().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/[^a-z0-9ء-ي]+/g, "");
+  const nm16 = v => { const s = String(v || "Player").slice(0, 16); return RESERVED.test(nameKey(s)) ? "Player" : s; };
   const seasonOfRec = r => num(r.se) || curSeason();
   function rollover(r) {
     // a record from an earlier season starts fresh, keeping a summary of the old one

@@ -12,6 +12,8 @@ const path = require("path");
 const crypto = require("crypto");
 const R = require("./site/shared/rules");
 const store = require("./store");
+const limits = require("./limits");
+const ident = require("./ident");
 
 const T = R.TRIVIA;
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
@@ -57,17 +59,20 @@ function tidy(d) {
   for (const k of Object.keys(r.h).sort().slice(0, -40)) delete r.h[k]; // keep 40 days
   return r;
 }
-// who may write to this id: the device holding its token. A Hangman record with the same id counts too.
-async function authorize(uid, token) {
-  if (!ID_RE.test(uid || "") || typeof token !== "string" || token.length < 16) return { error: [400, "Expected {uid, token}"] };
+// who may write to this id: the device holding its token, checked against the player's records in every game
+// checkNew: count a brand-new id against its network's daily allowance (only on calls that create a record)
+async function authorize(uid, token, ip, checkNew = true) {
+  if (!ID_RE.test(uid || "") || /_(ar|en)$/.test(uid) || typeof token !== "string" || token.length < 16) return { error: [400, "Expected {uid, token}"] };
   const th = hashToken(token);
-  const [tri, hm] = await Promise.all([store.tGet(uid), store.get(uid)]);
-  if ((tri && tri.token !== th) || (hm && hm.token !== th)) return { error: [403, "This player belongs to another device"] };
+  const own = await ident.owner(uid, th);
+  if (!own.ok) return { error: [403, "This player belongs to another device"] };
+  if (own.isNew && checkNew && !limits.allowNewId(ip, uid)) return { error: [429, "Too many new players from this network today"] };
+  const tri = own.recs.tri;
   const rec = tidy(tri && tri.data);
   if (R.rollover(rec)) rec.run = null;
   return { th, rec };
 }
-const publicRec = r => { const o = Object.assign({}, r); delete o.run; return o; };
+const publicRec = r => { const o = Object.assign({}, r); delete o.run; delete o.lvd; delete o.lvn; return o; };
 
 // one request at a time per player, so a double tap can't score an answer twice
 const locks = new Map();
@@ -146,7 +151,7 @@ async function pick(uids, cat, diff, count, exclude) {
 
 /* ---------- routes ---------- */
 // returns true when it handled the request
-async function handle(req, res, url, { send, readJson }) {
+async function handle(req, res, url, { send, readJson, ip }) {
   const p = url.pathname;
   if (!p.startsWith("/api/trivia/")) return false;
   const n = R.dailyNo();
@@ -177,6 +182,10 @@ async function handle(req, res, url, { send, readJson }) {
   if (!body) { send(res, 400, { error: "Body must be JSON" }); return true; }
 
   if (p === "/api/trivia/pick") {
+    // only a real player (their own id and token) may pick, a few rounds a minute per address
+    if (!limits.take("pick|" + ip, 12, 6)) { send(res, 429, { error: "Too many rounds. Slow down a little." }); return true; }
+    const who = await authorize(String(body.uid || ""), body.token, ip, false);
+    if (who.error) { send(res, who.error[0], { error: who.error[1] }); return true; }
     const uids = Array.isArray(body.uids) ? [...new Set(body.uids.filter(u => ID_RE.test(u || "")))].slice(0, 32) : [];
     const cat = T.CATS.includes(body.cat) ? body.cat : null;
     if (!cat) { send(res, 400, { error: "Unknown category" }); return true; }
@@ -188,18 +197,25 @@ async function handle(req, res, url, { send, readJson }) {
 
   const uid = String(body.uid || "");
   return withLock(uid, async () => {
-    const a = await authorize(uid, body.token);
+    const a = await authorize(uid, body.token, ip, p !== "/api/trivia/daily/state");
     if (a.error) { send(res, a.error[0], { error: a.error[1] }); return true; }
     const { th, rec } = a;
     if (typeof body.n === "string" && body.n.trim().length >= 2) rec.n = R.nm16(body.n.trim());
     if (body.c) rec.c = R.safeColor(body.c);
     const save = () => store.tPut(uid, th, rec);
 
-    // a room or practice result moves the level by at most one step per call
+    // a room result moves the level by at most one step per call. Rooms can lower it by at most 3 steps a day, so
+    // nobody can sink their level on purpose to get the extra help in the daily
     if (p === "/api/trivia/level") {
-      const d = Math.sign(Number(body.d) || 0);
+      const d = Math.sign(Number(body.d) || 0), today = R.todayKey();
       const last = levelCalls.get(uid) || 0;
-      if (d && Date.now() - last > 4000) { levelCalls.set(uid, Date.now()); rec.sk = R.clampSk(rec.sk + d); await save(); }
+      if (rec.lvd !== today) { rec.lvd = today; rec.lvn = 0; }
+      const downOk = d > 0 || R.num(rec.lvn) < 3;
+      if (d && downOk && Date.now() - last > 4000) {
+        levelCalls.set(uid, Date.now()); rec.sk = R.clampSk(rec.sk + d);
+        if (d < 0) rec.lvn = R.num(rec.lvn) + 1;
+        await save();
+      }
       send(res, 200, { sk: rec.sk });
       return true;
     }

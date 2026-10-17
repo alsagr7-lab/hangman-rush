@@ -590,15 +590,21 @@ function clean(r){const h={};const src=r.h&&typeof r.h==="object"?r.h:{};
     prev:r.prev&&typeof r.prev==="object"?{se:num(r.prev.se),best:num(r.prev.best),wins:num(r.prev.wins),played:num(r.prev.played),pts:num(r.prev.pts)}:null}}
 function curStreak(r){return r.ls===todayKey()||r.ls===ydayKey()?num(r.streak):0}
 // each language's record is saved on its own: "players/<uid>" for English, "players/<uid>_ar" for Arabic
-const saving={en:false,ar:false},pendingSave={en:false,ar:false};
+const saving={en:false,ar:false},pendingSave={en:false,ar:false},saveFail={en:0,ar:0},saveRetry={en:0,ar:0};let saveBlocked=false;
 function saveRec(lg="en"){
   const r=drec(lg);
   r.n=me.nick||r.n;r.c=me.color;
   try{localStorage.setItem(recKey(lg),JSON.stringify(r))}catch(e){}
-  if(!db||!uid||dbErr)return;
+  if(!db||!uid)return;
   if(saving[lg]){pendingSave[lg]=true;return}
-  saving[lg]=true;
-  db.doc("players/"+uid+(lg==="ar"?"_ar":"")).set(JSON.parse(JSON.stringify(r))).catch(()=>{dbErr=true;render()}).finally(()=>{saving[lg]=false;if(pendingSave[lg]){pendingSave[lg]=false;saveRec(lg)}});
+  saving[lg]=true;clearTimeout(saveRetry[lg]);
+  db.doc("players/"+uid+(lg==="ar"?"_ar":"")).set(JSON.parse(JSON.stringify(r)))
+    .then(()=>{saveFail[lg]=0;if(dbErr&&!saveFail.en&&!saveFail.ar&&!saveBlocked){dbErr=false;render()}})
+    .catch(e=>{dbErr=true;render();const st=e&&e.status;
+      // a dropped connection, a restart or a busy server: try again, waiting longer each time (5s up to a minute)
+      if(st===0||st===429||st>=500){const n=++saveFail[lg];saveRetry[lg]=setTimeout(()=>saveRec(lg),Math.min(60000,5000*Math.pow(2,n-1)))}
+      else saveBlocked=true})
+    .finally(()=>{saving[lg]=false;if(pendingSave[lg]){pendingSave[lg]=false;saveRec(lg)}});
 }
 function recordDaily(){
   const lg=cur.lg==="ar"?"ar":"en";let r=drec(lg);
@@ -726,6 +732,7 @@ setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},30000);
   renderNameHint();
   if(d&&uid){db=d;
     db.collection("players").onSnapshot(snap=>{
+      if(dbErr&&!saveFail.en&&!saveFail.ar&&!saveBlocked)dbErr=false; // the board loaded again
       const all=snap.docs.map(doc=>Object.assign(clean(doc.data()||{}),{id:doc.id}));
       // "<uid>_ar" records are the Arabic daily's
       allPlayers=all.filter(p=>!/_ar$/.test(p.id));arPlayers=all.filter(p=>/_ar$/.test(p.id));
