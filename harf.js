@@ -21,6 +21,7 @@ const R = require("./site/shared/rules");
 const store = require("./store");
 const limits = require("./limits");
 const ident = require("./ident");
+const auth = require("./auth");
 
 const H = R.HARF, N = H.CATS.length, num = R.num;
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
@@ -544,7 +545,9 @@ async function handle(req, res, url, { send, readJson, ip }) {
     if (Date.now() - last < 3000 || !limits.take("chk|" + ip, 20, 10)) { send(res, 429, { error: "Too fast" }); return true; }
     checkCalls.set(uid, Date.now());
     if (checkCalls.size > 5000) checkCalls.clear();
-    send(res, 200, { a: await check(lg, letter, body.answers, roomAI(ip)), api: !!API_KEY });
+    // signed-in players have their own allowance; everyone else shares their network's
+    const ai = roomAI((await auth.isSignedIn(uid)) ? "u:" + uid : ip);
+    send(res, 200, { a: await check(lg, letter, body.answers, ai), api: !!API_KEY });
     return true;
   }
 
@@ -557,7 +560,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
     if (!H.LETTERS[lg].includes(letter) || !cat || !w) { send(res, 400, { error: "Expected {lg, L, i, w}" }); return true; }
     const key = R.todayKey() + "|" + uid, used = appealsToday.get(key) || 0;
     if (used >= APPEALS_PER_DAY) { send(res, 429, { error: "No appeals left today", left: 0 }); return true; }
-    if (!spendAI(roomAI(ip))) { send(res, 503, { error: "Appeals aren't available right now" }); return true; }
+    if (!spendAI(roomAI((await auth.isSignedIn(uid)) ? "u:" + uid : ip))) { send(res, 503, { error: "Appeals aren't available right now" }); return true; }
     const r = await appealWord(lg, cat, w, letter, "room");
     if (!r) { send(res, 503, { error: "Appeals aren't available right now" }); return true; }
     appealsToday.set(key, used + 1);

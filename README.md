@@ -55,6 +55,14 @@ Answers are checked cheapest first:
 - **Admin page:** set `ADMIN_KEY` (a password you choose) on `hangman-rush`, then open `/admin` on the game server's address (`/admin/harf` still works). Overview: visitors per page (today, 7 and 30 days; devices, never IPs) and players per game. A tab per game lists its players and can hide one from that game's leaderboards (reversible). The Harf tab also has API usage and the saved verdicts, where a wrong verdict can be switched; a change applies from then on.
 - Optional: `HARF_MODEL` (default `claude-haiku-5-5`). The daily letter order is shuffled with `HARF_KEY` (falls back to `DAILY_KEY`), so the public code can't reveal tomorrow's letter.
 
+## Sign in with Google (optional)
+
+Players stay anonymous by default. Signing in with Google links a player's progress to their Google account, so signing in on another device brings the same streaks and leaderboard entries. A device that already has its own progress is asked before switching. Only Google's account number is stored (`auth_accounts`), never an email address; the player's token is kept encrypted with `ACCOUNT_KEY` (falls back to `DAILY_KEY`, so changing that key signs everyone out of their saved progress).
+
+Signed-in players get their own daily AI allowance in Harf rooms instead of sharing their network's.
+
+To turn it on, set `GOOGLE_CLIENT_ID` on `hangman-rush`: in Google Cloud Console, create an OAuth client ID of type "Web application" with these Authorized JavaScript origins: `https://rush-games.onrender.com` and `https://hangman-rush.onrender.com`. No client secret is needed. Without `GOOGLE_CLIENT_ID` the sign-in box doesn't appear.
+
 ## Limits against abuse
 
 All in `limits.js`, kept in memory (a restart clears them):

@@ -332,6 +332,84 @@
     appeal: (lg, L, i, w, daily) => post("/api/harf/appeal", { lg, L, i, w, daily: !!daily }),
   };
 
+  /* ---------- sign in with Google ----------
+     Optional. Links this device's player to a Google account, so signing in on another device brings the same
+     player (name aside, which each device keeps). Shown under the name box on every page, once the server says
+     sign-in is set up. The server keeps no email address; this device remembers it only to show who's signed in. */
+  const AUTH_TXT = {
+    en: { pitch: "Sign in with Google to keep your streaks and scores on any device.", as: "Signed in as {e}. Your progress is saved to your Google account.",
+          out: "Sign out", outQ: "Sign out on this device? It starts again as a new guest; your progress stays in your Google account.",
+          switchQ: "This Google account already has progress from another device. Switch to it? What you've played here as a guest stays behind.",
+          fail: "Sign-in didn't work. Try again in a moment.", taken: "This progress is already linked to a different Google account." },
+    ar: { pitch: "سجّل الدخول بحساب Google لتحتفظ بسلاسلك ونقاطك على أي جهاز.", as: "مسجّل باسم {e}. تقدّمك محفوظ في حساب Google.",
+          out: "تسجيل الخروج", outQ: "تسجيل الخروج من هذا الجهاز؟ سيبدأ كضيف جديد، ويبقى تقدّمك محفوظاً في حساب Google.",
+          switchQ: "لهذا الحساب تقدّم من جهاز آخر. هل تنتقل إليه؟ ما لعبته هنا كضيف لن ينتقل معك.",
+          fail: "تعذّر تسجيل الدخول. حاول بعد لحظات.", taken: "هذا التقدّم مرتبط بحساب Google آخر." },
+  };
+  let acct = null; try { acct = JSON.parse(store.get("hr-acct") || "null"); } catch {}
+  let authCfg = null, gsi = null, acctBox = null, acctMsg = "";
+  const at = (k, v) => { const s = AUTH_TXT[isAr() ? "ar" : "en"][k]; return v ? s.replace("{e}", v) : s; };
+  // a different player on this device: forget the old player's local copies so they can't overwrite the new one
+  function switchTo(u, t) {
+    for (const k of ["hr-daily", "hr-daily-ar", "hf-today", "tr-today"]) { try { localStorage.removeItem(k); } catch {} }
+    store.set("hr-uid", u); store.set("hr-token", t);
+    location.reload();
+  }
+  function loadGsi() {
+    return gsi || (gsi = new Promise((res, rej) => {
+      const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true;
+      s.onload = () => { try { window.google.accounts.id.initialize({ client_id: authCfg.google, callback: onCredential }); res(); } catch (e) { rej(e); } };
+      s.onerror = rej; document.head.appendChild(s);
+    }));
+  }
+  async function onCredential(resp, confirmed) {
+    acctMsg = "";
+    try {
+      const r = await post("/api/auth/google", { credential: resp.credential, confirm: !!confirmed });
+      acct = { email: r.email || "" }; store.set("hr-acct", JSON.stringify(acct));
+      if (r.uid !== uid) return switchTo(r.uid, r.token);
+    } catch (e) {
+      if (e.status === 409 && e.data && e.data.need === "switch") { if (confirm(at("switchQ"))) return onCredential(resp, true); }
+      else acctMsg = e.status === 409 ? "taken" : "fail";
+    }
+    renderAcct();
+  }
+  function signOut() {
+    if (!confirm(at("outQ"))) return;
+    try { localStorage.removeItem("hr-acct"); } catch {}
+    switchTo("p_" + rand(10), rand(24));
+  }
+  function renderAcct() {
+    if (!acctBox) return;
+    acctBox.textContent = "";
+    if (acct) {
+      const p = document.createElement("p"); p.className = "note"; p.textContent = at("as", acct.email || "Google");
+      const b = document.createElement("button"); b.type = "button"; b.className = "rush-acct-out"; b.textContent = at("out"); b.onclick = signOut;
+      p.append(" ", b); acctBox.append(p);
+    } else if (authCfg && authCfg.google) {
+      const p = document.createElement("p"); p.className = "note"; p.textContent = at("pitch");
+      const slot = document.createElement("div"); slot.className = "rush-acct-btn";
+      acctBox.append(p, slot);
+      loadGsi().then(() => window.google.accounts.id.renderButton(slot, { type: "standard", theme: "outline", size: "medium", text: "signin_with", shape: "pill", locale: isAr() ? "ar" : "en" })).catch(() => {});
+    }
+    if (acctMsg) { const m = document.createElement("p"); m.className = "note warn"; m.textContent = at(acctMsg); acctBox.append(m); }
+  }
+  onBody(async () => {
+    const hint = document.getElementById("nameHint");
+    if (!hint) return;
+    acctBox = document.createElement("div"); acctBox.className = "rush-acct";
+    hint.after(acctBox);
+    const st = document.createElement("style");
+    st.textContent = ".rush-acct{display:grid;gap:6px;margin-top:4px}.rush-acct p{margin:0}.rush-acct-out{font:600 13px var(--f-body,system-ui,sans-serif);background:none;border:0;padding:0;color:var(--accent,#2c56e0);text-decoration:underline;cursor:pointer}.rush-acct-btn{min-height:32px}";
+    document.head.appendChild(st);
+    // the page's language switch changes <html lang>: redraw in the new language
+    new MutationObserver(renderAcct).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+    renderAcct();
+    await ready;
+    try { authCfg = await get("/api/auth/config"); } catch { authCfg = { google: null }; }
+    renderAcct();
+  });
+
   // one visit count per page load (the admin page's visitor numbers): which game, and this device's player id
   try {
     const pg = (location.pathname.match(/\/(hangman|trivia|harf)(\/|$)/) || [])[1] || "home", b = JSON.stringify({ p: pg, v: uid });

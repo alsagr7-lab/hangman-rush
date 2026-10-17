@@ -14,6 +14,7 @@ const store = require("./store");
 const trivia = require("./trivia");
 const harf = require("./harf");
 const admin = require("./admin");
+const auth = require("./auth");
 const limits = require("./limits");
 const ident = require("./ident");
 const R = require("./site/shared/rules");
@@ -99,6 +100,7 @@ const server = http.createServer(async (req, res) => {
     if (await trivia.handle(req, res, url, ctx)) return;
     if (await harf.handle(req, res, url, ctx)) return;
     if (await admin.handle(req, res, url, ctx)) return;
+    if (await auth.handle(req, res, url, ctx)) return;
 
     if (url.pathname === "/api/daily" && req.method === "GET") {
       const lg = url.searchParams.get("lg") === "ar" ? "ar" : "en", list = lg === "ar" ? DAILY_AR : DAILY;

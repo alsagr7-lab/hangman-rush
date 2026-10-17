@@ -31,6 +31,9 @@ services:
       # optional: a password of your choosing for the admin page at /admin
       - key: ADMIN_KEY
         sync: false
+      # optional: turns on "Sign in with Google" (an OAuth web client id; no secret needed)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
       # the static site's address, e.g. https://rush-games.onrender.com (offers players a move to it)
       - key: SITE_URL
         sync: false

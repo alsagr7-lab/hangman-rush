@@ -10,12 +10,13 @@
 //   harf_words      verdicts on Harf Rush answers ("lang|category|word" -> valid or not), so each word is checked once
 //   harf_ip         which player ids each network (a hashed IP address, never the address itself) used AI checks for, by month
 //   harf_meta       small counters, such as this hour's Claude API calls, kept across restarts
+//   auth_accounts   Google sign-ins: Google's account number -> player id and the player's token (encrypted)
 const fs = require("fs");
 const path = require("path");
 
 function jsonStore() {
   const file = process.env.DATA_FILE || path.join(__dirname, "data", "players.json");
-  let db = { players: {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {} };
+  let db = { players: {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {}, acct: {} };
   let writing = Promise.resolve();
   const flush = () => (writing = writing.then(() => fs.promises.writeFile(file, JSON.stringify(db))).catch(e => console.error(e)));
   return {
@@ -25,8 +26,8 @@ function jsonStore() {
       try {
         const raw = JSON.parse(fs.readFileSync(file, "utf8"));
         // older files held only the Hangman players
-        db = raw && raw.players ? { players: raw.players, trivia: raw.trivia || {}, seen: raw.seen || {}, harf: raw.harf || {}, words: raw.words || {}, ip: raw.ip || {}, meta: raw.meta || {} }
-          : { players: raw || {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {} };
+        db = raw && raw.players ? { players: raw.players, trivia: raw.trivia || {}, seen: raw.seen || {}, harf: raw.harf || {}, words: raw.words || {}, ip: raw.ip || {}, meta: raw.meta || {}, acct: raw.acct || {} }
+          : { players: raw || {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {}, acct: {} };
       } catch { /* fresh file */ }
     },
     async all() { return Object.entries(db.players).map(([id, r]) => ({ id, data: r.data })); },
@@ -64,6 +65,9 @@ function jsonStore() {
     },
     async metaGet(k) { return k in db.meta ? db.meta[k] : null; },
     async metaPut(k, v) { db.meta[k] = v; return flush(); },
+    async acctGet(k) { return db.acct[k] ? { k, ...db.acct[k] } : null; },
+    async acctByUid(uid) { const e = Object.entries(db.acct).find(([, v]) => v.uid === uid); return e ? { k: e[0], ...e[1] } : null; },
+    async acctPut(k, uid, tok) { db.acct[k] = { uid, tok, at: Date.now() }; return flush(); },
     // entries whose key starts with prefix and sorts at or after from -> [{k, v}]
     async metaSince(prefix, from) { return Object.entries(db.meta).filter(([k]) => k.startsWith(prefix) && k >= from).map(([k, v]) => ({ k, v })); },
     async metaPruneBefore(prefix, before) { for (const k of Object.keys(db.meta)) if (k.startsWith(prefix) && k < before) delete db.meta[k]; return flush(); },
@@ -119,6 +123,8 @@ function pgStore(url) {
       await pool.query(`CREATE TABLE IF NOT EXISTS harf_ip (
         ip TEXT NOT NULL, month TEXT NOT NULL, uid TEXT NOT NULL, PRIMARY KEY (ip, month, uid))`);
       await pool.query(`CREATE TABLE IF NOT EXISTS harf_meta (k TEXT PRIMARY KEY, v JSONB NOT NULL)`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS auth_accounts (
+        k TEXT PRIMARY KEY, uid TEXT NOT NULL UNIQUE, tok TEXT NOT NULL, at TIMESTAMPTZ DEFAULT now())`);
     },
     async all() { return (await pool.query("SELECT id, data FROM players ORDER BY updated_at DESC LIMIT 500")).rows; },
     async get(id) { return (await pool.query("SELECT id, token, data FROM players WHERE id=$1", [id])).rows[0] || null; },
@@ -162,6 +168,9 @@ function pgStore(url) {
     async metaSince(prefix, from) {
       return (await pool.query("SELECT k, v FROM harf_meta WHERE k LIKE $1 AND k >= $2", [prefix + "%", from])).rows;
     },
+    async acctGet(k) { return (await pool.query("SELECT k, uid, tok FROM auth_accounts WHERE k=$1", [k])).rows[0] || null; },
+    async acctByUid(uid) { return (await pool.query("SELECT k, uid FROM auth_accounts WHERE uid=$1", [uid])).rows[0] || null; },
+    async acctPut(k, uid, tok) { await pool.query("INSERT INTO auth_accounts (k, uid, tok) VALUES ($1,$2,$3)", [k, uid, tok]); },
     async metaPruneBefore(prefix, before) { await pool.query("DELETE FROM harf_meta WHERE k LIKE $1 AND k < $2", [prefix + "%", before]); },
 
     async seenGet(uids, sinceMs) {
@@ -197,6 +206,6 @@ const store = {
     await impl.init();
   },
 };
-for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsRecent", "wordsPurge", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore"]) store[k] = (...a) => impl[k](...a);
+for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsRecent", "wordsPurge", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore", "acctGet", "acctByUid", "acctPut"]) store[k] = (...a) => impl[k](...a);
 
 module.exports = store;
