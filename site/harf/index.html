@@ -209,7 +209,7 @@ en:{
   inArabic:"Answer in Arabic",inEnglish:"Answer in English",
   submit:"Submit",done:"I'm done",stop:"STOP",stopHelp:"Fill all five, then press STOP: everyone else gets 5 seconds.",
   stopped:"{name} pressed STOP!",stoppedMe:"You pressed STOP!",checking:"Checking answers…",waitingOthers:"Waiting for everyone's answers…",
-  wrongLetter:"doesn't start with {L}",notAccepted:"not accepted for this category",notChecked:"not checked",blank:"—",
+  wrongLetter:"doesn't start with {L}",notAccepted:"not accepted for this category",notChecked:"not checked",checkingLater:"being checked: the points are added once it's confirmed",blank:"—",
   onlyYou:"only you",nOf:"{c} of {n} players",
   dailyIntro:"Everyone gets the same letter today. One attempt, 90 seconds. Each valid answer is worth 10 points right away; tomorrow you'll see the bonus for rare answers.",
   curStreak:"🔥 Perfect streak: {n}. All five valid today adds +{b}.",noStreak:"All five valid today starts a perfect streak (+1).",
@@ -265,7 +265,7 @@ ar:{
   inArabic:"أجب بالعربية",inEnglish:"أجب بالإنجليزية",
   submit:"أرسل",done:"انتهيت",stop:"ستوب",stopHelp:"املأ الخمس ثم اضغط ستوب: يحصل الباقون على 5 ثوانٍ.",
   stopped:"{name} ضغط ستوب!",stoppedMe:"ضغطت ستوب!",checking:"نتحقق من الإجابات…",waitingOthers:"بانتظار إجابات الجميع…",
-  wrongLetter:"لا تبدأ بحرف {L}",notAccepted:"غير مقبولة في هذه الفئة",notChecked:"لم يُتحقق منها",blank:"—",
+  wrongLetter:"لا تبدأ بحرف {L}",notAccepted:"غير مقبولة في هذه الفئة",notChecked:"لم يُتحقق منها",checkingLater:"قيد التحقق: تُضاف النقاط عند التأكيد",blank:"—",
   onlyYou:"أنت فقط",nOf:"{c} من {n} لاعبين",
   dailyIntro:"الكل يحصل على نفس الحرف اليوم. محاولة واحدة و90 ثانية. كل إجابة صحيحة بـ10 نقاط فوراً، وغداً ترى مكافأة الإجابات النادرة.",
   curStreak:"🔥 سلسلة الكمال: {n}. الخمس كلها صحيحة اليوم تضيف +{b}.",noStreak:"الخمس كلها صحيحة اليوم تبدأ سلسلة الكمال (+1).",
@@ -373,17 +373,18 @@ function answerRow(cat,a,L,lg,np,opts,i){
     let p=opts.base?H.BASE:0,rare=0;
     if(opts.rare&&np>=2&&a.n){rare=a.n===1?H.RARE_ONLY:(a.n/np<H.RARE_SHARE?H.RARE_FEW:0)}
     pts="+"+(p+rare);if(rare)cls+=" rare";
-  }else if(w)pts="0";
+  }else if(w)pts=a.u?"…":"0";
   li.append(el("span",cls,pts));
   let why="";
-  if(w&&!ok)why=a.l?(a.f?t("wrongLetterFix",{w:a.f,L}):t("wrongLetter",{L})):t("notAccepted");
+  if(w&&!ok&&a.u)why=t("checkingLater");
+  else if(w&&!ok)why=a.l?(a.f?t("wrongLetterFix",{w:a.f,L}):t("wrongLetter",{L})):t("notAccepted");
   else if(ok&&a.u)why=t("notChecked");
   else if(ok&&opts.rare&&a.n)why=a.n===1?t("onlyYou"):t("nOf",{c:a.n,n:np});
   if(ok&&a.f)li.append(el("span","why won","✎ "+t("corrected",{w:a.f})));
   if(a&&a.ap===1)li.append(el("span","why won",t("appealWon")));
   else if(why)li.append(el("span","why",why));
   if(a&&a.ap===-1)li.append(el("span","why",t("appealLost")+(a.why?": "+a.why:"")));
-  if(opts.appeal&&w&&!ok&&!a.l&&!a.ap){
+  if(opts.appeal&&w&&!ok&&!a.l&&!a.ap&&!a.u){
     const b=el("button","apbtn",t("appeal"));b.type="button";b.onclick=()=>appealDaily(i,b);li.append(b);
   }
   return li;
@@ -457,7 +458,7 @@ function marksFor(res){
   const L=curLetter(),lg=curLang();
   inputs.forEach((inp,i)=>{
     const mk=inp.parentElement.querySelector(".mk");mk.className="mk";mk.textContent="";
-    if(res&&res[i]){const a=res[i];if(!a.w)return;if(!a.ok){mk.textContent="✗";mk.classList.add("n")}else if(a.u){mk.textContent="?";mk.classList.add("q")}else if(a.f){mk.textContent="✎";mk.classList.add("y");mk.title=a.f}else{mk.textContent="✓";mk.classList.add("y")}inp.classList.toggle("badl",!a.ok);return}
+    if(res&&res[i]){const a=res[i];if(!a.w)return;if(a.u&&!a.ok){mk.textContent="?";mk.classList.add("q")}else if(!a.ok){mk.textContent="✗";mk.classList.add("n")}else if(a.u){mk.textContent="?";mk.classList.add("q")}else if(a.f){mk.textContent="✎";mk.classList.add("y");mk.title=a.f}else{mk.textContent="✓";mk.classList.add("y")}inp.classList.toggle("badl",!a.ok&&!a.u);return}
     // while typing: compare the first letter only, and wait if the word so far is just "ال"
     let n=R.harfNorm(inp.value,lg);if(lg==="ar"&&n.startsWith("ال"))n=n.length>2?n.slice(2).trim():"";
     if(lg==="en"&&n.startsWith("the "))n=n.slice(4);
@@ -849,7 +850,7 @@ function renderOverlay(){
       const e=todayEntry(),s=ds()?num(ds().streak):0,best=ds()?num(ds().best):0;
       const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,e.a[i],e.L,e.lg,0,{base:true,rare:false,appeal:apiOn!==false},i)));
       const out=[langSeg(),el("h2",null,LGN[drun.lg]+" · "+t("doneTitle",{c:e.c})),ul];
-      const canAppeal=e.a.some(a=>a.w&&!a.ok&&!a.l&&!a.ap);
+      const canAppeal=e.a.some(a=>a.w&&!a.ok&&!a.l&&!a.ap&&!a.u);
       if(appealMsg)out.push(el("p","note warn",t(appealMsg)));
       else if(canAppeal&&apiOn!==false)out.push(el("p","note",t("appealHelp")+" "+t("appealsLeft",{n:num(ds().appealsLeft)})));
       if(e.sb){const b=el("div","bonus");b.append(el("span",null,t("streakBonus")),el("span",null,"+"+e.sb));out.push(b)}

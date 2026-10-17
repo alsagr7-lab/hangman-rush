@@ -45,14 +45,27 @@ Answers are checked cheapest first:
 4. **The Claude API**, only for words not found above, when `ANTHROPIC_API_KEY` is set:
 
 - Every verdict is saved (`harf_words`), so each word is asked about once, ever. A day with five players is usually one small request.
-- At most `HARF_API_PER_HOUR` calls an hour (default 60). Set a monthly spend limit in the Claude Console too.
-- Without a key, or if the API is down, answers with the right first letter count and show "not checked"; the overnight pass asks again.
+- At most `HARF_API_PER_HOUR` calls an hour (default 60), of which rooms and practice may use half, so the dailies always have room. Set a monthly spend limit in the Claude Console too.
+- **Rooms and practice:** each network (IP address) gets `HARF_ROOM_AI_PER_IP_DAY` AI calls a day (default 40); past that, or when the hourly share is used, rooms check the first letter and the word lists only.
+- **Unchecked answers:** in the daily, an answer that couldn't be checked (no key, API down, ceiling reached) scores 0 and shows "being checked". It's tried again when the player next opens the daily (at most once a minute) and in the overnight pass; points are added when it's confirmed. A day with answers still unchecked waits up to two days before its rarity bonuses are counted. Answers of more than three words are turned down without asking.
+- **Untrusted text:** answers go to the referee as JSON data with an instruction never to follow what they say, and the overnight pass checks one player's answers per request.
 - **Misspellings:** a misspelt answer counts when it's clear what was meant ("catapilar" → caterpillar). The player sees "Counted as “Caterpillar”", and the corrected spelling is what's compared for rare and shared answers. The correction is saved with the verdict.
 - **Appeals:** a player can appeal an answer turned down for its category (not one with the wrong first letter). A stronger model (`HARF_APPEAL_MODEL`, default `claude-sonnet-5-5`) takes a second look, allowing rare, classical, regional and dialect words. A win counts at once (in the daily it can complete a perfect day and its streak bonus) and the word is accepted for everyone from then on. Up to `HARF_APPEALS_PER_DAY` per player (default 5); daily appeals close at midnight UTC.
-- **Per network:** each network (IP address) gets AI checks for `HARF_IP_ACCOUNTS` player ids a month (default 20). More ids from the same network still play, checked by first letter and the word lists only, with no appeals, so shared networks (campus Wi-Fi, mobile carriers) never lock anyone out. Addresses are hashed with a server secret; the database never holds an IP address.
 - The hourly ceiling is counted per clock hour and saved, so restarts and wake-ups don't reset it.
 - **Admin page:** set `ADMIN_KEY` (a password you choose) on `hangman-rush`, then open `/admin` on the game server's address (`/admin/harf` still works). Overview: visitors per page (today, 7 and 30 days; devices, never IPs) and players per game. A tab per game lists its players and can hide one from that game's leaderboards (reversible). The Harf tab also has API usage and the saved verdicts, where a wrong verdict can be switched; a change applies from then on.
 - Optional: `HARF_MODEL` (default `claude-haiku-5-5`). The daily letter order is shuffled with `HARF_KEY` (falls back to `DAILY_KEY`), so the public code can't reveal tomorrow's letter.
+
+## Limits against abuse
+
+All in `limits.js`, kept in memory (a restart clears them):
+
+- **Real address:** taken from `CF-Connecting-IP` (set by Cloudflare in front of Render), else the last `X-Forwarded-For` entry; never the first, which the visitor controls. `GET /api/whoami` shows what the server sees for you.
+- **Writes:** 120 a minute per address across the API; Hangman saves 30 a minute; Harf checks 20 a minute; trivia room picks 12 a minute; visit counts 20 a minute (extra ones are ignored); admin requests 20 a minute.
+- **New players:** an address may start `NEW_IDS_PER_IP_DAY` new player ids a day (default 40).
+- **One owner per id:** a player's records in all three games must share one token, so nobody can claim an unused game slot and lock a player out (`ident.js`).
+- **Live rooms:** 12 connections per address, 4 rooms per connection, 20 players per room, 10 messages a second per connection.
+- **Trivia level:** room results can lower a player's level by at most 3 steps a day.
+- **Names** that pass for staff (Admin, Moderator, مشرف…) show as "Player".
 
 ## Run locally
 

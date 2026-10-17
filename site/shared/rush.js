@@ -256,8 +256,9 @@
       } catch (e) {
         // the server may still be waking: try again once it's up rather than giving up
         if (serverState !== "up") { ready.then(refresh); return; }
+        // a failed load (a restart, a dropped connection) is reported but the board stays subscribed: the next
+        // 15-second tick tries again, and the next good load clears the error
         listeners.forEach(s => { if (s.err) { try { s.err({ code: "unavailable", message: String(e) }); } catch {} } });
-        listeners.clear();
       }
     }
     setInterval(() => { if (listeners.size && document.visibilityState === "visible") refresh(); }, 15000);
@@ -272,10 +273,11 @@
       const id = path.split("/")[1];
       return {
         async set(data) {
+          // a dropped connection becomes {status: 0}, so the page can tell it apart from a refusal and try again
           const r = await fetch(http("/api/players/" + encodeURIComponent(id)), {
             method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, data }),
-          });
-          if (!r.ok) throw { code: r.status === 403 ? "permission_denied" : "invalid_argument", message: "Save failed (" + r.status + ")" };
+          }).catch(() => { throw { code: "unavailable", status: 0, message: "Save failed (offline)" }; });
+          if (!r.ok) throw { code: r.status === 403 ? "permission_denied" : "invalid_argument", status: r.status, message: "Save failed (" + r.status + ")" };
           colOf("players").refresh();
         },
       };
