@@ -23,9 +23,13 @@ th,td{text-align:start;padding:7px 6px;border-top:1px solid var(--line);vertical
 th{font-size:12px;color:var(--muted);font-weight:700;border-top:0}
 td.w{font-weight:700;overflow-wrap:break-word;min-width:110px}
 /* on a phone: word, category, verdict and the button */
-@media (max-width:560px){th:nth-child(3),td:nth-child(3),th:nth-child(5),td:nth-child(5){display:none}}
+@media (max-width:560px){#vt th:nth-child(3),#vt td:nth-child(3),#vt th:nth-child(5),#vt td:nth-child(5){display:none}
+  #useCard table{font-size:13px}#useCard td,#useCard th{padding:7px 4px}}
 .ok{color:var(--good);font-weight:700}.no{color:var(--hot);font-weight:700}
 td button{padding:4px 10px;font-size:13px}
+td.n,th.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
+h2{margin:0;font-size:16px}
+details summary{cursor:pointer;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
@@ -36,13 +40,21 @@ td button{padding:4px 10px;font-size:13px}
     <div class="row"><input type="password" id="key" placeholder="Admin key" autocomplete="current-password"><button id="go">Load</button></div>
     <p class="note" id="status"></p>
   </div>
+  <div class="card" id="useCard" hidden>
+    <h2>API usage</h2>
+    <table><thead><tr><th></th><th class="n">Checks</th><th class="n">Appeals</th><th class="n">Tokens in / out</th><th class="n">Est. cost</th></tr></thead><tbody id="use"></tbody></table>
+    <details><summary>By day (last 14 days, UTC)</summary>
+      <table><thead><tr><th>Day</th><th class="n">Checks</th><th class="n">Appeals</th><th class="n">Est. cost</th></tr></thead><tbody id="useDays"></tbody></table>
+    </details>
+    <p class="note">Estimated from the tokens Claude reports on each call, at list prices (checks $<span id="pc"></span>, appeals $<span id="pa"></span> per million tokens in / out). Counting started when this page got the usage section, so older calls aren't included; the Claude Console's usage page has the exact bill.</p>
+  </div>
   <div class="card" id="listCard" hidden>
     <div class="row">
       <input type="search" id="q" placeholder="Search a word">
       <select id="lg"><option value="">All languages</option><option value="ar">Arabic</option><option value="en">English</option></select>
       <select id="ok"><option value="">Valid and not valid</option><option value="1">Valid</option><option value="0">Not valid</option></select>
     </div>
-    <table><thead><tr><th>Word</th><th>Category</th><th>Lang</th><th>Verdict</th><th>When</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+    <table id="vt"><thead><tr><th>Word</th><th>Category</th><th>Lang</th><th>Verdict</th><th>When</th><th></th></tr></thead><tbody id="rows"></tbody></table>
   </div>
 </div>
 <script>
@@ -61,8 +73,24 @@ async function load(){
   const st=$("#status");st.className="note";st.textContent="Loading…";
   try{const d=await call("/api/harf/admin/verdicts");list=d.list;
     st.textContent=list.length+" saved verdicts (latest 400). API calls this hour: "+(d.hour?d.hour.n:0)+" of "+d.perHour+". AI checks: "+d.ipAccounts+" player ids per network a month.";
-    $("#listCard").hidden=false;render()}
-  catch(e){st.className="note err";st.textContent=e.message;$("#listCard").hidden=true}
+    $("#listCard").hidden=false;render();usage(d.usage)}
+  catch(e){st.className="note err";st.textContent=e.message;$("#listCard").hidden=true;$("#useCard").hidden=true}
+}
+const num=n=>Number(n||0).toLocaleString();
+function usage(u){
+  if(!u){$("#useCard").hidden=true;return}
+  const P=u.price,cost=t=>["check","appeal"].reduce((s,k)=>s+(t[k].in*P[k][0]+t[k].out*P[k][1])/1e6,0);
+  const money=c=>c<0.01&&c>0?"<$0.01":"$"+c.toFixed(2);
+  const row=(tb,cells)=>{const tr=document.createElement("tr");cells.forEach((c,i)=>{const td=document.createElement("td");if(i)td.className="n";td.textContent=c;tr.appendChild(td)});tb.appendChild(tr)};
+  const tb=$("#use");tb.textContent="";
+  [["24 hours","day"],["7 days","week"],["30 days","month"]].forEach(([l,k])=>{const t=u.periods[k];
+    row(tb,[l,num(t.check.calls),num(t.appeal.calls),num(t.check.in+t.appeal.in)+" / "+num(t.check.out+t.appeal.out),money(cost(t))])});
+  const td=$("#useDays");td.textContent="";
+  const days=Object.keys(u.days).sort().reverse();
+  if(!days.length)row(td,["Nothing yet","","",""]);
+  days.forEach(d=>{const t=u.days[d];row(td,[d,num(t.check.calls),num(t.appeal.calls),money(cost(t))])});
+  $("#pc").textContent=P.check[0]+" / "+P.check[1];$("#pa").textContent=P.appeal[0]+" / "+P.appeal[1];
+  $("#useCard").hidden=false;
 }
 function render(){
   const q=$("#q").value.trim().toLowerCase(),lg=$("#lg").value,ok=$("#ok").value,tb=$("#rows");tb.textContent="";

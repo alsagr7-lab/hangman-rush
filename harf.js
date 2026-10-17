@@ -32,6 +32,11 @@ const MODEL = process.env.HARF_MODEL || "claude-haiku-5-5";
 const CALLS_PER_HOUR = Math.max(1, Number(process.env.HARF_API_PER_HOUR) || 60);
 // each network (IP address) gets AI checks for this many player ids a month; more ids still play, checked without AI
 const IP_ACCOUNTS = Math.max(1, Number(process.env.HARF_IP_ACCOUNTS) || 20);
+// list prices per million tokens, for the admin page's cost estimate (input, output)
+const PRICE = {
+  check: [Number(process.env.HARF_PRICE_IN) || 0.1, Number(process.env.HARF_PRICE_OUT) || 0.5],
+  appeal: [Number(process.env.HARF_APPEAL_PRICE_IN) || 2, Number(process.env.HARF_APPEAL_PRICE_OUT) || 10],
+};
 // the admin page (/admin/harf) for reviewing saved verdicts; off unless ADMIN_KEY is set
 const ADMIN_KEY = process.env.ADMIN_KEY || "";
 const LANGS = ["ar", "en"];
@@ -121,7 +126,22 @@ function prompt(lg, items) {
 }
 // one request to the Claude API -> the parsed JSON object in its reply, or null when the API isn't set up, is over
 // its hourly ceiling, or fails
-async function callModel(model, system, user, maxTokens) {
+/* usage, from the token counts Claude reports on each call, kept per clock hour for 35 days ("usage:2026-10-17T21") */
+const usageHour = new Map(); // hour key -> {check: {calls, in, out}, appeal: {...}}
+async function recordUsage(kind, u) {
+  const k = "usage:" + new Date().toISOString().slice(0, 13);
+  let h = usageHour.get(k);
+  if (!h) {
+    h = (await store.metaGet(k).catch(() => null)) || {};
+    if (usageHour.size > 48) usageHour.clear();
+    usageHour.set(k, h);
+  }
+  const x = (h[kind] = h[kind] || { calls: 0, in: 0, out: 0 });
+  x.calls++; x.in += Number(u && u.input_tokens) || 0; x.out += Number(u && u.output_tokens) || 0;
+  store.metaPut(k, h).catch(e => console.error("Harf: saving usage", e.message));
+  if (Math.random() < 0.02) store.metaPruneBefore("usage:", "usage:" + new Date(Date.now() - 35 * R.DAY).toISOString().slice(0, 13)).catch(() => {});
+}
+async function callModel(model, system, user, maxTokens, kind = "check") {
   if (!API_KEY) return null;
   if (!(await takeCall())) { console.warn("Harf: hourly API ceiling reached"); return null; }
   try {
@@ -133,6 +153,7 @@ async function callModel(model, system, user, maxTokens) {
     });
     const j = await r.json().catch(() => null);
     if (!r.ok || !j) { console.warn("Harf: API error", r.status, j && j.error && j.error.message); return null; }
+    recordUsage(kind, j.usage).catch(() => {});
     const text = (j.content || []).map(c => c.text || "").join("");
     const m = text.match(/\{[\s\S]*\}/);
     try { if (m) return JSON.parse(m[0]); } catch {}
@@ -185,7 +206,7 @@ async function appealWord(lg, cat, w, letter) {
     `dialect and transliterated words, alternative spellings, and well-known proper nouns. Turn it down if it is made up, ` +
     `in the wrong category, or doesn't start with the letter (a leading ال or "the" doesn't count).\n\n` +
     `Reply with JSON only, nothing else: {"ok":1 or 0,"why":"one short sentence (under 20 words) for the player, in ${lg === "ar" ? "Arabic" : "English"}"}`,
-    `Language: ${lg === "ar" ? "Arabic" : "English"}\ncategory=${cat} | letter=${letter} | answer=${JSON.stringify(w)}`, 600);
+    `Language: ${lg === "ar" ? "Arabic" : "English"}\ncategory=${cat} | letter=${letter} | answer=${JSON.stringify(w)}`, 600, "appeal");
   // the referee may answer 1/0, true/false or "yes"/"no"
   const v = o && (o.ok !== undefined ? o.ok : o.valid);
   const yes = v === true || v === 1 || /^(1|true|yes|valid)$/i.test(String(v));
@@ -583,6 +604,22 @@ async function handle(req, res, url, { send, readJson }) {
 /* ---------- admin: review saved verdicts ----------
    GET /api/harf/admin/verdicts lists the latest; POST /api/harf/admin/verdict {k, ok} changes one. Both need the
    x-admin-key header to match ADMIN_KEY. A change applies to answers from then on; past scores stay as they were. */
+// totals for the last 24 hours, 7 days and 30 days, plus one row per day for the last 14
+async function usageSummary() {
+  const now = Date.now(), hk = t => "usage:" + new Date(t).toISOString().slice(0, 13);
+  const rows = await store.metaSince("usage:", hk(now - 30 * R.DAY)).catch(() => []);
+  const empty = () => ({ check: { calls: 0, in: 0, out: 0 }, appeal: { calls: 0, in: 0, out: 0 } });
+  const add = (t, v) => { for (const kind of ["check", "appeal"]) if (v && v[kind]) for (const f of ["calls", "in", "out"]) t[kind][f] += Number(v[kind][f]) || 0; };
+  const periods = { day: empty(), week: empty(), month: empty() }, days = {};
+  for (const { k, v } of rows) {
+    if (k >= hk(now - R.DAY)) add(periods.day, v);
+    if (k >= hk(now - 7 * R.DAY)) add(periods.week, v);
+    add(periods.month, v);
+    const d = k.slice(6, 16);
+    if (d >= new Date(now - 13 * R.DAY).toISOString().slice(0, 10)) add((days[d] = days[d] || empty()), v);
+  }
+  return { periods, days, price: PRICE };
+}
 function adminOk(req) {
   if (!ADMIN_KEY) return false;
   const a = crypto.createHash("sha256").update(String(req.headers["x-admin-key"] || "")).digest();
@@ -592,7 +629,7 @@ function adminOk(req) {
 async function admin(req, res, p, { send, readJson }) {
   if (!adminOk(req)) { send(res, ADMIN_KEY ? 403 : 404, { error: ADMIN_KEY ? "Wrong admin key" : "Not found" }); return true; }
   if (p === "/api/harf/admin/verdicts" && req.method === "GET") {
-    send(res, 200, { hour: hour.k ? hour : null, perHour: CALLS_PER_HOUR, ipAccounts: IP_ACCOUNTS, list: await store.wordsRecent(400) });
+    send(res, 200, { hour: hour.k ? hour : null, perHour: CALLS_PER_HOUR, ipAccounts: IP_ACCOUNTS, list: await store.wordsRecent(400), usage: await usageSummary() });
     return true;
   }
   if (p === "/api/harf/admin/verdict" && req.method === "POST") {
