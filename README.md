@@ -37,7 +37,12 @@ The home page (`/`) links all three, with today's status for each.
 
 ### Checking answers
 
-The first letter is checked by the server. Whether a word fits its category ("is قنفذ an animal?") is asked of the Claude API when `ANTHROPIC_API_KEY` is set:
+Answers are checked cheapest first:
+
+1. **First letter**, by the server.
+2. **Built-in word lists** in `content/harf/ar.json` and `en.json`: about 1,450 Arabic and 960 English names, animals, plants, objects and places. No AI needed. Add words to the right category and run `node scripts/check-harf.js`, which reports repeats and letters with few words.
+3. **Saved verdicts** from earlier checks.
+4. **The Claude API**, only for words not found above, when `ANTHROPIC_API_KEY` is set:
 
 - Every verdict is saved (`harf_words`), so each word is asked about once, ever. A day with five players is usually one small request.
 - At most `HARF_API_PER_HOUR` calls an hour (default 60). Set a monthly spend limit in the Claude Console too.

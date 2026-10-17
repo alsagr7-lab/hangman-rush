@@ -5,13 +5,18 @@
 // perfect-streak bonus (+1 per day in a row, up to +5; a missed or imperfect day resets it). After midnight the
 // server counts how many players gave each answer and adds a rarity bonus, which players see the next day.
 //
-// Answers are checked in two steps: the first letter here, then whether the word fits its category. That second
-// check asks the Claude API (ANTHROPIC_API_KEY) and remembers every verdict, so each word is only ever asked about
-// once. Without a key, or when the API can't be reached, answers with the right first letter count, marked as not
-// checked; the nightly pass tries those again.
+// Answers are checked in steps, cheapest first:
+//   1. the first letter, here;
+//   2. the built-in word lists in content/harf/ (common names, animals, plants, objects and places), no AI needed;
+//   3. verdicts saved from earlier checks (harf_words);
+//   4. only then the Claude API (ANTHROPIC_API_KEY), whose verdict is saved so each word is only ever asked about once.
+// Without a key, or when the API can't be reached, an unknown word with the right first letter counts, marked as
+// not checked; the nightly pass tries those again.
 //
 // Rooms and solo practice run in the browser; they use /api/harf/check for the same answer check.
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const R = require("./site/shared/rules");
 const store = require("./store");
 
@@ -38,6 +43,16 @@ function letterFor(n, lg) {
 /* ---------- checking answers ---------- */
 const verdicts = new Map(); // "lang|category|key" -> 1 / 0, in memory on top of the database
 const vkey = (lg, cat, w) => `${lg}|${cat}|${R.harfKey(w, lg)}`;
+
+// the built-in word lists: content/harf/<lang>.json = {category: [words]}
+const KNOWN = new Set();
+for (const lg of ["ar", "en"]) {
+  try {
+    const list = JSON.parse(fs.readFileSync(path.join(__dirname, "content", "harf", lg + ".json"), "utf8"));
+    for (const cat of H.CATS) for (const w of list[cat] || []) KNOWN.add(vkey(lg, cat, w));
+  } catch (e) { console.warn(`Harf: word list ${lg} missing:`, e.message); }
+}
+console.log(`Harf word list: ${KNOWN.size} words`);
 let calls = [];
 
 const CAT_RULES = {
@@ -87,7 +102,7 @@ async function askClaude(lg, items) {
 // items [{cat, w, letter}] (letters already checked) -> array of 1 / 0 / null (not checked)
 async function judge(lg, items) {
   const keys = items.map(x => vkey(lg, x.cat, x.w));
-  const out = keys.map(k => (verdicts.has(k) ? verdicts.get(k) : null));
+  const out = keys.map(k => (KNOWN.has(k) ? 1 : verdicts.has(k) ? verdicts.get(k) : null));
   const missing = keys.filter((k, i) => out[i] == null);
   if (missing.length) {
     const found = await store.wordsGet([...new Set(missing)]).catch(() => new Map());
