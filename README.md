@@ -49,6 +49,9 @@ Answers are checked cheapest first:
 - Without a key, or if the API is down, answers with the right first letter count and show "not checked"; the overnight pass asks again.
 - **Misspellings:** a misspelt answer counts when it's clear what was meant ("catapilar" → caterpillar). The player sees "Counted as “Caterpillar”", and the corrected spelling is what's compared for rare and shared answers. The correction is saved with the verdict.
 - **Appeals:** a player can appeal an answer turned down for its category (not one with the wrong first letter). A stronger model (`HARF_APPEAL_MODEL`, default `claude-sonnet-5-5`) takes a second look, allowing rare, classical, regional and dialect words. A win counts at once (in the daily it can complete a perfect day and its streak bonus) and the word is accepted for everyone from then on. Up to `HARF_APPEALS_PER_DAY` per player (default 5); daily appeals close at midnight UTC.
+- **Per network:** each network (IP address) gets AI checks for `HARF_IP_ACCOUNTS` player ids a month (default 20). More ids from the same network still play, checked by first letter and the word lists only, with no appeals, so shared networks (campus Wi-Fi, mobile carriers) never lock anyone out. Addresses are hashed with a server secret; the database never holds an IP address.
+- The hourly ceiling is counted per clock hour and saved, so restarts and wake-ups don't reset it.
+- **Admin page:** set `ADMIN_KEY` (a password you choose) on `hangman-rush`, then open `/admin/harf` on the game server's address. It lists the latest saved verdicts (with spelling corrections), the API calls this hour, and lets you switch a wrong verdict. A change applies from then on; past scores stay as they were.
 - Optional: `HARF_MODEL` (default `claude-haiku-5-5`). The daily letter order is shuffled with `HARF_KEY` (falls back to `DAILY_KEY`), so the public code can't reveal tomorrow's letter.
 
 ## Run locally

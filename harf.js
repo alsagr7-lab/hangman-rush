@@ -30,6 +30,10 @@ const API_URL = process.env.HARF_API_URL || "https://api.anthropic.com/v1/messag
 const MODEL = process.env.HARF_MODEL || "claude-haiku-5-5";
 // a ceiling on API calls, so a bug or a busy day can't run up a bill
 const CALLS_PER_HOUR = Math.max(1, Number(process.env.HARF_API_PER_HOUR) || 60);
+// each network (IP address) gets AI checks for this many player ids a month; more ids still play, checked without AI
+const IP_ACCOUNTS = Math.max(1, Number(process.env.HARF_IP_ACCOUNTS) || 20);
+// the admin page (/admin/harf) for reviewing saved verdicts; off unless ADMIN_KEY is set
+const ADMIN_KEY = process.env.ADMIN_KEY || "";
 const LANGS = ["ar", "en"];
 
 /* ---------- the daily letter ----------
@@ -53,7 +57,43 @@ for (const lg of ["ar", "en"]) {
   } catch (e) { console.warn(`Harf: word list ${lg} missing:`, e.message); }
 }
 console.log(`Harf word list: ${KNOWN.size} words`);
-let calls = [];
+/* the hourly ceiling, counted per clock hour and saved, so a restart or a wake-up doesn't reset it */
+let hour = { k: "", n: 0 };
+async function takeCall() {
+  const k = new Date().toISOString().slice(0, 13);
+  if (hour.k !== k) {
+    const saved = await store.metaGet("api_hour").catch(() => null);
+    hour = saved && saved.k === k ? { k, n: Number(saved.n) || 0 } : { k, n: 0 };
+  }
+  if (hour.n >= CALLS_PER_HOUR) return false;
+  hour.n++;
+  store.metaPut("api_hour", { k, n: hour.n }).catch(e => console.error("Harf: saving the hourly count", e.message));
+  return true;
+}
+
+/* how many player ids each network uses AI checks for, a month. Addresses are hashed with a server secret first,
+   so the database never holds anyone's IP address. */
+const ipSets = new Map(); // "month|hash" -> Set(uid)
+const ipHash = ip => crypto.createHash("sha256").update((SECRET || "rush") + "|" + ip).digest("hex").slice(0, 32);
+function clientIp(req) {
+  const f = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return f || (req.socket && req.socket.remoteAddress) || "";
+}
+async function aiAllowed(uid, ip) {
+  if (!API_KEY || !ip) return true;
+  const month = R.todayKey().slice(0, 7), h = ipHash(ip), key = month + "|" + h;
+  let set = ipSets.get(key);
+  if (!set) {
+    set = new Set(await store.ipUids(h, month).catch(() => []));
+    if (ipSets.size > 5000) ipSets.clear();
+    ipSets.set(key, set);
+  }
+  if (set.has(uid)) return true;
+  if (set.size >= IP_ACCOUNTS) return false;
+  set.add(uid);
+  store.ipAdd(h, month, uid).catch(e => console.error("Harf: saving a network's ids", e.message));
+  return true;
+}
 
 const CAT_RULES = {
   name: "a real person's first name (from any culture or language), or the name of a well-known person",
@@ -81,10 +121,7 @@ function prompt(lg, items) {
 // its hourly ceiling, or fails
 async function callModel(model, system, user, maxTokens) {
   if (!API_KEY) return null;
-  const now = Date.now();
-  calls = calls.filter(t => now - t < 36e5);
-  if (calls.length >= CALLS_PER_HOUR) { console.warn("Harf: hourly API ceiling reached"); return null; }
-  calls.push(now);
+  if (!(await takeCall())) { console.warn("Harf: hourly API ceiling reached"); return null; }
   try {
     const r = await fetch(API_URL, {
       method: "POST",
@@ -149,7 +186,7 @@ async function appealWord(lg, cat, w, letter) {
   return { ok, why };
 }
 // items [{cat, w, letter}] (letters already checked) -> array of {ok: 1/0, fix} or null (not checked)
-async function judge(lg, items) {
+async function judge(lg, items, useAI = true) {
   const keys = items.map(x => vkey(lg, x.cat, x.w));
   const out = keys.map(k => (KNOWN.has(k) ? { ok: 1, fix: null } : verdicts.has(k) ? verdicts.get(k) : null));
   const missing = keys.filter((k, i) => out[i] == null);
@@ -160,7 +197,7 @@ async function judge(lg, items) {
   // ask about each unknown word once, in batches
   const ask = [], seen = new Set();
   items.forEach((x, i) => { if (out[i] == null && !seen.has(keys[i])) { seen.add(keys[i]); ask.push({ ...x, k: keys[i] }); } });
-  for (let s = 0; s < ask.length; s += 40) {
+  for (let s = 0; useAI && s < ask.length; s += 40) {
     const batch = ask.slice(s, s + 40), res = await askClaude(lg, batch);
     if (!res) break;
     const pairs = batch.map((x, j) => [x.k, res[j]]);
@@ -171,7 +208,7 @@ async function judge(lg, items) {
 }
 const clean = w => String(w == null ? "" : w).replace(/\s+/g, " ").trim().slice(0, H.MAXLEN);
 // -> [{w, ok: 1/0, f?: correct spelling, u?: 1 (not checked), l?: 1 (wrong letter)}] x5
-async function check(lg, letter, raw) {
+async function check(lg, letter, raw, useAI = true) {
   const words = H.CATS.map((_, i) => clean(Array.isArray(raw) ? raw[i] : ""));
   const out = words.map(w => ({ w, ok: 0 })), todo = [];
   words.forEach((w, i) => {
@@ -179,7 +216,7 @@ async function check(lg, letter, raw) {
     if (!R.harfLetterOk(w, letter, lg)) { out[i].l = 1; return; }
     todo.push(i);
   });
-  const v = await judge(lg, todo.map(i => ({ cat: H.CATS[i], w: words[i], letter })));
+  const v = await judge(lg, todo.map(i => ({ cat: H.CATS[i], w: words[i], letter })), useAI);
   todo.forEach((i, k) => { if (v[k] == null) { out[i].ok = 1; out[i].u = 1; } else { out[i].ok = v[k].ok; if (v[k].ok && v[k].fix) out[i].f = v[k].fix; } });
   return out;
 }
@@ -263,8 +300,8 @@ function withLock(uid, fn) {
 /* ---------- the daily run ----------
    rec.run = {d: day key, n, lg, L: letter, at: start time, dr: latest saved draft [5 words]} */
 const deadline = run => run.at + H.DAILY_MS + H.GRACE_MS;
-async function finish(rec, run, raw, usedMs) {
-  const a = await check(run.lg, run.L, raw);
+async function finish(rec, run, raw, usedMs, useAI = true) {
+  const a = await check(run.lg, run.L, raw, useAI);
   const c = a.filter(x => x.ok).length, perfect = c === N;
   const before = { ls: rec.ls, streak: rec.streak, best: rec.best, wins: rec.wins };
   R.countDaily(rec, perfect); // a perfect day extends the streak; an imperfect or missed one resets it
@@ -273,11 +310,11 @@ async function finish(rec, run, raw, usedMs) {
   rec.run = null;
 }
 // a run whose time ran out (the player closed the page) is scored with its last saved draft
-async function expire(rec) {
+async function expire(rec, useAI = true) {
   const run = rec.run;
   if (!run || run.d !== R.todayKey()) { if (run) rec.run = null; return !!run; }
   if (Date.now() <= deadline(run)) return false;
-  await finish(rec, run, run.dr || [], H.DAILY_MS);
+  await finish(rec, run, run.dr || [], H.DAILY_MS, useAI);
   return true;
 }
 function stateOut(rec) {
@@ -373,10 +410,11 @@ async function handle(req, res, url, { send, readJson }) {
     send(res, 200, { n: R.dailyNo(), cats: H.CATS, api: !!API_KEY, letters: H.LETTERS });
     return true;
   }
+  if (p.startsWith("/api/harf/admin/")) return admin(req, res, p, { send, readJson });
   if (req.method !== "POST") return false;
   const body = await readJson(req);
   if (!body) { send(res, 400, { error: "Body must be JSON" }); return true; }
-  const lgOf = v => (LANGS.includes(v) ? v : "ar");
+  const lgOf = v => (LANGS.includes(v) ? v : "ar"), ip = clientIp(req);
 
   // rooms and practice: check one player's answers for a letter (a few seconds apart at most per player)
   if (p === "/api/harf/check") {
@@ -388,7 +426,7 @@ async function handle(req, res, url, { send, readJson }) {
     if (Date.now() - last < 3000) { send(res, 429, { error: "Too fast" }); return true; }
     checkCalls.set(uid, Date.now());
     if (checkCalls.size > 5000) checkCalls.clear();
-    send(res, 200, { a: await check(lg, letter, body.answers), api: !!API_KEY });
+    send(res, 200, { a: await check(lg, letter, body.answers, await aiAllowed(uid, ip)), api: !!API_KEY });
     return true;
   }
 
@@ -400,6 +438,7 @@ async function handle(req, res, url, { send, readJson }) {
     if (!H.LETTERS[lg].includes(letter) || !cat || !w) { send(res, 400, { error: "Expected {lg, L, i, w}" }); return true; }
     const key = R.todayKey() + "|" + uid, used = appealsToday.get(key) || 0;
     if (used >= APPEALS_PER_DAY) { send(res, 429, { error: "No appeals left today", left: 0 }); return true; }
+    if (!(await aiAllowed(uid, ip))) { send(res, 503, { error: "Appeals aren't available right now" }); return true; }
     const r = await appealWord(lg, cat, w, letter);
     if (!r) { send(res, 503, { error: "Appeals aren't available right now" }); return true; }
     appealsToday.set(key, used + 1);
@@ -416,21 +455,21 @@ async function handle(req, res, url, { send, readJson }) {
     if (typeof body.n === "string" && body.n.trim().length >= 2) rec.n = R.nm16(body.n.trim());
     if (body.c) rec.c = R.safeColor(body.c);
     const save = () => store.hPut(id, th, rec);
-    const today = R.todayKey(), n = R.dailyNo();
+    const today = R.todayKey(), n = R.dailyNo(), ai = await aiAllowed(uid, ip);
 
     if (p === "/api/harf/daily/state") {
       await ensureFinal();
       // the finishing pass may have just updated this record
       const fresh = await store.hGet(id);
       if (fresh) { const d = tidy(fresh.data); rec.h = d.h; }
-      const changed = await expire(rec);
+      const changed = await expire(rec, ai);
       if (changed || (fresh && (body.n || body.c))) await save();
       send(res, 200, stateOut(rec));
       return true;
     }
 
     if (p === "/api/harf/daily/start") {
-      await expire(rec);
+      await expire(rec, ai);
       if (rec.h[today]) { await save(); send(res, 409, { error: "Today's daily is finished", state: stateOut(rec) }); return true; }
       if (!rec.run || rec.run.d !== today) rec.run = { d: today, n, lg, L: letterFor(n, lg), at: Date.now(), dr: [] };
       await save();
@@ -454,6 +493,7 @@ async function handle(req, res, url, { send, readJson }) {
       if (!a || !a.w || a.ok || a.l || a.ap) { send(res, 409, { error: "That answer can't be appealed", state: stateOut(rec) }); return true; }
       rec.ap = rec.apd === today ? num(rec.ap) : 0; rec.apd = today;
       if (rec.ap >= APPEALS_PER_DAY) { send(res, 429, { error: "No appeals left today", left: 0, state: stateOut(rec) }); return true; }
+      if (!ai) { send(res, 503, { error: "Appeals aren't available right now", state: stateOut(rec) }); return true; }
       const r = await appealWord(e.lg, H.CATS[i], a.w, e.L);
       if (!r) { send(res, 503, { error: "Appeals aren't available right now", state: stateOut(rec) }); return true; }
       rec.ap++;
@@ -478,13 +518,13 @@ async function handle(req, res, url, { send, readJson }) {
     if (p === "/api/harf/daily/submit") {
       const run = rec.run;
       if (!run || run.d !== today) {
-        const changed = await expire(rec);
+        const changed = await expire(rec, ai);
         if (changed) await save();
         send(res, 409, { error: "No daily in progress", state: stateOut(rec) });
         return true;
       }
-      if (Date.now() > deadline(run)) await finish(rec, run, run.dr || [], H.DAILY_MS); // too late: the last saved draft counts
-      else await finish(rec, run, body.answers, Date.now() - run.at);
+      if (Date.now() > deadline(run)) await finish(rec, run, run.dr || [], H.DAILY_MS, ai); // too late: the last saved draft counts
+      else await finish(rec, run, body.answers, Date.now() - run.at, ai);
       await save();
       send(res, 200, stateOut(rec));
       return true;
@@ -493,6 +533,38 @@ async function handle(req, res, url, { send, readJson }) {
     send(res, 404, { error: "Not found" });
     return true;
   });
+}
+
+/* ---------- admin: review saved verdicts ----------
+   GET /api/harf/admin/verdicts lists the latest; POST /api/harf/admin/verdict {k, ok} changes one. Both need the
+   x-admin-key header to match ADMIN_KEY. A change applies to answers from then on; past scores stay as they were. */
+function adminOk(req) {
+  if (!ADMIN_KEY) return false;
+  const a = crypto.createHash("sha256").update(String(req.headers["x-admin-key"] || "")).digest();
+  const b = crypto.createHash("sha256").update(ADMIN_KEY).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+async function admin(req, res, p, { send, readJson }) {
+  if (!adminOk(req)) { send(res, ADMIN_KEY ? 403 : 404, { error: ADMIN_KEY ? "Wrong admin key" : "Not found" }); return true; }
+  if (p === "/api/harf/admin/verdicts" && req.method === "GET") {
+    send(res, 200, { hour: hour.k ? hour : null, perHour: CALLS_PER_HOUR, ipAccounts: IP_ACCOUNTS, list: await store.wordsRecent(400) });
+    return true;
+  }
+  if (p === "/api/harf/admin/verdict" && req.method === "POST") {
+    const body = await readJson(req);
+    const k = body && String(body.k || ""), ok = body && Number(body.ok) === 1 ? 1 : 0;
+    if (!/^(ar|en)\|(name|animal|plant|object|place)\|.+$/.test(k)) { send(res, 400, { error: "Expected {k, ok}" }); return true; }
+    // keep any spelling correction, so switching a verdict back and forth doesn't lose it
+    const prev = verdicts.get(k) || (await store.wordsGet([k])).get(k);
+    const v = { ok, fix: (prev && prev.fix) || null };
+    verdicts.set(k, v);
+    await store.wordsPut([[k, v]]);
+    console.log(`Harf admin: ${k} -> ${ok ? "valid" : "not valid"}`);
+    send(res, 200, { ok: true });
+    return true;
+  }
+  send(res, 404, { error: "Not found" });
+  return true;
 }
 
 module.exports = { handle, letterFor, check, prompt };

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Harf verdicts</title>
+<style>
+:root{--bg:#eef2f7;--surface:#fff;--ink:#1b2333;--muted:#5d6a80;--line:#d3dbe8;--good:#178a5c;--hot:#d93c30;--accent:#2c56e0;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#1a2120;--surface:#232c2a;--ink:#eef1ea;--muted:#9aa69f;--line:#35423e;--good:#5fd3a0;--hot:#ff7b6c;--accent:#8fb2ff;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI","IBM Plex Sans Arabic",sans-serif}
+.wrap{max-width:820px;margin:0 auto;padding:18px 16px 40px;display:grid;gap:14px}
+h1{margin:0;font-size:22px}
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,select{font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);min-width:0}
+input[type=password],input[type=search]{flex:1 1 180px}
+button{font:inherit;font-weight:700;padding:8px 12px;border-radius:8px;border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);cursor:pointer}
+.note{color:var(--muted);font-size:13px;margin:0}
+.err{color:var(--hot)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:start;padding:7px 6px;border-top:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;color:var(--muted);font-weight:700;border-top:0}
+td.w{font-weight:700;overflow-wrap:break-word;min-width:110px}
+/* on a phone: word, category, verdict and the button */
+@media (max-width:560px){th:nth-child(3),td:nth-child(3),th:nth-child(5),td:nth-child(5){display:none}}
+.ok{color:var(--good);font-weight:700}.no{color:var(--hot);font-weight:700}
+td button{padding:4px 10px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Harf Rush · saved verdicts</h1>
+  <p class="note">Every answer the AI has judged is saved and reused. Change a wrong one here; it applies to answers from now on (past scores stay as they were). Words in the built-in list are always valid and don't appear here.</p>
+  <div class="card">
+    <div class="row"><input type="password" id="key" placeholder="Admin key" autocomplete="current-password"><button id="go">Load</button></div>
+    <p class="note" id="status"></p>
+  </div>
+  <div class="card" id="listCard" hidden>
+    <div class="row">
+      <input type="search" id="q" placeholder="Search a word">
+      <select id="lg"><option value="">All languages</option><option value="ar">Arabic</option><option value="en">English</option></select>
+      <select id="ok"><option value="">Valid and not valid</option><option value="1">Valid</option><option value="0">Not valid</option></select>
+    </div>
+    <table><thead><tr><th>Word</th><th>Category</th><th>Lang</th><th>Verdict</th><th>When</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+  </div>
+</div>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const CAT={name:"Name",animal:"Animal",plant:"Plant",object:"Object",place:"Place"};
+let list=[],key="";
+try{key=sessionStorage.getItem("harf-admin")||""}catch(e){}
+$("#key").value=key;
+async function call(path,opts){
+  const r=await fetch(path,Object.assign({cache:"no-store"},opts||{},{headers:Object.assign({"x-admin-key":key,"Content-Type":"application/json"},(opts||{}).headers||{})}));
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j;
+}
+async function load(){
+  key=$("#key").value.trim();try{sessionStorage.setItem("harf-admin",key)}catch(e){}
+  const st=$("#status");st.className="note";st.textContent="Loading…";
+  try{const d=await call("/api/harf/admin/verdicts");list=d.list;
+    st.textContent=list.length+" saved verdicts (latest 400). API calls this hour: "+(d.hour?d.hour.n:0)+" of "+d.perHour+". AI checks: "+d.ipAccounts+" player ids per network a month.";
+    $("#listCard").hidden=false;render()}
+  catch(e){st.className="note err";st.textContent=e.message;$("#listCard").hidden=true}
+}
+function render(){
+  const q=$("#q").value.trim().toLowerCase(),lg=$("#lg").value,ok=$("#ok").value,tb=$("#rows");tb.textContent="";
+  list.filter(v=>{const [l,,w]=v.k.split("|");return (!lg||l===lg)&&(ok===""||String(v.ok)===ok)&&(!q||w.toLowerCase().includes(q)||(v.fix||"").toLowerCase().includes(q))})
+    .forEach(v=>{const [l,c,...rest]=v.k.split("|"),w=rest.join("|");const tr=document.createElement("tr");
+      const td=(t,cls)=>{const x=document.createElement("td");if(cls)x.className=cls;x.textContent=t;tr.appendChild(x);return x};
+      const wt=td(w+(v.fix?" → "+v.fix:""),"w");wt.dir="auto";
+      td(CAT[c]||c);td(l==="ar"?"عربي":"EN");td(v.ok?"valid":"not valid",v.ok?"ok":"no");
+      td(v.at?new Date(v.at).toLocaleString():"");
+      const b=document.createElement("button");b.textContent=v.ok?"Mark not valid":"Mark valid";
+      b.onclick=async()=>{b.disabled=true;try{await call("/api/harf/admin/verdict",{method:"POST",body:JSON.stringify({k:v.k,ok:v.ok?0:1})});v.ok=v.ok?0:1;render()}catch(e){b.textContent=e.message}};
+      const a=document.createElement("td");a.appendChild(b);tr.appendChild(a);tb.appendChild(tr)});
+}
+$("#go").onclick=load;$("#key").addEventListener("keydown",e=>{if(e.key==="Enter")load()});
+["#q","#lg","#ok"].forEach(s=>$(s).addEventListener("input",render));
+if(key)load();
+})();
+</script>
+</body>
+</html>

@@ -8,12 +8,14 @@
 //   trivia_seen     which room/practice questions each player has seen, and when
 //   harf_players    Harf Rush daily records, written by the server (it times and checks every answer)
 //   harf_words      verdicts on Harf Rush answers ("lang|category|word" -> valid or not), so each word is checked once
+//   harf_ip         which player ids each network (a hashed IP address, never the address itself) used AI checks for, by month
+//   harf_meta       small counters, such as this hour's Claude API calls, kept across restarts
 const fs = require("fs");
 const path = require("path");
 
 function jsonStore() {
   const file = process.env.DATA_FILE || path.join(__dirname, "data", "players.json");
-  let db = { players: {}, trivia: {}, seen: {}, harf: {}, words: {} };
+  let db = { players: {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {} };
   let writing = Promise.resolve();
   const flush = () => (writing = writing.then(() => fs.promises.writeFile(file, JSON.stringify(db))).catch(e => console.error(e)));
   return {
@@ -23,8 +25,8 @@ function jsonStore() {
       try {
         const raw = JSON.parse(fs.readFileSync(file, "utf8"));
         // older files held only the Hangman players
-        db = raw && raw.players ? { players: raw.players, trivia: raw.trivia || {}, seen: raw.seen || {}, harf: raw.harf || {}, words: raw.words || {} }
-          : { players: raw || {}, trivia: {}, seen: {}, harf: {}, words: {} };
+        db = raw && raw.players ? { players: raw.players, trivia: raw.trivia || {}, seen: raw.seen || {}, harf: raw.harf || {}, words: raw.words || {}, ip: raw.ip || {}, meta: raw.meta || {} }
+          : { players: raw || {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {} };
       } catch { /* fresh file */ }
     },
     async all() { return Object.entries(db.players).map(([id, r]) => ({ id, data: r.data })); },
@@ -42,7 +44,20 @@ function jsonStore() {
     async hDel(id) { delete db.harf[id]; return flush(); },
     // verdicts: {ok: 1/0, fix: correct spelling or null}; older files hold a bare 1/0
     async wordsGet(keys) { const m = new Map(); for (const k of keys) if (k in db.words) { const v = db.words[k]; m.set(k, typeof v === "object" && v ? { ok: Number(v.ok) ? 1 : 0, fix: v.fix || null } : { ok: Number(v) ? 1 : 0, fix: null }); } return m; },
-    async wordsPut(pairs) { for (const [k, v] of pairs) db.words[k] = { ok: v.ok ? 1 : 0, fix: v.fix || null }; return flush(); },
+    async wordsPut(pairs) { for (const [k, v] of pairs) db.words[k] = { ok: v.ok ? 1 : 0, fix: v.fix || null, at: Date.now() }; return flush(); },
+    async wordsRecent(limit) {
+      return Object.entries(db.words).map(([k, v]) => ({ k, ok: typeof v === "object" ? Number(v.ok) : Number(v), fix: (v && v.fix) || null, at: (v && v.at) || 0 }))
+        .sort((a, b) => b.at - a.at).slice(0, limit);
+    },
+    async ipUids(ip, month) { return ((db.ip[month] || {})[ip]) || []; },
+    async ipAdd(ip, month, uid) {
+      for (const m of Object.keys(db.ip)) if (m < month) delete db.ip[m]; // only this month matters
+      const l = ((db.ip[month] = db.ip[month] || {})[ip] = (db.ip[month][ip] || []));
+      if (!l.includes(uid)) l.push(uid);
+      return flush();
+    },
+    async metaGet(k) { return k in db.meta ? db.meta[k] : null; },
+    async metaPut(k, v) { db.meta[k] = v; return flush(); },
 
     // -> Map(qid -> latest seen time in ms) across these players, only rows newer than sinceMs
     async seenGet(uids, sinceMs) {
@@ -92,6 +107,9 @@ function pgStore(url) {
       await pool.query(`CREATE TABLE IF NOT EXISTS harf_words (
         k TEXT PRIMARY KEY, ok SMALLINT NOT NULL, at TIMESTAMPTZ DEFAULT now())`);
       await pool.query(`ALTER TABLE harf_words ADD COLUMN IF NOT EXISTS fix TEXT`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS harf_ip (
+        ip TEXT NOT NULL, month TEXT NOT NULL, uid TEXT NOT NULL, PRIMARY KEY (ip, month, uid))`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS harf_meta (k TEXT PRIMARY KEY, v JSONB NOT NULL)`);
     },
     async all() { return (await pool.query("SELECT id, data FROM players ORDER BY updated_at DESC LIMIT 500")).rows; },
     async get(id) { return (await pool.query("SELECT id, token, data FROM players WHERE id=$1", [id])).rows[0] || null; },
@@ -117,6 +135,17 @@ function pgStore(url) {
         ON CONFLICT (k) DO UPDATE SET ok = EXCLUDED.ok, fix = EXCLUDED.fix, at = now()`,
         [pairs.map(p => p[0]), pairs.map(p => (p[1].ok ? 1 : 0)), pairs.map(p => p[1].fix || null)]);
     },
+    async wordsRecent(limit) {
+      const r = await pool.query("SELECT k, ok, fix, at FROM harf_words ORDER BY at DESC LIMIT $1", [limit]);
+      return r.rows.map(x => ({ k: x.k, ok: Number(x.ok), fix: x.fix || null, at: new Date(x.at).getTime() }));
+    },
+    async ipUids(ip, month) { return (await pool.query("SELECT uid FROM harf_ip WHERE ip=$1 AND month=$2", [ip, month])).rows.map(x => x.uid); },
+    async ipAdd(ip, month, uid) {
+      await pool.query("INSERT INTO harf_ip (ip, month, uid) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", [ip, month, uid]);
+      await pool.query("DELETE FROM harf_ip WHERE month < $1", [month]);
+    },
+    async metaGet(k) { const r = await pool.query("SELECT v FROM harf_meta WHERE k=$1", [k]); return r.rows[0] ? r.rows[0].v : null; },
+    async metaPut(k, v) { await pool.query("INSERT INTO harf_meta (k, v) VALUES ($1,$2) ON CONFLICT (k) DO UPDATE SET v=EXCLUDED.v", [k, JSON.stringify(v)]); },
 
     async seenGet(uids, sinceMs) {
       const r = await pool.query(
@@ -151,6 +180,6 @@ const store = {
     await impl.init();
   },
 };
-for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut"]) store[k] = (...a) => impl[k](...a);
+for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsRecent", "ipUids", "ipAdd", "metaGet", "metaPut"]) store[k] = (...a) => impl[k](...a);
 
 module.exports = store;
