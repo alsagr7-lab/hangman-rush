@@ -17,6 +17,11 @@
 .word.ar .slot{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;font-weight:700;font-size:clamp(22px,6.5vw,34px)}
 .keys.ar .key{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;font-size:17px}
 .keys.ar .krow{direction:rtl}
+/* the phone's own keyboard: a hidden box that catches what's typed, opened by a small button (touch screens only) */
+.devkb{display:none;justify-content:center;position:relative}
+@media (pointer:coarse){.devkb{display:flex}}
+.devkb .btn{font-size:13px;padding:6px 14px}
+#devKey{position:absolute;left:50%;top:0;width:1px;height:1px;opacity:0;border:0;padding:0;font-size:16px;pointer-events:none}
 /* small language switch in the board's header (English and Arabic words have separate boards) */
 .lgsw{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
 .lgsw button{border:0;background:transparent;padding:2px 10px;font:700 12px/1.6 var(--f-body);color:var(--muted)}
@@ -284,6 +289,7 @@ input.need{border-color:var(--hot)}
         <div class="misses" id="missTxt"></div>
         <div class="hints" id="hintRow" hidden><button type="button" id="hintLetterBtn"></button><button type="button" id="hintClueBtn"></button><p class="note hintnote" id="hintNote" hidden></p></div>
         <div class="keys" id="keys"></div>
+        <div class="devkb"><button type="button" class="btn ghost" id="devKbBtn"></button><input id="devKey" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" aria-hidden="true" tabindex="-1"></div>
         <div class="overlay" id="overlay" hidden><div class="panel" id="panel"></div></div>
       </div>
       <aside class="board">
@@ -405,6 +411,7 @@ en:{
   diffEasy:"Easy",diffNormal:"Normal",diffHard:"Hard",
   diffHelp_easy:"Short words · 8 misses · 90 seconds · hints on",diffHelp_normal:"All words · 6 misses · 60 seconds · hints on",diffHelp_hard:"Long words · no hints · no free letter",
   hintLetter:"Reveal a letter",hintClue:"Show a clue",meaningAr:"In Arabic: {m}",meaningEn:"In English: {m}",
+  devKbOpen:"⌨ Use my phone's keyboard",devKbClose:"⌨ Hide my phone's keyboard",
   playIn:"Today's word in",playInHelp:"The Arabic and English words are different, each with its own streak and leaderboard. You can play both.",
   lgDone:"solved · {p} pts",lgHanged:"hanged",lgWait:"not played",playOther:"Play the other word",
   dailyTwo:"An Arabic word and an English word each day: play one or both. New words in {t}.",vowels:"Vowels: {n}",hint1:"1 hint",hintsN:"{n} hints",
@@ -472,6 +479,7 @@ ar:{
   diffEasy:"سهل",diffNormal:"عادي",diffHard:"صعب",
   diffHelp_easy:"كلمات قصيرة · 8 أخطاء · 90 ثانية · التلميحات متاحة",diffHelp_normal:"كل الكلمات · 6 أخطاء · 60 ثانية · التلميحات متاحة",diffHelp_hard:"كلمات طويلة · بدون تلميحات · بدون حرف مجاني",
   hintLetter:"اكشف حرفاً",hintClue:"اعرض وصفاً",meaningAr:"بالعربي: {m}",meaningEn:"بالإنجليزية: {m}",
+  devKbOpen:"⌨ استخدم كيبورد جوالي",devKbClose:"⌨ أخفِ كيبورد جوالي",
   playIn:"كلمة اليوم بـ",playInHelp:"الكلمة العربية والإنجليزية مختلفتان، ولكل منهما سلسلة ولوحة ترتيب. تستطيع لعب الاثنتين.",
   lgDone:"حُلّت · {p} نقطة",lgHanged:"شُنقت",lgWait:"لم تلعب",playOther:"العب الكلمة الأخرى",
   dailyTwo:"كلمة عربية وكلمة إنجليزية كل يوم: العب إحداهما أو كلتيهما. كلمات جديدة بعد {t}.",vowels:"الحروف المتحركة: {n}",hint1:"تلميح واحد",hintsN:"تلميحات: {n}",
@@ -650,7 +658,7 @@ function applyStatic(){
 function renderNet(){const n=$("#netNote");n.classList.toggle("warn",netState==="none"||!!netMsg);n.textContent=netMsg?t(netMsg):t(netState==="ok"?"netOk":netState==="none"?"netNone":"connecting")}
 function setLang(l){
   lang=l;try{localStorage.setItem("hr-lang",l)}catch(e){}
-  applyStatic();renderNameHint();renderLobbyDaily();renderNet();lastPanelKey="";render();
+  applyStatic();if(typeof renderDevKb==="function")renderDevKb();renderNameHint();renderLobbyDaily();renderNet();lastPanelKey="";render();
 }
 $("#langLobby").onclick=()=>setLang(lang==="ar"?"en":"ar");
 $("#langGame").onclick=()=>setLang(lang==="ar"?"en":"ar");
@@ -771,6 +779,7 @@ async function enterRoom(c){
 function showGame(){$("#lobby").hidden=true;$("#game").hidden=false;buildKeys();lastPanelKey="";render()}
 
 $("#leaveBtn").onclick=async()=>{
+  devKey.blur();
   unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];
   if(roomApi){try{await roomApi.leave()}catch(e){}}
   roomApi=null;code=null;mode=null;host=false;cur=null;score=0;lastRound=0;waitNext=false;myTeam=null;
@@ -971,6 +980,19 @@ setInterval(()=>{if(!$("#game").hidden){tickLogic();renderTimer();renderOverlay(
 function buildKeys(){const k=$("#keys"),lg=mode==="daily"&&dlg==="ar"?"ar":"en";if(k.childElementCount&&k.dataset.lg===lg)return;
   k.textContent="";k.dataset.lg=lg;k.classList.toggle("ar",lg==="ar");
   (lg==="ar"?ROWS_AR:ROWS).forEach(r=>{const row=el("div","krow");for(const L of r){const b=el("button","key",L);b.dataset.k=L;b.onclick=()=>guess(L);row.appendChild(b)}k.appendChild(row)})}
+/* the phone's own keyboard. Phones don't report which key was pressed, so the letters are read from what lands in
+   a hidden text box, then the box is emptied. A physical keyboard on a computer works through the handler below. */
+const devKey=$("#devKey"),devKbBtn=$("#devKbBtn");
+function renderDevKb(){devKbBtn.textContent=t(document.activeElement===devKey?"devKbClose":"devKbOpen")}
+devKbBtn.onclick=()=>{if(document.activeElement===devKey)devKey.blur();else{devKey.value="";devKey.focus()}renderDevKb()};
+devKey.addEventListener("focus",renderDevKb);devKey.addEventListener("blur",renderDevKb);renderDevKb();
+devKey.addEventListener("input",()=>{
+  for(const ch of [...devKey.value]){
+    if(cur&&cur.lg==="ar"){if(/[\u0621-\u064A]/.test(ch))guess(keyOf(ch))}
+    else if(/[a-z]/i.test(ch))guess(ch.toUpperCase());
+  }
+  devKey.value="";
+});
 document.addEventListener("keydown",e=>{
   if($("#game").hidden||e.metaKey||e.ctrlKey||e.altKey)return;
   if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
