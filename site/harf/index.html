@@ -189,7 +189,8 @@ en:{
   nameNeeded:"Add a name (2+ letters) before playing online or the daily.",
   dailyTitle:"Daily letter #{n}",streakN:"🔥 {n}",bestN:"best {n}",
   seasonLine:"Season {s} · {left} · standings reset every 30 days",lastDay:"last day",daysLeft:"{n} days left",
-  dailyIntroLobby:"One letter for everyone, one attempt, 90 seconds. New letter in {t}.",playToday:"Play today's letter",resume:"Carry on",seeBoard:"See the leaderboard",
+  dailyIntroLobby:"An Arabic letter and an English letter each day: play one or both, 90 seconds each. New letters in {t}.",playToday:"Play today's letter",
+  playOther:"Play the other letter",lgDone:"{c}/5 · {p} pts",lgOpen:"started",lgWait:"not played",resume:"Carry on",seeBoard:"See the leaderboard",
   doneLine:"{c} of 5 valid · {p} pts so far · rarity bonus tomorrow",loadingDaily:"Loading today's letter…",dailyErr:"Couldn't load the daily. Trying again shortly.",
   perfectHint:"Get all five valid tomorrow for +{n}.",
   ydayTitle:"Yesterday's letter {L} · {p} pts",ydayRare:"Includes +{n} for rare answers.",ydayNoRare:"No rare answers this time.",ydayAlone:"You were the only player, so there was nobody to compare with.",
@@ -232,7 +233,7 @@ en:{
   pts:"{n} pts",hm:"{h}h {m}m",rareTag:"+{n} rare",
   appeal:"Appeal",appealing:"Taking a second look…",appealWon:"Accepted on appeal",appealLost:"Appeal turned down",
   appealNone:"No appeals left today.",appealDown:"Appeals aren't available right now. Try again later.",appealsLeft:"{n} appeals left today",
-  playIn:"Play today's letter in",playInHelp:"One daily a day: pick Arabic or English. Each has its own letter and its own leaderboard.",
+  playIn:"Play today's letter in",playInHelp:"Arabic and English each have their own letter, streak and leaderboard. You can play both.",
   boardLangLbl:"Leaderboard",
   appealHelp:"Think a word was unfairly turned down? Appeal it and a stronger referee takes a second look.",appealMine:"Appeal your answers:"
 },
@@ -243,7 +244,8 @@ ar:{
   nameNeeded:"أضف اسماً (حرفان على الأقل) قبل اللعب أونلاين أو حرف اليوم.",
   dailyTitle:"حرف اليوم #{n}",streakN:"🔥 {n}",bestN:"الأفضل {n}",
   seasonLine:"الموسم {s} · {left} · الترتيب يبدأ من جديد كل 30 يوماً",lastDay:"اليوم الأخير",daysLeft:"باقي {n} أيام",
-  dailyIntroLobby:"حرف واحد للجميع، ومحاولة واحدة، و90 ثانية. حرف جديد بعد {t}.",playToday:"العب حرف اليوم",resume:"أكمل",seeBoard:"اعرض الترتيب",
+  dailyIntroLobby:"حرف عربي وحرف إنجليزي كل يوم: العب أحدهما أو كليهما، 90 ثانية لكل منهما. حروف جديدة بعد {t}.",playToday:"العب حرف اليوم",
+  playOther:"العب الحرف الآخر",lgDone:"{c}/5 · {p} نقطة",lgOpen:"بدأت",lgWait:"لم تلعب",resume:"أكمل",seeBoard:"اعرض الترتيب",
   doneLine:"{c} من 5 صحيحة · {p} نقطة حتى الآن · مكافأة الندرة غداً",loadingDaily:"جارٍ تحميل حرف اليوم…",dailyErr:"تعذّر تحميل التحدي. سنحاول مجدداً بعد قليل.",
   perfectHint:"أجب الخمس كلها صحيحة غداً لتحصل على +{n}.",
   ydayTitle:"حرف الأمس {L} · {p} نقطة",ydayRare:"تشمل +{n} للإجابات النادرة.",ydayNoRare:"لا إجابات نادرة هذه المرة.",ydayAlone:"كنت اللاعب الوحيد، فلم يكن هناك من نقارنك به.",
@@ -286,7 +288,7 @@ ar:{
   pts:"{n} نقطة",hm:"{h}س {m}د",rareTag:"+{n} ندرة",
   appeal:"اعتراض",appealing:"نعيد النظر…",appealWon:"قُبلت بعد الاعتراض",appealLost:"رُفض الاعتراض",
   appealNone:"لا اعتراضات متبقية اليوم.",appealDown:"الاعتراض غير متاح الآن. حاول لاحقاً.",appealsLeft:"باقي {n} اعتراضات اليوم",
-  playIn:"العب حرف اليوم بـ",playInHelp:"تحدٍّ واحد في اليوم: اختر العربية أو الإنجليزية. لكل منهما حرفه ولوحة ترتيبه.",
+  playIn:"العب حرف اليوم بـ",playInHelp:"للعربية والإنجليزية حرف وسلسلة ولوحة ترتيب لكل منهما. تستطيع لعب الاثنين.",
   boardLangLbl:"لوحة الترتيب",
   appealHelp:"تظن أن كلمة رُفضت ظلماً؟ اعترض عليها ليعيد حَكَم أقوى النظر فيها.",appealMine:"اعترض على إجاباتك:"
 }};
@@ -326,33 +328,38 @@ R.COLORS.forEach(c=>{const b=el("button","sw");b.type="button";b.style.backgroun
   b.onclick=()=>{me.color=c;saveMe();[...swWrap.children].forEach(x=>x.setAttribute("aria-pressed",String(x===b)))};swWrap.appendChild(b)});
 
 /* ---------- daily state (the server keeps the real record) ---------- */
-let dstate=null,dErr=false,dLoading=false,dTried=0,apiOn=null;
+// one daily per language a day: dstates.ar and dstates.en are the server's view of each
+let dstates={ar:null,en:null},dErr=false,dLoading=false,dTried=0,apiOn=null;
+const LGN={ar:"عربي",en:"English"},LGS=["ar","en"];
+const dl=()=>drun?drun.lg:lang;
+const ds=lg=>dstates[lg||dl()];
+function setDs(s){if(s&&s.lg){dstates[s.lg]=s;saveToday()}}
 async function loadDaily(force){
   if(dLoading||(!force&&Date.now()-dTried<15000))return;
   dLoading=true;dTried=Date.now();
-  try{await Rush.ready;dstate=await Rush.harf.state(Object.assign({lg:lang},profile()));dErr=false;apiOn=!!dstate.api;saveToday()}
+  try{await Rush.ready;const [a,e]=await Promise.all(LGS.map(lg=>Rush.harf.state(Object.assign({lg},profile()))));
+    dstates.ar=a;dstates.en=e;dErr=false;apiOn=!!a.api;saveToday()}
   catch(e){dErr=true}
   dLoading=false;renderLobbyDaily();renderCheckNote();
 }
-function saveToday(){if(dstate)LS.set("hf-today",{d:R.todayKey(),n:dstate.n,entry:dstate.entry||null,open:!!dstate.open,streak:dstate.streak||0})}
-const todayEntry=()=>dstate&&dstate.entry?dstate.entry:null;
+function saveToday(){const o={d:R.todayKey()};LGS.forEach(lg=>{const s=dstates[lg];if(s)o[lg]={entry:s.entry||null,open:!!s.open,streak:s.streak||0}});LS.set("hf-today",o)}
+const todayEntry=lg=>{const s=ds(lg);return s&&s.entry?s.entry:null};
 function renderCheckNote(){$("#checkNote").textContent=apiOn==null?"":t(apiOn?"checkAi":"checkLetter")}
 function renderLobbyDaily(){
   const n=R.dailyNo();
   $("#dTitle").textContent=t("dailyTitle",{n});
-  const s=dstate?num(dstate.streak):0,best=dstate?num(dstate.best):0;
-  $("#dStreak").textContent=s?t("streakN",{n:s}):(best?t("bestN",{n:best}):"");
+  $("#dStreak").textContent=LGS.map(lg=>{const x=dstates[lg];return x&&num(x.streak)?LGN[lg]+" "+t("streakN",{n:x.streak}):""}).filter(Boolean).join(" · ");
   const left=R.seasonDaysLeft();
   $("#dSeason").textContent=t("seasonLine",{s:R.curSeason(),left:left===1?t("lastDay"):t("daysLeft",{n:left})});
   const st=$("#dStatus"),b=$("#dailyBtn");
-  if(dstate&&dstate.n!==n)dstate=null;
+  if(LGS.some(lg=>dstates[lg]&&dstates[lg].n!==n))dstates={ar:null,en:null};
   renderYday();
-  if(!dstate){b.disabled=true;b.textContent=t(dErr?"dailyErr":"loadingDaily");st.textContent=t("dailyIntroLobby",{t:untilNext()});loadDaily();return}
+  if(!dstates.ar||!dstates.en){b.disabled=true;b.textContent=t(dErr?"dailyErr":"loadingDaily");st.textContent=t("dailyIntroLobby",{t:untilNext()});loadDaily();return}
   b.disabled=false;
-  const e=todayEntry();
-  if(e){st.textContent=t("doneLine",{c:e.c,p:e.pts})+(e.ok?" · "+t("perfectHint",{n:Math.min(H.STREAK_MAX,s+1)}):"");b.textContent=t("seeBoard")}
-  else if(dstate.open){st.textContent=t("dailyIntroLobby",{t:untilNext()});b.textContent=t("resume")}
-  else{st.textContent=t("dailyIntroLobby",{t:untilNext()});b.textContent=t("playToday")}
+  const line=LGS.map(lg=>{const e=todayEntry(lg);return LGN[lg]+": "+(e?t("lgDone",{c:e.c,p:e.pts}):dstates[lg].open?t("lgOpen"):t("lgWait"))}).join(" · ");
+  st.textContent=line+". "+t("dailyIntroLobby",{t:untilNext()});
+  const done=LGS.filter(lg=>todayEntry(lg)).length;
+  b.textContent=done===2?t("seeBoard"):LGS.some(lg=>dstates[lg].open)?t("resume"):done?t("playOther"):t("playToday");
 }
 // one answer from a finished day, with its count and bonus
 function answerRow(cat,a,L,lg,np,opts,i){
@@ -382,15 +389,18 @@ function answerRow(cat,a,L,lg,np,opts,i){
 let appealMsg="";
 async function appealDaily(i,btn){
   btn.disabled=true;btn.textContent=t("appealing");
-  try{const r=await Rush.harf.appeal(null,null,i,null,true);dstate=r.state;saveToday();appealMsg=""}
-  catch(e){if(e.data&&e.data.state){dstate=e.data.state;saveToday()}appealMsg=e.status===429?"appealNone":"appealDown"}
+  try{const r=await Rush.harf.appeal(drun.lg,null,i,null,true);setDs(r.state);appealMsg=""}
+  catch(e){if(e.data&&e.data.state)setDs(e.data.state);appealMsg=e.status===429?"appealNone":"appealDown"}
   const ent=todayEntry();if(ent)marksFor(ent.a);lastPanelKey="";render();Rush.db.collection("harf").refresh();
 }
 function renderYday(){
-  const box=$("#yBox"),y=dstate&&dstate.yday;box.textContent="";box.hidden=!y;if(!y)return;
-  box.append(el("p","lbl",t("ydayTitle",{L:y.L,p:y.pts})));
-  const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,y.a[i],y.L,y.lg,num(y.np),{base:true,rare:true})));box.append(ul);
-  box.append(el("p","note",num(y.np)<2?t("ydayAlone"):(y.rb?t("ydayRare",{n:y.rb}):t("ydayNoRare"))));
+  const box=$("#yBox");box.textContent="";
+  const ys=LGS.map(lg=>dstates[lg]&&dstates[lg].yday).filter(Boolean);box.hidden=!ys.length;
+  ys.forEach(y=>{
+    box.append(el("p","lbl",LGN[y.lg]+" · "+t("ydayTitle",{L:y.L,p:y.pts})));
+    const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,y.a[i],y.L,y.lg,num(y.np),{base:true,rare:true})));box.append(ul);
+    box.append(el("p","note",num(y.np)<2?t("ydayAlone"):(y.rb?t("ydayRare",{n:y.rb}):t("ydayNoRare"))));
+  });
 }
 let netMsg=null;
 function renderNet(){const n=$("#netNote");const down=Rush.server()==="down";n.classList.toggle("warn",down||!!netMsg);
@@ -485,23 +495,31 @@ $("#leaveBtn").onclick=backToLobby;
 /* ---------- the daily ---------- */
 $("#dailyBtn").onclick=()=>{
   if(!requireName())return;saveMe();
-  mode="daily";boardTab="today";
-  drun={phase:"intro",L:"",lg:lang,deadline:0,res:null};
-  const e=todayEntry();
-  if(e){drun.phase="done";drun.L=e.L;drun.lg=e.lg;setInputs(e.a.map(a=>a.w),false,e.lg);marksFor(e.a)}
-  else if(dstate&&dstate.open){openDaily(dstate.open)}
-  else setInputs(null,false,lang);
-  showGame();
+  mode="daily";boardTab="today";boardLang=null;
+  // a language still in progress first, then the page language if it's not played yet, then the other one
+  const pick=LGS.find(lg=>ds(lg)&&ds(lg).open)||[lang,lang==="ar"?"en":"ar"].find(lg=>!todayEntry(lg))||lang;
+  drun={phase:"intro",L:"",lg:pick,deadline:0,res:null};
+  showGame();setDailyLang(pick);
 };
+// switch the daily to one language: its result if played, its run if started, otherwise the start screen
+function setDailyLang(lg){
+  if(!drun||drun.phase==="count"||drun.phase==="write"||drun.phase==="checking")return;
+  drun.lg=lg;appealMsg="";boardLang=null;
+  const x=ds(lg),e=todayEntry(lg);
+  if(e){drun.phase="done";drun.L=e.L;setInputs(e.a.map(a=>a.w),false,lg);marksFor(e.a)}
+  else if(x&&x.open){openDaily(x.open);return}
+  else{drun.phase="intro";drun.L="";setInputs(null,false,lg)}
+  lastPanelKey="";render();
+}
 async function startDaily(){
   if(!drun||drun.phase!=="intro")return;
   drun.phase="count";drun.countEnd=Date.now()+H.COUNT_MS;render();
   setTimeout(async()=>{
     if(!drun||mode!=="daily")return;
-    try{const s=await Rush.harf.start(drun.lg,profile());dstate=s;saveToday();
+    try{const s=await Rush.harf.start(drun.lg,profile());setDs(s);
       if(s.entry){drun.phase="done";drun.L=s.entry.L;drun.lg=s.entry.lg;setInputs(s.entry.a.map(a=>a.w),false,s.entry.lg);marksFor(s.entry.a);lastPanelKey="";render();return}
       openDaily(s.open)}
-    catch(e){if(e.data&&e.data.state){dstate=e.data.state;drun.phase="done";render();return}drun.phase="error";lastPanelKey="";render()}
+    catch(e){if(e.data&&e.data.state){setDs(e.data.state);setDailyLang(drun.lg);return}drun.phase="error";lastPanelKey="";render()}
   },H.COUNT_MS);
 }
 function openDaily(o){
@@ -510,14 +528,14 @@ function openDaily(o){
   setTimeout(()=>{const f=inputs.find(i=>!i.value);(f||inputs[0]).focus()},60);
 }
 let saveTimer=0;
-function queueSave(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{if(drun&&drun.phase==="write")Rush.harf.save(words()).catch(()=>{})},2000)}
+function queueSave(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{if(drun&&drun.phase==="write")Rush.harf.save(words(),drun.lg).catch(()=>{})},2000)}
 async function submitDaily(){
   if(!drun||drun.phase!=="write")return;
   clearTimeout(saveTimer);
   drun.phase="checking";inputs.forEach(i=>i.disabled=true);render();
-  try{const s=await Rush.harf.submit(words());dstate=s;saveToday();
+  try{const s=await Rush.harf.submit(words(),drun.lg);setDs(s);
     const e=s.entry;if(e){marksFor(e.a)}drun.phase="done";lastPanelKey="";render();Rush.db.collection("harf").refresh()}
-  catch(e){if(e.data&&e.data.state){dstate=e.data.state;saveToday();if(dstate.entry)marksFor(dstate.entry.a);drun.phase="done";lastPanelKey="";render();return}
+  catch(e){if(e.data&&e.data.state){setDs(e.data.state);const x=ds();if(x.entry)marksFor(x.entry.a);drun.phase="done";lastPanelKey="";render();return}
     drun.phase="error";lastPanelKey="";render()}
 }
 
@@ -754,7 +772,9 @@ function renderBoard(){
     else if(round){pp.appendChild(el("span",null,r.rp!=null?"+"+r.rp:r.dn?t("locked"):t("writing",{f:r.f})))}
     d.append(dot,nm,el("span","ps",String(r.s)),pp);box.appendChild(d)});
 }
-function nameCell(p,i){const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=R.tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.id===uid)nm.appendChild(el("small",null,t("you")));return nm}
+// board rows are per language ("<uid>_ar", "<uid>_en"); the tag and "you" go by the player's own id
+const baseId=id=>String(id||"").replace(/_(ar|en)$/,"");
+function nameCell(p,i){const id=baseId(p.id);const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=R.tagOf(id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(id===uid)nm.appendChild(el("small",null,t("you")));return nm}
 function wordsLine(e){const s=el("div","words");(e.a||[]).forEach((a,i)=>{if(i)s.appendChild(document.createTextNode(" · "));const w=a&&a.w?a.w:"—";s.appendChild(a&&a.ok?el("b",null,w):el("s",null,w))});s.dir="auto";return s}
 function renderDailyBoard(box){
   $("#boardLbl").textContent=t("boardDaily");
@@ -765,7 +785,7 @@ function renderDailyBoard(box){
   bar.append(el("span",null,t("dayOf",{d:R.seasonDay(),t:R.SEASON_LEN})),meter,el("span",null,left===1?t("resetsTonight"):left<=3?t("finalDays",{n:left}):t("daysLeftShort",{n:left})));
   box.appendChild(bar);
   // Arabic and English players each have their own letter, so each has its own board
-  const bl=boardLang||(todayEntry()&&todayEntry().lg)||lang;
+  const bl=boardLang||dl();
   box.appendChild(seg([["ar","عربي"],["en","English"]],bl,v=>{boardLang=v;renderBoard()}));
   const list=allPlayers.filter(p=>p.se===se);
   const inLang=p=>Object.values(p.h).filter(e=>e&&e.lg===bl);
@@ -806,26 +826,28 @@ function setPanel(ov,panel,key,build){
 }
 function hideOverlay(ov){if(!ov.hidden){ov.hidden=true;lastPanelKey=""}}
 function stats(items){const st=el("div","stats");items.forEach(([v,k])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,t(k)));st.appendChild(d)});return st}
+// the daily's language switch, with a tick on a language already played today
+function langSeg(){return seg(LGS.map(lg=>[lg,LGN[lg]+(todayEntry(lg)?" ✓":"")]),drun.lg,setDailyLang)}
 function seg(opts,cur,onPick){const s=el("div","seg");opts.forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(cur===v));b.onclick=()=>onPick(v);s.appendChild(b)});return s}
 function renderOverlay(){
   const ov=$("#overlay"),panel=$("#panel"),now=Date.now();
   if(mode==="daily"&&drun){
     if(drun.phase==="count")return showCount(ov,panel,Math.max(1,Math.ceil((drun.countEnd-now)/1000)));
-    if(drun.phase==="intro")return setPanel(ov,panel,"dintro"+(dstate?dstate.streak:0)+drun.lg,()=>{
-      const s=dstate?num(dstate.streak):0;
+    if(drun.phase==="intro")return setPanel(ov,panel,"dintro"+(ds()?ds().streak:0)+drun.lg,()=>{
+      const s=ds()?num(ds().streak):0;
       const out=[el("h2",null,t("dailyTitle",{n:R.dailyNo()})),el("p",null,t("dailyIntro")),
-        el("p","lbl",t("playIn")),seg([["ar","عربي"],["en","English"]],drun.lg,v=>{drun.lg=v;lastPanelKey="";render()}),
+        el("p","lbl",t("playIn")),langSeg(),
         el("p","diffhelp",t("playInHelp")),
         el("p","streak",s?t("curStreak",{n:s,b:Math.min(H.STREAK_MAX,s+1)}):t("noStreak"))];
       const b=el("button","btn primary",t("start"));b.onclick=startDaily;out.push(b);return out});
     if(drun.phase==="error")return setPanel(ov,panel,"err",()=>{const b=el("button","btn primary",t("backLobby"));b.onclick=backToLobby;return[el("h2",null,t("dailyErr")),b]});
-    if(drun.phase==="done"&&todayEntry())return setPanel(ov,panel,"done"+JSON.stringify(todayEntry())+appealMsg,()=>{
-      const e=todayEntry(),s=dstate?num(dstate.streak):0,best=dstate?num(dstate.best):0;
+    if(drun.phase==="done"&&todayEntry())return setPanel(ov,panel,"done"+drun.lg+JSON.stringify(todayEntry())+appealMsg,()=>{
+      const e=todayEntry(),s=ds()?num(ds().streak):0,best=ds()?num(ds().best):0;
       const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,e.a[i],e.L,e.lg,0,{base:true,rare:false,appeal:apiOn!==false},i)));
-      const out=[el("h2",null,t("doneTitle",{c:e.c})),ul];
+      const out=[langSeg(),el("h2",null,LGN[drun.lg]+" · "+t("doneTitle",{c:e.c})),ul];
       const canAppeal=e.a.some(a=>a.w&&!a.ok&&!a.l&&!a.ap);
       if(appealMsg)out.push(el("p","note warn",t(appealMsg)));
-      else if(canAppeal&&apiOn!==false)out.push(el("p","note",t("appealHelp")+" "+t("appealsLeft",{n:num(dstate.appealsLeft)})));
+      else if(canAppeal&&apiOn!==false)out.push(el("p","note",t("appealHelp")+" "+t("appealsLeft",{n:num(ds().appealsLeft)})));
       if(e.sb){const b=el("div","bonus");b.append(el("span",null,t("streakBonus")),el("span",null,"+"+e.sb));out.push(b)}
       const soon=el("div","bonus soon");soon.append(el("span",null,t("rareSoon")),el("span",null,t("rareSoonV")));out.push(soon);
       out.push(stats([[e.pts,"statPoints"],[e.c+"/5","statValid"],[s,"statStreak"],[best,"statBest"]]));

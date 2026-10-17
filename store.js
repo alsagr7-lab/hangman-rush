@@ -39,6 +39,7 @@ function jsonStore() {
     async hGet(id) { return db.harf[id] ? { id, ...db.harf[id] } : null; },
     async hPut(id, token, data) { db.harf[id] = { token, data }; return flush(); },
     async hSetData(id, data) { if (db.harf[id]) { db.harf[id].data = data; return flush(); } },
+    async hDel(id) { delete db.harf[id]; return flush(); },
     async wordsGet(keys) { const m = new Map(); for (const k of keys) if (k in db.words) m.set(k, db.words[k]); return m; },
     async wordsPut(pairs) { for (const [k, v] of pairs) db.words[k] = v; return flush(); },
 
@@ -102,6 +103,7 @@ function pgStore(url) {
     async hGet(id) { return (await pool.query("SELECT id, token, data FROM harf_players WHERE id=$1", [id])).rows[0] || null; },
     hPut: upsert("harf_players"),
     async hSetData(id, data) { await pool.query("UPDATE harf_players SET data=$2 WHERE id=$1", [id, data]); },
+    async hDel(id) { await pool.query("DELETE FROM harf_players WHERE id=$1", [id]); },
     async wordsGet(keys) {
       if (!keys.length) return new Map();
       const r = await pool.query("SELECT k, ok FROM harf_words WHERE k = ANY($1)", [keys]);
@@ -146,6 +148,6 @@ const store = {
     await impl.init();
   },
 };
-for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "wordsGet", "wordsPut"]) store[k] = (...a) => impl[k](...a);
+for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut"]) store[k] = (...a) => impl[k](...a);
 
 module.exports = store;

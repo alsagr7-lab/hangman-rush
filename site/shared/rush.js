@@ -287,9 +287,9 @@
 
   /* ---------- Hangman daily word (served one day at a time) ---------- */
   const daily = {
-    async today() {
+    async today(lg) {
       await Promise.race([ready, new Promise(r => setTimeout(r, 70000))]);
-      const r = await fetch(http("/api/daily"), { cache: "no-store" });
+      const r = await fetch(http("/api/daily" + (lg === "ar" ? "?lg=ar" : "")), { cache: "no-store" });
       if (!r.ok) throw new Error("daily " + r.status);
       return r.json();
     },
@@ -324,8 +324,8 @@
     info: () => get("/api/harf/info"),
     state: profile => post("/api/harf/daily/state", profile),
     start: (lg, profile) => post("/api/harf/daily/start", Object.assign({ lg }, profile || {})),
-    save: dr => post("/api/harf/daily/save", { dr }),
-    submit: answers => post("/api/harf/daily/submit", { answers }),
+    save: (dr, lg) => post("/api/harf/daily/save", { dr, lg }),
+    submit: (answers, lg) => post("/api/harf/daily/submit", { answers, lg }),
     check: (lg, L, answers) => post("/api/harf/check", { lg, L, answers }),
     appeal: (lg, L, i, w, daily) => post("/api/harf/appeal", { lg, L, i, w, daily: !!daily }),
   };
