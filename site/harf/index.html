@@ -215,7 +215,7 @@ en:{
   curStreak:"🔥 Perfect streak: {n}. All five valid today adds +{b}.",noStreak:"All five valid today starts a perfect streak (+1).",
   start:"Start",doneTitle:"{c} of 5 valid",statPoints:"points",statValid:"valid",statStreak:"streak",statBest:"best",copyResult:"Copy result",
   streakBonus:"Perfect streak bonus",rareSoon:"Rare-answer bonus",rareSoonV:"tomorrow",nextLetter:"Next letter in {t}. It changes at midnight UTC.",
-  shareHead:"Harf Rush · daily #{n} · {L}",backLobby:"Back to the lobby",
+  shareHead:"Harf Rush · daily #{n} · {lg}",backLobby:"Back to the lobby",
   shareStart:"Share the code, then start",roomCodeLine:"Room code: ",readyPractise:"Ready to practise?",startRound1:"Start round 1",nextRound:"Next round",
   waitingFor:"Waiting for {name}",startsAtOnce:"The round starts for everyone at once.",noHost:"No host in room {c}",noHostHelp:"Check the code with your friend, or run the room yourself.",
   takeOver:"Run the room",hostLeft:"The host left. Anyone can take over.",waitingHostNext:"Waiting for {name} to start the next round.",
@@ -271,7 +271,7 @@ ar:{
   curStreak:"🔥 سلسلة الكمال: {n}. الخمس كلها صحيحة اليوم تضيف +{b}.",noStreak:"الخمس كلها صحيحة اليوم تبدأ سلسلة الكمال (+1).",
   start:"ابدأ",doneTitle:"{c} من 5 صحيحة",statPoints:"النقاط",statValid:"صحيحة",statStreak:"السلسلة",statBest:"الأفضل",copyResult:"انسخ النتيجة",
   streakBonus:"مكافأة سلسلة الكمال",rareSoon:"مكافأة الإجابات النادرة",rareSoonV:"غداً",nextLetter:"الحرف التالي بعد {t}. يتغيّر عند منتصف الليل بتوقيت UTC.",
-  shareHead:"سباق الحروف · حرف اليوم #{n} · {L}",backLobby:"العودة للبداية",
+  shareHead:"سباق الحروف · حرف اليوم #{n} · {lg}",backLobby:"العودة للبداية",
   shareStart:"شارك الرمز ثم ابدأ",roomCodeLine:"رمز الغرفة: ",readyPractise:"جاهز للتدريب؟",startRound1:"ابدأ الجولة 1",nextRound:"الجولة التالية",
   waitingFor:"بانتظار {name}",startsAtOnce:"تبدأ الجولة للجميع في نفس اللحظة.",noHost:"لا يوجد مضيف في الغرفة {c}",noHostHelp:"تأكّد من الرمز مع صديقك، أو أدِر الغرفة بنفسك.",
   takeOver:"أدِر الغرفة",hostLeft:"غادر المضيف. يستطيع أي لاعب أن يتولى الإدارة.",waitingHostNext:"بانتظار {name} ليبدأ الجولة التالية.",
@@ -856,7 +856,7 @@ function renderOverlay(){
       const soon=el("div","bonus soon");soon.append(el("span",null,t("rareSoon")),el("span",null,t("rareSoonV")));out.push(soon);
       out.push(stats([[e.pts,"statPoints"],[e.c+"/5","statValid"],[s,"statStreak"],[best,"statBest"]]));
       const grid=e.a.map(a=>a.ok?"🟩":"⬛").join("");
-      const share=t("shareHead",{n:R.dailyNo(),L:e.L})+"\n"+grid+" "+t("pts",{n:e.pts})+(s?" 🔥"+s:"")+"\n"+location.origin+location.pathname;
+      const share=t("shareHead",{n:R.dailyNo(),lg:LGN[drun.lg]}) /* never the letter: it would spoil the day */+"\n"+grid+" "+t("pts",{n:e.pts})+(s?" 🔥"+s:"")+"\n"+location.origin+location.pathname;
       const cb=el("button","btn primary",t("copyResult"));cb.onclick=()=>copyText(share,cb,"copyResult");
       out.push(cb,el("p","note",t("nextLetter",{t:untilNext()})));return out});
     return hideOverlay(ov);
