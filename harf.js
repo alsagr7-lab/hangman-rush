@@ -193,12 +193,13 @@ function tidy(d) {
   for (const k of Object.keys(r.h).sort().slice(0, -40)) delete r.h[k]; // keep 40 days
   return r;
 }
-// anyone can read the board, so today's answers stay hidden until the day is over
+// anyone can read the board
 function publicRec(r) {
   const o = Object.assign({}, r), today = R.todayKey();
   delete o.run;
   o.h = {};
-  for (const [k, e] of Object.entries(r.h || {})) { o.h[k] = Object.assign({}, e); delete o.h[k].pre; if (k === today) delete o.h[k].a; }
+  // today's answers and letter stay hidden until the day is over, so the board can't give the letter away
+  for (const [k, e] of Object.entries(r.h || {})) { o.h[k] = Object.assign({}, e); delete o.h[k].pre; if (k === today) { delete o.h[k].a; delete o.h[k].L; } }
   return o;
 }
 // Each player has one record per language ("<uid>_ar", "<uid>_en"): the Arabic and English dailies have their own

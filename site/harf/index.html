@@ -807,7 +807,7 @@ function renderDailyBoard(box){
     if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?t("todayEmpty"):t("ydayEmpty")));
     let pending=false;
     rows.forEach((p,i)=>{const e=p.h[k];const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
-      const pp=el("div","pp");pp.appendChild(el("span",null,e.c+"/5 · "+e.L));
+      const pp=el("div","pp");pp.appendChild(el("span",null,e.c+"/5"+(boardTab==="yday"&&e.L?" · "+e.L:"")));
       if(boardTab==="yday"){if(e.rb==null)pending=true;else if(e.rb)pp.appendChild(el("span","ok",t("rareTag",{n:e.rb})))}
       const s=R.curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
       if(boardTab==="yday"&&e.a)pp.appendChild(wordsLine(e));
