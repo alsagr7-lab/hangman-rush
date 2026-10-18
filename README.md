@@ -71,6 +71,9 @@ To turn it on, set `GOOGLE_CLIENT_ID` on `hangman-rush`: in Google Cloud Console
 All in `limits.js`, kept in memory (a restart clears them):
 
 - **Real address:** taken from `CF-Connecting-IP` (set by Cloudflare in front of Render), else the last `X-Forwarded-For` entry; never the first, which the visitor controls. `GET /api/whoami` shows what the server sees for you.
+- **Proxy secret (optional, recommended):** the onrender.com address can be reached without Cloudflare, where anyone can send their own `CF-Connecting-IP`. To close that, set it up in this order: (1) in Cloudflare, add a Transform Rule (Modify request header) on `api.rushgames.cc` that sets `x-proxy-secret` to a long random value; (2) check `https://api.rushgames.cc/api/whoami` still shows your own address; (3) set the same value as `PROXY_SECRET` on `hangman-rush` and redeploy. Setting `PROXY_SECRET` without the Cloudflare rule makes every player look like one of Cloudflare's few addresses, so the per-address limits would hit everyone.
+- **Admin key:** besides 20 tries a minute per address, wrong keys share one bucket for everyone: after 10 wrong keys the admin pages answer "Too many wrong keys" for a few minutes (one more try every 2 minutes), even with the right key.
+- **Hangman results** are saved by the player's device, so the server keeps them in bounds: at most 340 points a day (0 for a miss), no days past tomorrow, and a finished day can't be changed afterwards.
 - **Writes:** 120 a minute per address across the API; Hangman saves 30 a minute; Harf checks 20 a minute; trivia room picks 12 a minute; visit counts 20 a minute (extra ones are ignored); admin requests 20 a minute.
 - **New players:** an address may start `NEW_IDS_PER_IP_DAY` new player ids a day (default 40).
 - **One owner per id:** a player's records in all three games must share one token, so nobody can claim an unused game slot and lock a player out (`ident.js`).
@@ -113,7 +116,7 @@ Only one free web service runs, so the free plan's 750 shared instance hours a m
 
 When Render says the free database has expired: delete `hangman-rush-db`, then **Manual sync** the blueprint for a fresh one. Leaderboards reset with the season anyway, but **the seen-question history also resets**, so the 60-day "no repeats" window can only stretch as far back as the database. For permanent storage, point `DATABASE_URL` at a free Neon or Supabase database instead.
 
-If the database is missing or unreachable, the server keeps running on a local file that resets on restart.
+If the database doesn't answer at start-up, the server tries again three times (after 2, 5 and 10 seconds). If it's still missing or unreachable, the server keeps running on a local file that resets on restart.
 
 ## Questions
 
@@ -161,6 +164,14 @@ The 160 daily words live only in `daily-words.enc`, unlocked with `DAILY_KEY`. T
 DAILY_KEY=... node scripts/daily-words.js decrypt > words.json   # edit, keeping words.json out of git
 DAILY_KEY=... node scripts/daily-words.js encrypt words.json
 ```
+
+## Tests
+
+```bash
+npm test
+```
+
+Starts the server on a temporary file and checks the pages, the game APIs, Hangman save limits, the proxy secret and the admin lock.
 
 ## How it fits together
 

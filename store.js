@@ -202,8 +202,17 @@ const store = {
   async init() {
     if (process.env.DATABASE_URL) {
       const pg = pgStore(process.env.DATABASE_URL);
-      try { await pg.init(); impl = pg; return; }
-      catch (e) { console.warn("Postgres unavailable, using the JSON file instead:", e.message); }
+      // a few tries first: at a cold start the database can be slow to answer, and the file fallback loses every
+      // write at the next restart. Only a database that stays down (e.g. an expired free one) falls back.
+      const waits = String(process.env.PG_RETRY_MS ?? "2000,5000,10000").split(",").map(Number).filter(n => n >= 0);
+      for (let i = 0; ; i++) {
+        try { await pg.init(); impl = pg; return; }
+        catch (e) {
+          if (i >= waits.length) { console.warn("Postgres unavailable, using the JSON file instead:", e.message); break; }
+          console.warn(`Postgres not answering (${e.message}); trying again in ${waits[i] / 1000}s`);
+          await new Promise(r => setTimeout(r, waits[i]));
+        }
+      }
     }
     impl = jsonStore();
     await impl.init();
