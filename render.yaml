@@ -37,6 +37,9 @@ services:
       # the static site's address, e.g. https://rushgames.cc (offers players a move to it)
       - key: SITE_URL
         sync: false
+      # optional: "on" shows the hidden Rush+ subscription links (keep off until plans are ready)
+      - key: SUBSCRIPTIONS
+        sync: false
 
   # The pages, as a free static site: never sleeps and uses none of the free instance hours.
   - type: web
@@ -48,6 +51,9 @@ services:
     buildCommand: node scripts/build-site.js
     envVars:
       - key: API_URL
+        sync: false
+      # optional: "on" shows the hidden Rush+ subscription links (keep off until plans are ready)
+      - key: SUBSCRIPTIONS
         sync: false
     headers:
       - path: /*

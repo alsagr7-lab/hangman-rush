@@ -59,6 +59,8 @@
     hub: { en: "Rush Games", ar: "ألعاب السباق" },
   };
   const gameKey = /^\/hangman/.test(location.pathname) ? "hangman" : /^\/trivia/.test(location.pathname) ? "trivia" : /^\/harf/.test(location.pathname) ? "harf" : "hub";
+  // each game has its own accent colour in rush.css
+  document.documentElement.setAttribute("data-game", gameKey);
   const isAr = () => (store.get("hr-lang") || (navigator.language || "").slice(0, 2)) === "ar";
   const TXT = {
     en: { welcome: "Welcome to", sub: "Give us a moment while the game server wakes up.", check: "Checking if the server is awake…",
@@ -84,25 +86,24 @@
     splash.className = "rush-splash"; splash.dir = ar ? "rtl" : "ltr"; splash.setAttribute("role", "status");
     const st = document.createElement("style");
     st.textContent = `
-.rush-splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px 16px;background:var(--bg,#eef2f7);color:var(--ink,#1b2333);
-  background-image:repeating-linear-gradient(to bottom,transparent 0 31px,var(--line,#d3dbe8) 31px 32px);transition:opacity .35s}
+.rush-splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px 16px;background:var(--bg,#0B0C10);color:var(--ink,#F4F1EA);transition:opacity .35s}
 .rush-splash.out{opacity:0;pointer-events:none}
-.rush-splash .in{width:min(420px,100%);display:grid;gap:14px;text-align:center}
-.rush-splash .ic{justify-self:center;width:56px;height:64px;color:var(--ink,#1b2333)}
-.rush-splash .wl{font:600 15px var(--f-body,system-ui,sans-serif);color:var(--muted,#5d6a80);letter-spacing:.04em}
-.rush-splash h1{font-family:var(--f-hand,cursive);font-weight:400;font-size:clamp(44px,13vw,64px);line-height:1.05;margin:0}
-:root[lang="ar"] .rush-splash h1,.rush-splash[dir="rtl"] h1{font-weight:700}
-.rush-splash p{margin:0;font:16px/1.45 var(--f-body,system-ui,sans-serif)}
-.rush-splash .track{height:12px;border:2px solid var(--ink,#1b2333);border-radius:99px;overflow:hidden;background:var(--surface,#fff)}
-.rush-splash .fill{height:100%;width:3%;background:var(--accent,#2c56e0);border-radius:99px;transition:width .6s ease-out}
-.rush-splash .ok .fill,.rush-splash .fill.ok{background:var(--good,#178a5c)}
-.rush-splash .st{font:600 14px var(--f-body,system-ui,sans-serif);min-height:20px}
-.rush-splash .why{font-size:13px;color:var(--muted,#5d6a80)}
+.rush-splash .in{width:min(420px,100%);display:grid;gap:16px;text-align:center}
+.rush-splash .gtile{justify-self:center;width:76px;height:76px;border-radius:24px}
+.rush-splash .wl{font:600 12px var(--f-display,system-ui,sans-serif);font-stretch:125%;color:var(--muted,#9EA3B0);letter-spacing:.18em;text-transform:uppercase}
+.rush-splash[dir="rtl"] .wl{letter-spacing:0;text-transform:none;font:700 14px var(--f-ar,system-ui,sans-serif)}
+.rush-splash h1{font-family:var(--f-display,system-ui,sans-serif);font-stretch:118%;font-weight:800;font-size:clamp(36px,11vw,56px);line-height:1;margin:0}
+.rush-splash[dir="rtl"] h1{font-family:var(--f-ar,system-ui,sans-serif);font-stretch:100%;font-weight:900;line-height:1.25}
+.rush-splash p{margin:0;font:16px/1.5 var(--f-body,system-ui,sans-serif);color:var(--soft,#B4B8C3)}
+.rush-splash .track{height:8px;border-radius:99px;overflow:hidden;background:var(--key,#262A35)}
+.rush-splash .fill{height:100%;width:3%;background:var(--accent,#F2B544);border-radius:99px;transition:width .6s ease-out}
+.rush-splash .ok .fill,.rush-splash .fill.ok{background:var(--good,#3DD68C)}
+.rush-splash .st{font:600 14px var(--f-body,system-ui,sans-serif);min-height:20px;font-variant-numeric:tabular-nums}
+.rush-splash .why{font-size:13px;color:var(--muted,#9EA3B0)}
 .rush-splash .slow{display:grid;gap:10px}
-.rush-splash .rush-go{justify-self:center;text-decoration:none;font:700 15px var(--f-body,system-ui,sans-serif);color:var(--accent-ink,#fff);background:var(--accent,#2c56e0);
-  border:2px solid var(--ink,#1b2333);border-radius:10px;padding:11px 18px;box-shadow:3px 3px 0 var(--ink,#1b2333)}
-.rush-splash button{justify-self:center;font:700 15px var(--f-body,system-ui,sans-serif);color:var(--ink,#1b2333);background:var(--surface,#fff);
-  border:2px solid var(--ink,#1b2333);border-radius:10px;padding:10px 16px;box-shadow:3px 3px 0 var(--ink,#1b2333);cursor:pointer}
+.rush-splash .rush-go,.rush-splash button{justify-self:center;text-decoration:none;font:800 15px var(--f-body,system-ui,sans-serif);color:var(--accent-ink,#0B0C10);background:var(--accent,#F2B544);
+  border:0;border-radius:14px;padding:0 20px;min-height:48px;display:inline-flex;align-items:center;cursor:pointer}
+.rush-splash button{background:var(--raised,#1B1E26);color:var(--ink,#F4F1EA);border:1px solid var(--line3,#343846)}
 @media (prefers-reduced-motion:reduce){.rush-splash,.rush-splash .fill{transition:none}}`;
     const inner = document.createElement("div"); inner.className = "in";
     const wl = document.createElement("div"); wl.className = "wl"; wl.textContent = T.welcome;
@@ -121,8 +122,8 @@
     const bh = document.createElement("p"); bh.textContent = T.blockedHelp;
     const go = document.createElement("a"); go.className = "rush-go"; go.textContent = T.direct; go.href = directLink();
     blockBox.append(blockMsg, bh, go);
-    const logo = document.querySelector(".brand svg");
-    if (logo) { const ic = logo.cloneNode(true); ic.setAttribute("class", "ic"); inner.append(ic); }
+    const ic = document.createElement("span"); ic.className = "gtile " + gameKey; ic.setAttribute("aria-hidden", "true");
+    const mk = document.createElement("span"); mk.className = "rmark"; ic.append(mk); inner.append(ic);
     inner.append(wl, h, sub, track, line, slowBox, blockBox, why);
     splash.append(st, inner);
     document.body.appendChild(splash);
@@ -343,25 +344,69 @@
     appeal: (lg, L, i, w, daily, yd) => post("/api/harf/appeal", { lg, L, i, w, daily: !!daily, yd: !!yd }),
   };
 
-  /* ---------- sign in with Google ----------
-     Optional. Links this device's player to a Google account, so signing in on another device brings the same
-     player (name aside, which each device keeps). Shown under the name box on every page, once the server says
-     sign-in is set up. The server keeps no email address; this device remembers it only to show who's signed in. */
+  /* ---------- sign in with Google, the top bar and the profile sheet ----------
+     Sign-in is optional. It links this device's player to a Google account, so signing in on another device brings
+     the same player (name aside, which each device keeps). The server keeps no email address; this device remembers
+     it only to show who's signed in.
+     Every page gets the same top bar: the logo (or, in a game, a back button and the game's name), the language
+     switch, a "Save progress" button while signed out, and the player's avatar. The avatar opens a profile sheet
+     holding the page's own name-and-colour card (moved in whole, so the page's code keeps working) and sign-in.
+     A Rush+ link in the bar and the sheet stays hidden until RUSH_CONFIG.subscriptions is turned on. */
   const AUTH_TXT = {
     en: { pitch: "Sign in with Google to keep your streaks and scores on any device.", as: "Signed in as {e}. Your progress is saved to your Google account.",
           out: "Sign out", outQ: "Sign out on this device? It starts again as a new guest; your progress stays in your Google account.",
           switchQ: "This Google account already has progress from another device. Switch to it? Your results from this device will be added to it (if both played the same day, the first result counts).",
           merged: "Added {e} day(s) from your other device.", mergedNone: "Nothing new to add from your other device.", mergeSkipped: "Results from another device were already added this season, so this device's weren't added.",
-          fail: "Sign-in didn't work. Try again in a moment.", taken: "This progress is already linked to a different Google account." },
+          fail: "Sign-in didn't work. Try again in a moment.", taken: "This progress is already linked to a different Google account.",
+          guest: "Playing as a guest", saved: "Progress saved to Google", priv: "We don't keep your email or name, only your Google account number, so your progress can follow you.",
+          save: "Save progress", saveShort: "Save", profile: "Your profile", close: "Close", allGames: "All games", home: "Rush Games home",
+          switchT: "Switch to this account?", switchOk: "Switch account", outT: "Sign out?", cancel: "Cancel",
+          plusFree: "Free plan", plusSee: "See plans", me: "Your profile" },
     ar: { pitch: "سجّل الدخول بحساب Google لتحتفظ بسلاسلك ونقاطك على أي جهاز.", as: "مسجّل باسم {e}. تقدّمك محفوظ في حساب Google.",
           out: "تسجيل الخروج", outQ: "تسجيل الخروج من هذا الجهاز؟ سيبدأ كضيف جديد، ويبقى تقدّمك محفوظاً في حساب Google.",
           switchQ: "لهذا الحساب تقدّم من جهاز آخر. هل تنتقل إليه؟ ستُضاف نتائجك من هذا الجهاز إليه (إذا لعب الجهازان نفس اليوم تُحتسب النتيجة الأولى).",
           merged: "أُضيفت {e} يوماً من جهازك الآخر.", mergedNone: "لا جديد لإضافته من جهازك الآخر.", mergeSkipped: "سبق أن أُضيفت نتائج جهاز آخر هذا الموسم، فلم تُضف نتائج هذا الجهاز.",
-          fail: "تعذّر تسجيل الدخول. حاول بعد لحظات.", taken: "هذا التقدّم مرتبط بحساب Google آخر." },
+          fail: "تعذّر تسجيل الدخول. حاول بعد لحظات.", taken: "هذا التقدّم مرتبط بحساب Google آخر.",
+          guest: "تلعب كضيف", saved: "تقدّمك محفوظ في Google", priv: "لا نحتفظ ببريدك أو اسمك، بل برقم حسابك في Google فقط، ليتبعك تقدّمك.",
+          save: "احفظ تقدّمك", saveShort: "احفظ", profile: "ملفك", close: "إغلاق", allGames: "كل الألعاب", home: "الصفحة الرئيسية",
+          switchT: "الانتقال إلى هذا الحساب؟", switchOk: "انتقل للحساب", outT: "تسجيل الخروج؟", cancel: "إلغاء",
+          plusFree: "الخطة المجانية", plusSee: "الخطط", me: "ملفك" },
   };
   let acct = null; try { acct = JSON.parse(store.get("hr-acct") || "null"); } catch {}
   let authCfg = null, gsi = null, acctBox = null, acctMsg = "";
   const at = (k, v) => { const s = AUTH_TXT[isAr() ? "ar" : "en"][k]; return v ? s.replace("{e}", v) : s; };
+  const SUBS = !!cfg.subscriptions;
+  const PLAYER_COLORS = ["#2c56e0", "#d93c30", "#178a5c", "#c27a00", "#8a3ffc", "#d6337f"];
+  const TAG_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  function tagOf(id) { let h = 2166136261; for (const ch of String(id)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } let s = ""; for (let i = 0; i < 4; i++) { s += TAG_ABC[h % 32]; h = Math.floor(h / 32); } return s; }
+  const SVGNS = "http://www.w3.org/2000/svg";
+  function svg(markup, cls) { const t = document.createElement("template"); t.innerHTML = markup.trim(); const s = t.content.firstChild; if (cls) s.setAttribute("class", cls); s.setAttribute("aria-hidden", "true"); return s; }
+  const G_LOGO = '<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+  const CLOUD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 0 1-.5-9.97A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9H7z"/><path d="M12 11v5M9.5 13.5L12 11l2.5 2.5"/></svg>';
+  const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M5 12l5 5L20 7"/></svg>';
+  const X_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  const BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+  const mkEl = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  /* an in-page question with two buttons, in place of the browser's grey confirm() box; resolves true or false */
+  function ask({ title, body, ok, cancel }) {
+    return new Promise(resolve => {
+      const bg = mkEl("div", "rdlg-bg"), box = mkEl("div", "rdlg");
+      box.setAttribute("role", "alertdialog"); box.setAttribute("aria-modal", "true"); box.dir = isAr() ? "rtl" : "ltr";
+      const h = mkEl("h2", null, title), p = mkEl("p", null, body), acts = mkEl("div", "acts");
+      const yes = mkEl("button", "btn primary", ok), no = mkEl("button", "btn", cancel || at("cancel"));
+      yes.type = no.type = "button"; h.id = "rdlg-t"; box.setAttribute("aria-labelledby", "rdlg-t");
+      acts.append(yes, no); box.append(h, p, acts); bg.append(box); document.body.append(bg);
+      const prev = document.activeElement;
+      const done = v => { document.removeEventListener("keydown", key, true); bg.remove(); try { prev && prev.focus && prev.focus(); } catch {} resolve(v); };
+      const key = e => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); } };
+      document.addEventListener("keydown", key, true);
+      yes.onclick = () => done(true); no.onclick = () => done(false);
+      bg.addEventListener("click", e => { if (e.target === bg) done(false); });
+      yes.focus();
+    });
+  }
+
   // a different player on this device: forget the old player's local copies so they can't overwrite the new one
   function switchTo(u, t) {
     for (const k of ["hr-daily", "hr-daily-ar", "hf-today", "tr-today"]) { try { localStorage.removeItem(k); } catch {} }
@@ -386,52 +431,184 @@
         return switchTo(r.uid, r.token);
       }
     } catch (e) {
-      if (e.status === 409 && e.data && e.data.need === "switch") { if (confirm(at("switchQ"))) return onCredential(resp, true); }
+      if (e.status === 409 && e.data && e.data.need === "switch") {
+        if (await ask({ title: at("switchT"), body: at("switchQ"), ok: at("switchOk") })) return onCredential(resp, true);
+      }
       else acctMsg = e.status === 409 ? "taken" : "fail";
     }
-    renderAcct();
+    renderAcct(); renderBar();
   }
-  function signOut() {
-    if (!confirm(at("outQ"))) return;
+  async function signOut() {
+    if (!(await ask({ title: at("outT"), body: at("outQ"), ok: at("out") }))) return;
     try { localStorage.removeItem("hr-acct"); } catch {}
     switchTo("p_" + rand(10), rand(24));
   }
+  // Google draws its own button; its dark version sits on the dark design. It needs a width, so it's drawn once the sheet is open.
+  let gsiSlot = null, gsiDrawn = null;
+  function drawGsi() {
+    if (!gsiSlot || gsiDrawn === gsiSlot || !sheetOpen || !(authCfg && authCfg.google)) return;
+    const slot = gsiSlot; gsiDrawn = slot;
+    const w = Math.max(220, Math.min(400, Math.round(slot.getBoundingClientRect().width || 300)));
+    loadGsi().then(() => window.google.accounts.id.renderButton(slot, { type: "standard", theme: "filled_black", size: "large", text: "signin_with", shape: "pill", width: w, locale: isAr() ? "ar" : "en" }))
+      .catch(() => { gsiDrawn = null; });
+  }
   function renderAcct() {
     if (!acctBox) return;
-    acctBox.textContent = "";
+    acctBox.textContent = ""; gsiSlot = null; gsiDrawn = null;
     if (acct) {
-      const p = document.createElement("p"); p.className = "note"; p.textContent = at("as", acct.email || "Google");
-      const b = document.createElement("button"); b.type = "button"; b.className = "rush-acct-out"; b.textContent = at("out"); b.onclick = signOut;
-      p.append(" ", b); acctBox.append(p);
+      const head = mkEl("div", "ah"), dot = mkEl("span", "gdot"), em = mkEl("span", "em");
+      dot.append(svg(G_LOGO)); em.append(mkEl("b", null, acct.email || "Google"), mkEl("span", null, at("saved")));
+      head.append(dot, em); acctBox.append(head);
       let mg = null; try { mg = JSON.parse(store.get("hr-merged") || "null"); } catch {}
       if (mg) {
-        const m = document.createElement("p"); m.className = "note";
-        m.textContent = mg.skip ? at("mergeSkipped") : mg.n ? at("merged", String(mg.n)) : at("mergedNone");
+        const m = mkEl("p", "merged"); m.append(svg(CHECK), document.createTextNode(mg.skip ? at("mergeSkipped") : mg.n ? at("merged", String(mg.n)) : at("mergedNone")));
         acctBox.append(m);
         setTimeout(() => { try { localStorage.removeItem("hr-merged"); } catch {} }, 1000);
       }
+      const b = mkEl("button", "rush-acct-out", at("out")); b.type = "button"; b.onclick = signOut; acctBox.append(b);
     } else if (authCfg && authCfg.google) {
-      const p = document.createElement("p"); p.className = "note"; p.textContent = at("pitch");
-      const slot = document.createElement("div"); slot.className = "rush-acct-btn";
-      acctBox.append(p, slot);
-      loadGsi().then(() => window.google.accounts.id.renderButton(slot, { type: "standard", theme: "outline", size: "medium", text: "signin_with", shape: "pill", locale: isAr() ? "ar" : "en" })).catch(() => {});
+      const head = mkEl("p", "ah"); head.append(svg(CLOUD), document.createTextNode(at("guest")));
+      head.firstChild.style.color = "var(--gold)";
+      gsiSlot = mkEl("div", "rush-acct-btn");
+      acctBox.append(head, mkEl("p", "pitch", at("pitch")), gsiSlot, mkEl("p", "priv", at("priv")));
+      drawGsi();
     }
-    if (acctMsg) { const m = document.createElement("p"); m.className = "note warn"; m.textContent = at(acctMsg); acctBox.append(m); }
+    if (acctMsg) acctBox.append(mkEl("p", "note warn", at(acctMsg)));
+  }
+
+  /* the player as this device knows them, for the avatar */
+  function profile() {
+    let me = null; try { me = JSON.parse(store.get("hr-me") || "null"); } catch {}
+    const nickIn = document.getElementById("nick");
+    let nick = (nickIn && nickIn.value.trim()) || (me && me.nick) || "";
+    let color = me && PLAYER_COLORS.includes(me.color) ? me.color : PLAYER_COLORS[0];
+    const on = document.querySelector('#sw [aria-pressed="true"]');
+    if (on && on.style.background) { const c = PLAYER_COLORS.find(x => sameColor(x, on.style.background)); if (c) color = c; }
+    return { nick: nick.slice(0, 16), color };
+  }
+  function sameColor(hex, css) {
+    if (css.toLowerCase() === hex) return true;
+    const m = css.match(/\d+/g); if (!m) return false;
+    return m.slice(0, 3).map(n => Number(n).toString(16).padStart(2, "0")).join("") === hex.slice(1);
+  }
+  function fillAvatar(av) {
+    const p = profile();
+    av.style.background = p.color;
+    av.firstChild.textContent = p.nick ? [...p.nick][0].toUpperCase() : "?";
+    av.querySelector(".gbadge") && av.querySelector(".gbadge").remove();
+    if (acct) { const g = mkEl("span", "gbadge"); g.append(svg(G_LOGO)); av.append(g); }
+  }
+  function avatar() { const a = mkEl("span", "av"); a.append(document.createTextNode("")); return a; }
+
+  let topbar = null, barRefs = {}, sheet = null, sheetBg = null, sheetOpen = false, sheetRefs = {};
+  function renderBar() {
+    if (!topbar) return;
+    const ar = isAr(), g = GAMES[gameKey], p = profile(), tag = tagOf(uid);
+    topbar.dir = ar ? "rtl" : "ltr";
+    if (barRefs.home) barRefs.home.setAttribute("aria-label", at("home"));
+    if (barRefs.back) barRefs.back.setAttribute("aria-label", at("allGames"));
+    if (barRefs.name) {
+      barRefs.name.textContent = "";
+      const full = g[ar ? "ar" : "en"];
+      if (!ar && / /.test(full)) { const i = full.lastIndexOf(" "); barRefs.name.append(document.createTextNode(full.slice(0, i + 1)), mkEl("b", null, full.slice(i + 1))); }
+      else barRefs.name.textContent = full;
+    }
+    barRefs.save.hidden = !(authCfg && authCfg.google) || !!acct;
+    barRefs.saveT.textContent = at("save"); barRefs.saveT2.textContent = at("saveShort");
+    barRefs.save.setAttribute("aria-label", at("save"));
+    barRefs.me.setAttribute("aria-label", at("me"));
+    fillAvatar(barRefs.av);
+    barRefs.who.textContent = p.nick || "—";
+    barRefs.who.append(mkEl("small", "ltr", "#" + tag));
+    if (sheet) {
+      sheet.dir = ar ? "rtl" : "ltr";
+      sheetRefs.title.textContent = at("profile");
+      sheetRefs.tag.textContent = (p.nick ? p.nick + " " : "") + "#" + tag;
+      sheetRefs.x.setAttribute("aria-label", at("close"));
+      fillAvatar(sheetRefs.av);
+      if (sheetRefs.plus) { sheetRefs.plusT.textContent = "Rush+ "; sheetRefs.plusT.append(mkEl("small", null, "· " + at("plusFree"))); sheetRefs.plusS.textContent = at("plusSee"); }
+    }
+  }
+  function openSheet() {
+    if (!sheet || sheetOpen) return;
+    sheetOpen = true; sheet.hidden = false; sheetBg.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => { sheet.classList.add("open"); sheetBg.classList.add("open"); drawGsi(); }));
+    renderBar();
+    barRefs.me.setAttribute("aria-expanded", "true");
+  }
+  function closeSheet() {
+    if (!sheetOpen) return;
+    sheetOpen = false; sheet.classList.remove("open"); sheetBg.classList.remove("open");
+    barRefs.me.setAttribute("aria-expanded", "false");
+    // let the page save the name first (it saves on "change", which fires as the box loses focus)
+    if (document.activeElement && sheet.contains(document.activeElement)) document.activeElement.blur();
+    setTimeout(() => { if (!sheetOpen) { sheet.hidden = true; sheetBg.hidden = true; } renderBar(); }, 260);
+    try { barRefs.me.focus({ preventScroll: true }); } catch {}
+  }
+  function buildChrome() {
+    const g = gameKey;
+    topbar = mkEl("header", "rbar"); topbar.setAttribute("data-game", g);
+    const inner = mkEl("div", "rbar-in"); topbar.append(inner);
+    const home = mkEl("a", "rbar-home"); home.href = "/"; home.append(mkEl("span", "rwordmark")); barRefs.home = home;
+    if (g === "hub") inner.append(home);
+    else {
+      const back = mkEl("a", "rbar-back"); back.href = "/"; back.append(svg(BACK)); barRefs.back = back;
+      const game = mkEl("div", "rbar-game"), tile = mkEl("span", "gtile " + g), name = mkEl("span", "rbar-name");
+      tile.setAttribute("aria-hidden", "true"); tile.append(mkEl("span", "rmark")); game.append(tile, name); barRefs.name = name;
+      inner.append(back, home, mkEl("span", "rbar-sep"), game);
+    }
+    inner.append(mkEl("span", "rbar-sp"));
+    if (SUBS) { const plus = mkEl("a", "rbar-plus"); plus.href = "/plus/"; plus.append(document.createTextNode("Rush"), mkEl("b", null, "+")); inner.append(plus); }
+    // the page's own language button moves into the bar (its click handler comes with it)
+    const lang = document.getElementById("langLobby") || document.getElementById("lang");
+    if (lang) inner.append(lang);
+    const save = mkEl("button", "rbar-save"); save.type = "button"; save.hidden = true;
+    const saveT = mkEl("span", "t1"), saveT2 = mkEl("span", "t2");
+    save.append(svg(CLOUD), saveT, saveT2); barRefs.saveT2 = saveT2; barRefs.saveT = saveT; save.onclick = openSheet; barRefs.save = save;
+    const me = mkEl("button", "rbar-me"); me.type = "button"; me.setAttribute("aria-haspopup", "dialog"); me.setAttribute("aria-expanded", "false");
+    const av = avatar(), who = mkEl("span", "who"); me.append(av, who); me.onclick = () => (sheetOpen ? closeSheet() : openSheet());
+    barRefs.me = me; barRefs.av = av; barRefs.who = who;
+    inner.append(save, me);
+    document.body.prepend(topbar);
+
+    // the profile sheet, holding the page's name-and-colour card
+    const nick = document.getElementById("nick"), card = nick && nick.closest(".card");
+    sheetBg = mkEl("div", "rsheet-bg"); sheetBg.hidden = true; sheetBg.onclick = closeSheet;
+    sheet = mkEl("section", "rsheet"); sheet.hidden = true; sheet.setAttribute("role", "dialog"); sheet.setAttribute("aria-labelledby", "rsheet-t");
+    const head = mkEl("div", "rsheet-head"), hav = avatar(), hd = mkEl("div"), ht = mkEl("h2"), htag = mkEl("span", "tagl"), x = mkEl("button", "rsheet-x");
+    ht.id = "rsheet-t"; x.type = "button"; x.append(svg(X_ICON)); x.onclick = closeSheet;
+    hd.append(ht, htag); head.append(hav, hd, x);
+    sheet.append(mkEl("span", "grab"), head);
+    sheetRefs = { av: hav, title: ht, tag: htag, x };
+    if (SUBS) {
+      const plus = mkEl("a", "rsheet-plus"); plus.href = "/plus/";
+      const pi = mkEl("i", null, "+"), pt = mkEl("span"), ps = mkEl("small");
+      plus.append(pi, pt, ps); sheet.append(plus); sheetRefs.plus = plus; sheetRefs.plusT = pt; sheetRefs.plusS = ps;
+    }
+    acctBox = mkEl("div", "rush-acct");
+    if (card) { card.classList.add("rsheet-card"); sheet.append(card); }
+    sheet.append(acctBox);
+    document.body.append(sheetBg, sheet);
+    sheet.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); closeSheet(); } });
+    sheet.addEventListener("input", renderBar);
+    sheet.addEventListener("click", e => { if (e.target.closest && e.target.closest("#sw")) setTimeout(renderBar, 0); });
+    // when the page asks for a name (it marks the box and focuses it), bring the sheet up
+    if (nick) {
+      new MutationObserver(() => { if (nick.classList.contains("need")) { openSheet(); setTimeout(() => { try { nick.focus(); } catch {} }, 280); } })
+        .observe(nick, { attributes: true, attributeFilter: ["class"] });
+      nick.addEventListener("focus", openSheet);
+    }
+    window.addEventListener("pageshow", renderBar);
+    renderBar();
   }
   onBody(async () => {
-    const hint = document.getElementById("nameHint");
-    if (!hint) return;
-    acctBox = document.createElement("div"); acctBox.className = "rush-acct";
-    hint.after(acctBox);
-    const st = document.createElement("style");
-    st.textContent = ".rush-acct{display:grid;gap:6px;margin-top:4px}.rush-acct p{margin:0}.rush-acct-out{font:600 13px var(--f-body,system-ui,sans-serif);background:none;border:0;padding:0;color:var(--accent,#2c56e0);text-decoration:underline;cursor:pointer}.rush-acct-btn{min-height:32px}";
-    document.head.appendChild(st);
+    buildChrome();
     // the page's language switch changes <html lang>: redraw in the new language
-    new MutationObserver(renderAcct).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+    new MutationObserver(() => { renderAcct(); renderBar(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
     renderAcct();
     await ready;
     try { authCfg = await get("/api/auth/config"); } catch { authCfg = { google: null }; }
-    renderAcct();
+    renderAcct(); renderBar();
   });
 
   // one visit count per page load (the admin page's visitor numbers): which game, and this device's player id
@@ -439,7 +616,7 @@
     const pg = (location.pathname.match(/\/(hangman|trivia|harf)(\/|$)/) || [])[1] || "home", b = JSON.stringify({ p: pg, v: uid });
     if (!(navigator.sendBeacon && navigator.sendBeacon(http("/api/hit"), b))) fetch(http("/api/hit"), { method: "POST", body: b, keepalive: true }).catch(() => {});
   } catch {}
-  window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink, shareUrl,
+  window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, db, user, daily };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };
