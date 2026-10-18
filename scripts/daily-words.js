@@ -10,8 +10,9 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const FILE = path.join(__dirname, "..", "daily-words.enc");
-const FILE_AR = path.join(__dirname, "..", "daily-words-ar.enc");
+// DAILY_WORDS_FILE / DAILY_WORDS_AR_FILE point somewhere else (the tests use a list of their own)
+const FILE = process.env.DAILY_WORDS_FILE || path.join(__dirname, "..", "daily-words.enc");
+const FILE_AR = process.env.DAILY_WORDS_AR_FILE || path.join(__dirname, "..", "daily-words-ar.enc");
 
 function key(name = "DAILY_KEY") {
   const k = process.env[name] || "";

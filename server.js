@@ -12,6 +12,7 @@ const PUBLIC = path.join(__dirname, "site");
 const SITE_URL = (process.env.SITE_URL || "").replace(/\/+$/, "");
 const store = require("./store");
 const trivia = require("./trivia");
+const hangman = require("./hangman");
 const harf = require("./harf");
 const admin = require("./admin");
 const auth = require("./auth");
@@ -22,26 +23,9 @@ const R = require("./site/shared/rules");
 const PAGES = require("./scripts/build-site").build({ api: "", site: SITE_URL });
 
 // ---------- daily word ----------
-// The list is stored encrypted (daily-words.enc) and unlocked with the DAILY_KEY environment variable,
-// so neither the page nor the public repo reveals upcoming words. Only today's word is ever sent.
+// The lists live in hangman.js, which also runs the daily on the server. /api/daily below still hands today's word to
+// pages from before the server-run daily; it goes once those are gone.
 const DAY = 864e5, EPOCH_DAY = Math.floor(Date.UTC(2026, 9, 13) / DAY);
-let DAILY = [];
-try {
-  const { decrypt, FILE } = require("./scripts/daily-words");
-  DAILY = decrypt(fs.readFileSync(FILE, "utf8"));
-  console.log(`Daily words loaded: ${DAILY.length}`);
-} catch (e) {
-  console.warn("Daily words unavailable (set DAILY_KEY):", e.message);
-}
-// the Arabic daily word: its own list (daily-words-ar.enc, unlocked with DAILY_AR_KEY), so it's a different word
-let DAILY_AR = [];
-try {
-  const { decrypt, FILE_AR } = require("./scripts/daily-words");
-  DAILY_AR = decrypt(fs.readFileSync(FILE_AR, "utf8"), "DAILY_AR_KEY");
-  console.log(`Arabic daily words loaded: ${DAILY_AR.length}`);
-} catch (e) {
-  console.warn("Arabic daily words unavailable (set DAILY_AR_KEY):", e.message);
-}
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json" };
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
@@ -88,6 +72,20 @@ function hangmanDays(h, stored) {
   return out;
 }
 
+// The server now writes daily results too (hangman.js), and a page saves its whole record from what it last had, so
+// a save keeps what only the server knows: the run in progress, finished days this season the page doesn't have yet,
+// and the counts that go with them when the server's are ahead.
+function keepServerParts(data, stored) {
+  const old = stored && stored.data;
+  data.h = hangmanDays(data.h, stored);
+  if (!old) return;
+  if (old.run) data.run = old.run; else delete data.run;
+  if (R.seasonOfRec(old) !== R.seasonOfRec(data)) return;
+  const first = R.dayKey(EPOCH_DAY + (R.seasonOfRec(old) - 1) * R.SEASON_LEN + 1);
+  for (const [k, v] of Object.entries(old.h || {})) if (k >= first && v && "ok" in v && !(data.h[k] && "ok" in data.h[k])) data.h[k] = v;
+  if (R.num(old.played) > R.num(data.played)) for (const f of ["played", "wins", "streak", "best", "ls"]) data[f] = old[f];
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://x");
@@ -114,21 +112,21 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)},home:${JSON.stringify(require("./scripts/build-site").HOME)}};`, "text/javascript; charset=utf-8");
     const ctx = { send, readJson, ip };
     if (await trivia.handle(req, res, url, ctx)) return;
+    if (await hangman.handle(req, res, url, ctx)) return;
     if (await harf.handle(req, res, url, ctx)) return;
     if (await admin.handle(req, res, url, ctx)) return;
     if (await auth.handle(req, res, url, ctx)) return;
 
     if (url.pathname === "/api/daily" && req.method === "GET") {
-      const lg = url.searchParams.get("lg") === "ar" ? "ar" : "en", list = lg === "ar" ? DAILY_AR : DAILY;
-      if (!list.length) return send(res, 503, { error: "Today's word isn't set up on this server yet" });
-      const n = Math.floor(Date.now() / DAY) - EPOCH_DAY;
-      const [c, w, en, ar, m] = list[((n - 1) % list.length + list.length) % list.length];
+      const lg = url.searchParams.get("lg") === "ar" ? "ar" : "en", n = Math.floor(Date.now() / DAY) - EPOCH_DAY, W = hangman.wordFor(n, lg);
+      if (!W) return send(res, 503, { error: "Today's word isn't set up on this server yet" });
+      const [c, w, en, ar, m] = W;
       return send(res, 200, { n, lg, c, w, en, ar, m });
     }
 
     if (url.pathname === "/api/players" && req.method === "GET") {
       const rows = await store.all();
-      return send(res, 200, rows.filter(r => !admin.isHidden("hangman", r.id)).map(r => ({ id: r.id, data: r.data })));
+      return send(res, 200, rows.filter(r => !admin.isHidden("hangman", r.id)).map(r => ({ id: r.id, data: hangman.publicRec(r.data) })));
     }
 
     const m = url.pathname.match(/^\/api\/players\/([^/]+)$/);
@@ -141,14 +139,17 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { error: "Expected {token, data}" });
       if (!limits.take("hm|" + ip, 30, 20)) return send(res, 429, { error: "Too many saves. Slow down a little." });
       const th = hashToken(body.token);
-      // the id must belong to this device in every game, not just Hangman
-      const own = await ident.owner(id, th);
-      if (!own.ok) return send(res, 403, { error: "This player belongs to another device" });
-      if (own.isNew && !limits.allowNewId(ip, ident.baseId(id))) return send(res, 429, { error: "Too many new players from this network today" });
-      body.data.n = R.nm16(body.data.n);
-      body.data.h = hangmanDays(body.data.h, own.recs[id.endsWith("_ar") ? "hmAr" : "hm"]);
-      await store.put(id, th, body.data);
-      return send(res, 200, { ok: true });
+      // under the same lock as the server-run daily, so a save can't land between a guess's read and write
+      return hangman.withLock(ident.baseId(id), async () => {
+        // the id must belong to this device in every game, not just Hangman
+        const own = await ident.owner(id, th);
+        if (!own.ok) return send(res, 403, { error: "This player belongs to another device" });
+        if (own.isNew && !limits.allowNewId(ip, ident.baseId(id))) return send(res, 429, { error: "Too many new players from this network today" });
+        body.data.n = R.nm16(body.data.n);
+        keepServerParts(body.data, own.recs[id.endsWith("_ar") ? "hmAr" : "hm"]);
+        await store.put(id, th, body.data);
+        return send(res, 200, { ok: true });
+      });
     }
 
     // static

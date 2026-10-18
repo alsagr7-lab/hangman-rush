@@ -452,9 +452,57 @@ function noteResult(solved){rec.sk=clampSk(rec.sk+(solved?1:-1))}
 // today's word in each language; the Arabic one only comes from the server
 let todayDaily=null,todayAr=null,dailyApi=null,dailyErr=false,dailyErrAr=false,dailyLoading=false,dailyLoadingAr=false,dailyTried=0,dailyTriedAr=0;
 const tdw=(lg=dlg)=>lg==="ar"?todayAr:todayDaily;
+/* the hosted page plays the daily on the server (hangman.js): the word stays there, each letter is sent and the server
+   answers where it appears, keeps the clock and the score, and writes the result. Without it (the single-file copy)
+   the page runs the daily itself, as before. */
+let hmApi=null,hmQ=Promise.resolve(),hmStatePending=false;
+const hiddenCount=()=>cur&&cur.srv?num(cur.hd):hiddenLetters().length;
+// adopt the records the server sent, and build the word in progress (or the finished one) from its state
+function applyHm(lg,s){
+  if(!s)return;
+  if(s.rec){const r=clean(s.rec);if(lg==="ar")recAr=r;else rec=r;try{localStorage.setItem(recKey(lg),JSON.stringify(r))}catch(e){}}
+  if(s.recEn){rec=clean(s.recEn);try{localStorage.setItem(recKey("en"),JSON.stringify(rec))}catch(e){}}
+  const W=tdw(lg);if(s.word&&W)Object.assign(W,s.word);
+  if(mode!=="daily"||lg!==dlg){renderLobbyDaily();return}
+  const o=s.open,e=s.entry;
+  if(o){
+    cur=makeCur(0,{w:o.p,c:o.c,en:"",ar:"",m:"",lg,i:-1},Date.now()+o.left-o.ms,true,"normal");
+    Object.assign(cur,{srv:true,g:new Set(o.g),miss:o.miss,maxMiss:o.maxMiss,hints:o.hints,maxHints:o.maxHints,bonus:o.bonus,cluePct:o.cluePct,hd:o.hd,v:o.v,clue:!!o.clue});
+    if(o.clue){cur.en=o.clue.en;cur.ar=o.clue.ar}
+  } else if(e){
+    const w=s.word||{};
+    cur=makeCur(0,{w:w.w||"",c:w.c||"",en:w.en||"",ar:w.ar||"",m:w.m||"",lg,i:-1},0,true,"normal");
+    Object.assign(cur,{srv:true,miss:num(e.m),done:e.ok?1:2,t:num(e.t),pts:num(e.pts),hints:num(e.hn)});
+  } else cur=null;
+  buildKeys();lastPanelKey="";render();renderLobbyDaily();
+}
+// one request at a time, in order; a guess shows on the keyboard at once and the server's answer then settles it
+function hmCall(kind,arg){
+  const lg=dlg;
+  if(kind==="state"){if(hmStatePending)return hmQ;hmStatePending=true}
+  if(kind==="guess"&&cur){cur.g.add(arg);render()}
+  return hmQ=hmQ.then(async()=>{
+    try{
+      const prof={n:me.nick,c:me.color};
+      const s=kind==="start"?await hmApi.start(lg,prof):kind==="guess"?await hmApi.guess(lg,arg):kind==="hint"?await hmApi.hint(lg,arg):await hmApi.state(lg,prof);
+      if(dbErr&&!saveFail.en&&!saveFail.ar&&!saveBlocked)dbErr=false;
+      applyHm(lg,s);
+    }catch(e){
+      if(e&&e.data&&e.data.state)applyHm(lg,e.data.state);
+      else{dbErr=true;if(kind==="guess"&&cur)cur.g.delete(arg);render();if(kind!=="state")setTimeout(()=>hmCall("state"),3000)}
+    }finally{if(kind==="state")hmStatePending=false}
+  });
+}
 function inlineDaily(n){const L=DAILY_INLINE.length;if(!L)return null;const [c,w,en,ar,m]=DAILY_INLINE[((n-1)%L+L)%L];return{w,c,en,ar,m,i:-1,n}}
+async function hmLoad(lg){
+  const n=dailyNo();
+  try{const d=await hmApi.info(lg),W=d&&d.ok?{w:"",c:"",en:"",ar:"",m:"",i:-1,n,lg}:null;
+    if(lg==="ar"){todayAr=W;dailyErrAr=!W}else{todayDaily=W;dailyErr=!W}}
+  catch(e){if(lg==="ar")dailyErrAr=true;else dailyErr=true}
+}
 async function loadDaily(){
   const n=dailyNo();if(todayDaily&&todayDaily.n===n)return;
+  if(hmApi){if(dailyLoading||Date.now()-dailyTried<15000)return;dailyLoading=true;dailyTried=Date.now();await hmLoad("en");dailyLoading=false;renderLobbyDaily();return}
   if(!dailyApi){todayDaily=inlineDaily(n);dailyErr=!todayDaily;return}
   if(dailyLoading||Date.now()-dailyTried<15000)return;
   dailyLoading=true;dailyTried=Date.now();
@@ -466,6 +514,7 @@ async function loadDaily(){
 }
 async function loadDailyAr(){
   const n=dailyNo();if(todayAr&&todayAr.n===n)return;
+  if(hmApi){if(dailyLoadingAr||Date.now()-dailyTriedAr<15000)return;dailyLoadingAr=true;dailyTriedAr=Date.now();await hmLoad("ar");dailyLoadingAr=false;renderLobbyDaily();if(mode==="daily")render();return}
   if(!dailyApi||dailyLoadingAr||Date.now()-dailyTriedAr<15000)return;
   dailyLoadingAr=true;dailyTriedAr=Date.now();
   try{const d=await dailyApi.today("ar");
@@ -550,8 +599,9 @@ setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},30000);
 
 (async()=>{
   const use=n=>window.claude&&window.claude.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
-  const [r,d,u,dw]=await Promise.all([use("room"),use("db"),use("user"),use("daily")]);
-  if(dw&&typeof dw.today==="function"){dailyApi=dw;if(!DAILY_INLINE.length)todayDaily=null;loadDaily()}
+  const [r,d,u,dw,hm]=await Promise.all([use("room"),use("db"),use("user"),use("daily"),use("hangman")]);
+  if(hm&&typeof hm.start==="function"){hmApi=hm;todayDaily=null;loadDaily()}
+  else if(dw&&typeof dw.today==="function"){dailyApi=dw;if(!DAILY_INLINE.length)todayDaily=null;loadDaily()}
   room=r;
   if(room){$("#createBtn").disabled=false;$("#joinBtn").disabled=false;$("#duelBtn").disabled=false;netState="ok"}else{netState="none";rushMissing()}
   renderNet();
@@ -594,6 +644,7 @@ function setDailyLang(lg){
   if(cur&&!cur.done&&cur.daily)return; // not in the middle of a word
   dlg=lg;boardLg=null;const r=drec(lg),W=tdw(lg),e=todayEntry(r);
   if(!W){cur=null;if(lg==="ar")loadDailyAr();else loadDaily()}
+  else if(hmApi){cur=null;hmCall("state")}
   else if(e&&!("ok" in e)){ // started earlier but never finished
     cur=makeCur(0,W,0,true,"normal");cur.done=2;cur.t=cur.ms;recordDaily();
   } else if(e){cur=makeCur(0,W,0,true,"normal");cur.miss=num(e.m);cur.done=e.ok?1:2;cur.t=num(e.t);cur.pts=num(e.pts);cur.hints=num(e.hn)}
@@ -695,16 +746,19 @@ function hiddenLetters(){return cur?[...new Set([...cur.word].map(keyOf))].filte
 function canPlay(){return cur&&!cur.done&&Date.now()>=cur.startAt&&!(mode==="room"&&!host&&(()=>{const h=hostInfo();return h&&h.st==="ended"&&h.hr===cur.round})())}
 function hintLetter(){
   if(!canPlay()||!cur.help||cur.hints>=cur.maxHints)return;
+  if(cur.srv){if(hiddenCount()>=2)hmCall("hint","letter");return}
   const left=hiddenLetters();if(left.length<2)return; // never give away the last letter
   cur.g.add(left[Math.floor(Math.random()*left.length)]);cur.hints++;
   pushPresence();render();
 }
 function hintClue(){
   if(!canPlay()||!cur.help||cur.clue)return;
+  if(cur.srv){hmCall("hint","clue");return}
   cur.clue=true;pushPresence();render();
 }
 function finishMine(kind){
   if(!cur||cur.done)return;
+  if(cur.srv){hmCall("state");return} // time's up: the server scores it
   cur.t=Math.min(cur.ms,Math.max(0,Date.now()-cur.startAt));
   if(kind==="solved"){cur.done=1;
     const speed=Math.round(240*Math.max(0,cur.ms-cur.t)/cur.ms);
@@ -718,6 +772,7 @@ function finishMine(kind){
 }
 function guess(L){
   if(!canPlay()||cur.g.has(L))return;
+  if(cur.srv){hmCall("guess",L);return}
   cur.g.add(L);
   if([...cur.word].some(ch=>keyOf(ch)===L)){if([...cur.word].every(ch=>cur.g.has(keyOf(ch))))return finishMine("solved")}
   else{cur.miss++;if(cur.miss>=cur.maxMiss)return finishMine("hanged")}
@@ -726,6 +781,7 @@ function guess(L){
 function startDaily(){
   const r=drec(),W=tdw();
   if(todayEntry(r)||!W)return;
+  if(hmApi){hmCall("start");return}
   r.h[todayKey()]={s:1,at:Date.now()};saveRec(dlg);
   beginRound(0,W,Date.now()+COUNT_MS,true,"normal");
 }
@@ -857,7 +913,7 @@ function renderPlay(){
   const miss=cur?cur.miss:0;for(let i=1;i<=8;i++)$("#p"+i).classList.toggle("on",i<=miss);
   const live=cur&&Date.now()>=cur.startAt;
   $("#cat").textContent=live?catName(cur.cat):t("category");
-  $("#vowels").textContent=live&&cur.help&&cur.lg!=="ar"?t("vowels",{n:vowelCount(cur.word)}):"";
+  $("#vowels").textContent=live&&cur.help&&cur.lg!=="ar"?t("vowels",{n:cur.v!=null?cur.v:vowelCount(cur.word)}):"";
   const cl=$("#clue");cl.hidden=!(live&&(cur.clue||cur.done));cl.textContent=live?(lang==="ar"?cur.ar:cur.en)||"":"";
   // after the word: an English word's Arabic meaning (Arabic page), an Arabic word's English meaning (always)
   const tr=$("#transl");tr.hidden=!(live&&cur.done&&(lang==="ar"||cur.lg==="ar"));tr.textContent=live?t(cur.lg==="ar"?"meaningEn":"meaningAr",{m:cur.m||""}):"";
@@ -866,7 +922,7 @@ function renderPlay(){
     const hl=$("#hintLetterBtn"),hm=$("#hintClueBtn");hl.textContent="";hm.textContent="";
     const left=cur.maxHints-cur.hints;
     hl.append(document.createTextNode(t("hintLetter")+" "),el("b",null,"−"+HINT_LETTER),document.createTextNode(" ("+left+")"));
-    hl.disabled=left<=0||hiddenLetters().length<2;
+    hl.disabled=left<=0||hiddenCount()<2;
     hm.append(document.createTextNode(t("hintClue")+" "),el("b",null,"−"+cur.cluePct+"%"));hm.disabled=cur.clue;
     const hn=$("#hintNote");hn.hidden=!cur.bonus;hn.textContent=cur.bonus?t("bonusNote",{n:cur.bonus}):"";
   }
@@ -1066,7 +1122,7 @@ function dailyOverlay(ov,panel){
     }
     const W=tdw();
     out.push(el("h2",null,e.ok?t("solvedIn",{t:fmtS(e.t)}):t("hangedToday")));
-    if(W){const rv=el("div","reveal",W.w);if(dlg==="ar"){rv.dir="rtl";rv.style.fontFamily='"IBM Plex Sans Arabic",system-ui,sans-serif';rv.style.textAlign="center"}out.push(rv)}
+    if(W&&W.w){const rv=el("div","reveal",W.w);if(dlg==="ar"){rv.dir="rtl";rv.style.fontFamily='"IBM Plex Sans Arabic",system-ui,sans-serif';rv.style.textAlign="center"}out.push(rv)}
     const st=el("div","stats");[[e.pts,"statPoints"],[e.m,"statMisses"],[s,"statStreak"],[r.best,"statBest"]].forEach(([v,l])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,t(l)));st.appendChild(d)});out.push(st);
     const share=t("shareHead",{s:curSeason(),n:dailyNo()})+" · "+LGN[dlg]+"\n"+(e.ok?t("shareSolved",{t:fmtS(e.t),m:missTxt(e.m)+(e.hn?"، ".replace("، ",lang==="ar"?"، ":", ")+hintTxt(e.hn):""),p:e.pts}):t("shareHanged"))+(s?"\n"+t("shareStreak",{n:s}):"")+"\n"+Rush.shareUrl();
     const b=el("button","btn primary",t("copyResult"));b.onclick=()=>copyText(share,b,"copyResult");out.push(b);
