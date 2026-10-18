@@ -116,7 +116,7 @@ function scoreAnswer(rec, run, pickedOriginal) {
   rec.sk = R.clampSk(rec.sk + (ok ? 1 : -1));
   run.i++; run.at = 0; run.f = 0;
   const k = R.todayKey(), right = run.res.filter(x => x.ok).length;
-  const entry = { c: right, t: run.res.reduce((a, x) => a + x.ms, 0), m: run.res.length - right,
+  const entry = { at: (rec.h[k] && rec.h[k].at) || Date.now(), c: right, t: run.res.reduce((a, x) => a + x.ms, 0), m: run.res.length - right,
     pts: run.res.reduce((a, x) => a + x.pts, 0), hn: run.res.filter(x => x.f).length, s: run.res.map(x => x.ok).join("") };
   if (run.i >= T.QUESTIONS) { entry.ok = right >= T.PASS ? 1 : 0; R.countDaily(rec, !!entry.ok); }
   rec.h[k] = entry;

@@ -9,13 +9,16 @@
 //   POST /api/auth/google  {credential, uid, token, confirm?}
 //        -> {uid, token, email, switched}   (email is only echoed back for this device to show; never stored)
 //        -> 409 {need: "switch"}            when the Google account already has progress on another id and this
-//                                           device's id has progress of its own; resend with confirm: true to switch
+//                                           device's id has progress of its own; resend with confirm: true to switch.
+//                                           Switching merges this device's results into the account (merges.js,
+//                                           first result of each day wins), once per account per season.
 //
 // Signed-in players get their own daily AI allowance in Harf rooms instead of sharing their network's (harf.js).
 const crypto = require("crypto");
 const store = require("./store");
 const ident = require("./ident");
 const limits = require("./limits");
+const R = require("./site/shared/rules");
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const CERTS_URL = process.env.GOOGLE_CERTS_URL || "https://www.googleapis.com/oauth2/v3/certs";
@@ -112,7 +115,22 @@ async function handle(req, res, url, { send, readJson, ip }) {
   if (!here.isNew && !body.confirm) { send(res, 409, { need: "switch", error: "This Google account already has progress on another device" }); return true; }
   let tok;
   try { tok = open(linked.tok); } catch { send(res, 500, { error: "Couldn't restore this account" }); return true; }
-  send(res, 200, { uid: linked.uid, token: tok, email: g.email || "", switched: true });
+  // this device's own results join the account: the first result played each day counts, so playing a day on two
+  // devices never helps. Once per account per season, so it can't be repeated to stack up days.
+  let merged = 0, mergeSkipped = false;
+  if (!here.isNew) {
+    const mk = "merge:" + k, prev = await store.metaGet(mk).catch(() => null), se = R.curSeason();
+    if (prev && prev.se === se) mergeSkipped = true;
+    else {
+      try {
+        const r = await require("./merges").mergePlayers(linked.uid, uid, require("./merges").FIRST);
+        merged = r.days;
+        await store.metaPut(mk, { se, at: Date.now() });
+        console.log(`Auth: merged a device into an account (${r.days} day(s): ${r.where.join(", ") || "none"})`);
+      } catch (e) { console.error("Auth: merge failed", e); }
+    }
+  }
+  send(res, 200, { uid: linked.uid, token: tok, email: g.email || "", switched: true, merged, mergeSkipped });
   return true;
 }
 

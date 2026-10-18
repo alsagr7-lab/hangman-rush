@@ -339,11 +339,13 @@
   const AUTH_TXT = {
     en: { pitch: "Sign in with Google to keep your streaks and scores on any device.", as: "Signed in as {e}. Your progress is saved to your Google account.",
           out: "Sign out", outQ: "Sign out on this device? It starts again as a new guest; your progress stays in your Google account.",
-          switchQ: "This Google account already has progress from another device. Switch to it? What you've played here as a guest stays behind.",
+          switchQ: "This Google account already has progress from another device. Switch to it? Your results from this device will be added to it (if both played the same day, the first result counts).",
+          merged: "Added {e} day(s) from your other device.", mergedNone: "Nothing new to add from your other device.", mergeSkipped: "Results from another device were already added this season, so this device's weren't added.",
           fail: "Sign-in didn't work. Try again in a moment.", taken: "This progress is already linked to a different Google account." },
     ar: { pitch: "سجّل الدخول بحساب Google لتحتفظ بسلاسلك ونقاطك على أي جهاز.", as: "مسجّل باسم {e}. تقدّمك محفوظ في حساب Google.",
           out: "تسجيل الخروج", outQ: "تسجيل الخروج من هذا الجهاز؟ سيبدأ كضيف جديد، ويبقى تقدّمك محفوظاً في حساب Google.",
-          switchQ: "لهذا الحساب تقدّم من جهاز آخر. هل تنتقل إليه؟ ما لعبته هنا كضيف لن ينتقل معك.",
+          switchQ: "لهذا الحساب تقدّم من جهاز آخر. هل تنتقل إليه؟ ستُضاف نتائجك من هذا الجهاز إليه (إذا لعب الجهازان نفس اليوم تُحتسب النتيجة الأولى).",
+          merged: "أُضيفت {e} يوماً من جهازك الآخر.", mergedNone: "لا جديد لإضافته من جهازك الآخر.", mergeSkipped: "سبق أن أُضيفت نتائج جهاز آخر هذا الموسم، فلم تُضف نتائج هذا الجهاز.",
           fail: "تعذّر تسجيل الدخول. حاول بعد لحظات.", taken: "هذا التقدّم مرتبط بحساب Google آخر." },
   };
   let acct = null; try { acct = JSON.parse(store.get("hr-acct") || "null"); } catch {}
@@ -367,7 +369,11 @@
     try {
       const r = await post("/api/auth/google", { credential: resp.credential, confirm: !!confirmed });
       acct = { email: r.email || "" }; store.set("hr-acct", JSON.stringify(acct));
-      if (r.uid !== uid) return switchTo(r.uid, r.token);
+      if (r.uid !== uid) {
+        // shown once after the reload: what came across from this device
+        if (r.mergeSkipped || r.merged != null) store.set("hr-merged", JSON.stringify({ n: Number(r.merged) || 0, skip: !!r.mergeSkipped }));
+        return switchTo(r.uid, r.token);
+      }
     } catch (e) {
       if (e.status === 409 && e.data && e.data.need === "switch") { if (confirm(at("switchQ"))) return onCredential(resp, true); }
       else acctMsg = e.status === 409 ? "taken" : "fail";
@@ -386,6 +392,13 @@
       const p = document.createElement("p"); p.className = "note"; p.textContent = at("as", acct.email || "Google");
       const b = document.createElement("button"); b.type = "button"; b.className = "rush-acct-out"; b.textContent = at("out"); b.onclick = signOut;
       p.append(" ", b); acctBox.append(p);
+      let mg = null; try { mg = JSON.parse(store.get("hr-merged") || "null"); } catch {}
+      if (mg) {
+        const m = document.createElement("p"); m.className = "note";
+        m.textContent = mg.skip ? at("mergeSkipped") : mg.n ? at("merged", String(mg.n)) : at("mergedNone");
+        acctBox.append(m);
+        setTimeout(() => { try { localStorage.removeItem("hr-merged"); } catch {} }, 1000);
+      }
     } else if (authCfg && authCfg.google) {
       const p = document.createElement("p"); p.className = "note"; p.textContent = at("pitch");
       const slot = document.createElement("div"); slot.className = "rush-acct-btn";

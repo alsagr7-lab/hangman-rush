@@ -412,7 +412,7 @@ async function finish(rec, run, raw, usedMs) {
   const before = { ls: rec.ls, streak: rec.streak, best: rec.best, wins: rec.wins };
   R.countDaily(rec, perfect); // a perfect day extends the streak; an imperfect or missed one resets it
   const b = c * H.BASE, sb = perfect ? Math.min(H.STREAK_MAX, rec.streak) : 0;
-  rec.h[run.d] = { lg: run.lg, L: run.L, a, c, b, sb, rb: null, pts: b + sb, ok: perfect ? 1 : 0, t: Math.min(H.DAILY_MS, Math.max(0, usedMs)), pre: before };
+  rec.h[run.d] = { lg: run.lg, L: run.L, a, c, b, sb, rb: null, pts: b + sb, ok: perfect ? 1 : 0, t: Math.min(H.DAILY_MS, Math.max(0, usedMs)), pre: before, at: run.at };
   rec.run = null;
 }
 // a run whose time ran out (the player closed the page) is scored with its last saved draft

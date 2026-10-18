@@ -611,7 +611,7 @@ function recordDaily(){
   rollover(r);
   const k=todayKey(),y=ydayKey(),ok=cur.done===1;
   if(r.h[k]&&("ok" in r.h[k]))return;
-  r.h[k]={ok:ok?1:0,t:cur.t,m:cur.miss,pts:cur.pts,hn:hintsUsed()};
+  r.h[k]={ok:ok?1:0,t:cur.t,m:cur.miss,pts:cur.pts,hn:hintsUsed(),at:(r.h[k]&&r.h[k].at)||Date.now()};
   r.played++;
   if(ok){r.wins++;r.streak=(r.ls===y)?r.streak+1:(r.ls===k?r.streak:1);r.ls=k;r.best=Math.max(r.best,r.streak)}
   else{r.streak=0}
@@ -899,7 +899,7 @@ function guess(L){
 function startDaily(){
   const r=drec(),W=tdw();
   if(todayEntry(r)||!W)return;
-  r.h[todayKey()]={s:1};saveRec(dlg);
+  r.h[todayKey()]={s:1,at:Date.now()};saveRec(dlg);
   beginRound(0,W,Date.now()+COUNT_MS,true,"normal");
 }
 function hostStart(){
