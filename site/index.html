@@ -3,48 +3,112 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style>
+<style>:root{color-scheme:dark;background:#0B0C10;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}[hidden]{display:none!important}</style>
 <title>Rush Games</title>
+<meta name="description" content="Three free daily games: Hangman, Trivia and Harf (حيوان جماد إنسان), in Arabic and English. Play today’s puzzles and race your friends.">
+<meta name="theme-color" content="#0B0C10">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rush Games">
+<meta property="og:title" content="Rush Games">
+<meta property="og:description" content="Three free daily games: Hangman, Trivia and Harf (حيوان جماد إنسان), in Arabic and English. Play today’s puzzles and race your friends.">
+<meta property="og:url" content="https://rushgames.cc/">
+<meta property="og:image" content="https://rushgames.cc/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script>/* record script load failures, so the page can say what went wrong */window.__rushErrs=[];window.addEventListener("error",function(e){var t=e.target;if(t&&t!==window&&t.src)window.__rushErrs.push("couldn't load "+t.src.split("/").pop());else if(e.message)window.__rushErrs.push(e.message)},true)</script>
 <script src="/shared/config.js"></script>
 <script src="/shared/rules.js"></script>
 <script src="/shared/rush.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Aref+Ruqaa:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@100..125,400..800&family=Figtree:wght@400..800&family=Cairo:wght@400..900&display=swap">
 <link rel="stylesheet" href="/shared/rush.css">
 <style>
-#hub{display:grid;gap:18px;max-width:960px;margin:0 auto}
-.games{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-@media (max-width:860px){.games{grid-template-columns:1fr 1fr}}
-@media (max-width:620px){.games{grid-template-columns:1fr}}
-.game{background:var(--surface);border:2px solid var(--ink);border-radius:14px;padding:18px;display:grid;gap:10px;align-content:start;box-shadow:4px 4px 0 var(--ink);color:inherit;text-decoration:none;transition:transform .08s,box-shadow .08s}
-.game:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
-.game:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
-.game .gh{display:flex;align-items:center;gap:12px}
-.game svg{flex:none;width:46px;height:52px}
-.game h2{font-family:var(--f-hand);font-weight:400;font-size:30px;margin:0;line-height:1.1}
-:root[lang="ar"] .game h2{font-weight:700;font-size:28px}
-.game p{margin:0}
-.status{font-weight:700;font-size:14px}
+/* the hub: hero with today's status, then the three games */
+#hub{max-width:1180px;gap:24px}
+.hero{display:grid;gap:22px;align-items:center;padding:4px 0}
+@media (min-width:900px){.hero{grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:48px;padding:28px 0 8px}.hero-h{font-size:clamp(52px,5.4vw,76px)}}
+.eyebrow{display:flex;align-items:center;gap:12px}
+.eyebrow .lbl{color:var(--gold)}
+.hero-h{font-family:var(--f-display);font-stretch:118%;font-weight:800;font-size:clamp(40px,11.4vw,80px);line-height:.95;letter-spacing:-.02em;margin:16px 0 0}
+.hero-h span{display:block}
+:root[lang="ar"] .hero-h{font-family:var(--f-ar);font-stretch:100%;font-weight:900;line-height:1.2;letter-spacing:0;font-size:clamp(38px,10.4vw,72px)}
+.hero .tag{font-size:clamp(16px,2.2vw,19px);max-width:34em}
+.next{display:inline-grid;gap:2px;margin-top:22px;padding:12px 18px;border-radius:18px;background:var(--surface);border:1px solid var(--line)}
+.next .num{font-family:var(--f-num);font-weight:700;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;justify-self:start}
+.today{padding:22px;gap:12px;border-radius:28px}
+.today-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:2px}
+.dayrow{display:flex;align-items:center;gap:14px;padding:12px;border-radius:18px;background:var(--raised);color:var(--ink);text-decoration:none;transition:background .15s}
+.dayrow:hover{background:#21252F}
+.dayrow .gtile{width:50px;height:50px;border-radius:15px}
+.dr-t{flex:1;min-width:0;display:grid;gap:2px}
+.dr-t b{font-family:var(--f-display);font-stretch:112%;font-weight:700;font-size:17px;line-height:1.2}
+:root[lang="ar"] .dr-t b{font-family:var(--f-ar);font-weight:800;font-stretch:100%}
+.status{font-size:13.5px;color:var(--muted);line-height:1.45}
 .status.done{color:var(--good)}
 .status.miss{color:var(--hot)}
-.go{justify-self:start;margin-top:4px;pointer-events:none}
-.move{border-color:var(--accent);box-shadow:4px 4px 0 var(--accent)}
+.dr-go{flex:none;height:42px;padding:0 18px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:14.5px;color:#0B0C10}
+.dayrow.hangman .dr-go,.game.hangman .band,.game.hangman .go{background:var(--coral)}
+.dayrow.trivia .dr-go,.game.trivia .band,.game.trivia .go{background:var(--blue)}
+.dayrow.harf .dr-go,.game.harf .band,.game.harf .go{background:var(--green)}
+@media (max-width:380px){.dr-go{display:none}}
+.games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+@media (max-width:900px){.games{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.games{grid-template-columns:minmax(0,1fr);gap:16px}}
+.game{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:28px;overflow:hidden;color:var(--ink);text-decoration:none;transition:transform .12s,border-color .15s}
+.game:hover{border-color:#3a3f4c;transform:translateY(-2px)}
+.game:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.band{height:150px;display:flex;align-items:center;justify-content:center;gap:8px;color:#0B0C10;direction:ltr}
+.lt{width:46px;height:58px;border-radius:10px;background:#0B0C10;color:var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:30px}
+.lt.blank{background:rgba(11,12,16,.22);box-shadow:inset 0 -4px 0 #0B0C10}
+.o4s{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:min(260px,78%)}
+.o4{height:36px;border-radius:10px;background:rgba(11,12,16,.2);display:flex;align-items:center;padding:0 12px;gap:10px;font-family:var(--f-display);font-weight:800}
+.o4 i{height:6px;flex:1;max-width:60%;border-radius:3px;background:rgba(11,12,16,.35)}
+.o4.on{background:#0B0C10;color:var(--ink)}
+.o4.on i{background:var(--blue)}
+.hrf{font-family:var(--f-ar);font-weight:900;font-size:96px;line-height:1}
+.hrf-w{font-family:var(--f-ar);font-weight:800;font-size:17px;display:grid;gap:0;direction:rtl;line-height:1.5}
+@media (max-width:620px){
+  .band{height:104px;justify-content:flex-start;padding-inline:20px;gap:6px}
+  .lt{width:36px;height:46px;font-size:23px;border-radius:8px}
+  .o4s{width:100%;gap:8px}.o4{height:28px;font-size:13px}
+  .hrf{font-size:64px}.hrf-w{display:block;margin-inline-start:12px;font-size:16px}
+}
+.gb{padding:20px 22px 22px;display:flex;flex-direction:column;gap:10px;flex:1}
+.gb h2{font-family:var(--f-display);font-stretch:118%;font-weight:800;font-size:24px;margin:0;line-height:1.15}
+:root[lang="ar"] .gb h2{font-family:var(--f-ar);font-weight:900;font-stretch:100%;line-height:1.35}
+.gb p{margin:0;font-size:15px;color:var(--soft);line-height:1.5}
+.gb .go{margin-top:auto;width:100%;color:#0B0C10;border:0;pointer-events:none}
+.move{border-color:var(--gold)}
 .move a{justify-self:start;text-decoration:none}
-.today{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+#hub .rules{padding-top:8px;gap:24px}
+#hub .rules div{display:block;background:transparent;border:0;border-top:1px solid var(--line);border-radius:0;padding:22px 0 0;font-size:15px;color:var(--soft)}
+#hub .rules b{font-family:var(--f-display);font-stretch:125%;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:600;width:auto;margin-bottom:6px}
+:root[lang="ar"] #hub .rules b{font-family:var(--f-ar);letter-spacing:0;text-transform:none;font-size:14px;font-weight:800}
+@media (max-width:620px){#hub .rules{grid-template-columns:1fr;gap:16px}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <section id="hub">
     <div class="lobbytop"><button class="langbtn" id="lang" type="button"></button></div>
-    <div>
-      <div class="brand">
-        <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 60l14-40 10 26 8-14 12 28z"/><path d="M6 66h52" stroke="var(--hot)"/></svg>
-        <h1 data-i18n="brand">Rush Games</h1>
+    <div class="hero">
+      <div>
+        <div class="eyebrow"><span class="stripes" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl" id="season"></span></div>
+        <h1 class="hero-h"><span data-i18n="heroA">Three games.</span> <span data-i18n="heroB">One daily rush.</span></h1>
+        <p class="tag" data-i18n="tagline">Three daily games, one profile. Play today's word, questions and letter, then race your friends.</p>
+        <div class="next"><span class="lbl" data-i18n="nextIn">Next dailies in</span><span class="num" id="nextIn" role="timer">--:--:--</span></div>
       </div>
-      <p class="tag" data-i18n="tagline">Three daily games, one profile. Play today's word, questions and letter, then race your friends.</p>
+      <div class="card today">
+        <div class="today-h"><span class="lbl" data-i18n="yourDay">Your day</span><span class="note season" id="todayLbl"></span></div>
+        <a class="dayrow hangman" href="/hangman/"><span class="gtile hangman" aria-hidden="true"><span class="rmark"></span></span><span class="dr-t"><b data-i18n="hangman">Hangman Rush</b><span class="status" id="sHangman"></span></span><span class="dr-go" data-i18n="play">Play</span></a>
+        <a class="dayrow trivia" href="/trivia/"><span class="gtile trivia" aria-hidden="true"><span class="rmark"></span></span><span class="dr-t"><b data-i18n="trivia">Trivia Rush</b><span class="status" id="sTrivia"></span></span><span class="dr-go" data-i18n="play">Play</span></a>
+        <a class="dayrow harf" href="/harf/"><span class="gtile harf" aria-hidden="true"><span class="rmark"></span></span><span class="dr-t"><b data-i18n="harf">Harf Rush</b><span class="status" id="sHarf"></span></span><span class="dr-go" data-i18n="play">Play</span></a>
+      </div>
     </div>
 
     <div class="card move" id="move" hidden>
@@ -53,34 +117,18 @@
       <a class="btn primary" id="moveLink" href="#" data-i18n="moveBtn">Move me over</a>
     </div>
 
-    <div class="today"><span class="lbl" id="todayLbl"></span><span class="note season" id="season"></span></div>
     <div class="games">
-      <a class="game" href="/hangman/" id="gHangman">
-        <div class="gh">
-          <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M6 68h40M14 68V6h30v10"/><circle cx="44" cy="23" r="7" stroke="var(--hot)"/><path d="M44 30v18M44 36l-8 6M44 36l8 6M44 48l-7 10M44 48l7 10" stroke="var(--hot)"/></svg>
-          <h2 data-i18n="hangman">Hangman Rush</h2>
-        </div>
-        <p class="note" data-i18n="hangmanDesc">Same word, same moment. Solve it fastest with the fewest wrong letters.</p>
-        <p class="status" id="sHangman"></p>
-        <span class="btn primary go" data-i18n="play">Play</span>
+      <a class="game hangman" href="/hangman/" id="gHangman">
+        <div class="band" aria-hidden="true"><span class="lt">R</span><span class="lt blank"></span><span class="lt">S</span><span class="lt">H</span></div>
+        <div class="gb"><h2 data-i18n="hangman">Hangman Rush</h2><p data-i18n="hangmanDesc">Same word, same moment. Solve it fastest with the fewest wrong letters.</p><span class="btn go" data-i18n="playDaily">Play daily</span></div>
       </a>
-      <a class="game" href="/trivia/" id="gTrivia">
-        <div class="gh">
-          <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h48v38H30l-12 12V48H8z"/><path d="M26 24a6 6 0 1 1 9 5c-2 1-3 2-3 5" stroke="var(--hot)"/><circle cx="32" cy="41" r="1.6" fill="var(--hot)" stroke="var(--hot)"/></svg>
-          <h2 data-i18n="trivia">Trivia Rush</h2>
-        </div>
-        <p class="note" data-i18n="triviaDesc">Five questions, fifteen seconds each, in English or Arabic. Fast and right wins.</p>
-        <p class="status" id="sTrivia"></p>
-        <span class="btn primary go" data-i18n="play">Play</span>
+      <a class="game trivia" href="/trivia/" id="gTrivia">
+        <div class="band" aria-hidden="true"><div class="o4s"><span class="o4">A<i></i></span><span class="o4 on">B<i></i></span><span class="o4">C<i></i></span><span class="o4">D<i></i></span></div></div>
+        <div class="gb"><h2 data-i18n="trivia">Trivia Rush</h2><p data-i18n="triviaDesc">Five questions, fifteen seconds each, in English or Arabic. Fast and right wins.</p><span class="btn go" data-i18n="playDaily">Play daily</span></div>
       </a>
-      <a class="game" href="/harf/" id="gHarf">
-        <div class="gh">
-          <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="10" width="48" height="52" rx="6"/><path d="M18 24h16M18 34h28M18 44h22M18 54h12" stroke-width="3"/><circle cx="46" cy="22" r="7" stroke="var(--hot)"/></svg>
-          <h2 data-i18n="harf">Harf Rush</h2>
-        </div>
-        <p class="note" data-i18n="harfDesc">Harf (حرف) means "letter". One letter: a name, an animal, a plant, an object and a place, in 90 seconds.</p>
-        <p class="status" id="sHarf"></p>
-        <span class="btn primary go" data-i18n="play">Play</span>
+      <a class="game harf" href="/harf/" id="gHarf">
+        <div class="band" aria-hidden="true"><span class="hrf">ح</span><span class="hrf-w"><span>حيوان</span> <span>جماد</span> <span>إنسان</span></span></div>
+        <div class="gb"><h2 data-i18n="harf">Harf Rush</h2><p data-i18n="harfDesc">One letter: a name, an animal, a plant, an object and a place, in 90 seconds.</p><span class="btn go" data-i18n="playDaily">Play daily</span></div>
       </a>
     </div>
 
@@ -93,8 +141,8 @@
     </div>
 
     <div class="rules">
-      <div><b data-i18n="s1b">One profile</b><span data-i18n="s1">Your name, colour and tag are the same in both games.</span></div>
-      <div><b data-i18n="s2b">30-day seasons</b><span data-i18n="s2">Both leaderboards reset together, and each keeps its own streak.</span></div>
+      <div><b data-i18n="s1b">One profile</b><span data-i18n="s1">Your name, colour and tag are the same in every game.</span></div>
+      <div><b data-i18n="s2b">30-day seasons</b><span data-i18n="s2">The leaderboards reset together, and each game keeps its own streak.</span></div>
       <div><b data-i18n="s3b">Rooms</b><span data-i18n="s3">Share a 4-letter code, vote on categories, play free-for-all or in teams.</span></div>
     </div>
   </section>
@@ -120,7 +168,7 @@ const R=RushRules,num=R.num;
 const $=s=>document.querySelector(s);
 const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
 const I18N={
-en:{brand:"Rush Games",tagline:"Three daily games, one profile. Play today's word, questions and letter, then race your friends.",langSwitch:"عربي",
+en:{brand:"Rush Games",heroA:"Three games.",heroB:"One daily rush.",nextIn:"Next dailies in",yourDay:"Your day",playDaily:"Play daily",tagline:"Three daily games, one profile. Play today's word, questions and letter, then race your friends.",langSwitch:"عربي",
   moveTitle:"There's a faster version of this site",moveHelp:"It opens instantly, even when the game server is asleep. Your name, streaks and leaderboard place come with you.",moveBtn:"Move me over",
   todayLbl:"Today · #{n}",seasonLine:"Season {s} · day {d} of 30",
   hangman:"Hangman Rush",hangmanDesc:"Same word, same moment. Solve it fastest with the fewest wrong letters.",
@@ -136,7 +184,7 @@ en:{brand:"Rush Games",tagline:"Three daily games, one profile. Play today's wor
   nameHintEmpty:"Pick a name so friends can find you on the leaderboards.",nameHintAs:"You'll show as ",nameHintTag:" in every game.",
   s1b:"One profile",s1:"Your name, colour and tag are the same in every game.",s2b:"30-day seasons",s2:"The leaderboards reset together, and each game keeps its own streak.",
   s3b:"Rooms",s3:"Share a 4-letter code, vote on categories, play free-for-all or in teams."},
-ar:{brand:"ألعاب السباق",tagline:"ثلاث ألعاب يومية وملف واحد. العب كلمة اليوم وأسئلته وحرفه، ثم تسابق مع أصحابك.",langSwitch:"English",
+ar:{brand:"ألعاب السباق",heroA:"ثلاث ألعاب.",heroB:"سباق كل يوم.",nextIn:"التحديات القادمة بعد",yourDay:"يومك",playDaily:"العب تحدي اليوم",tagline:"ثلاث ألعاب يومية وملف واحد. العب كلمة اليوم وأسئلته وحرفه، ثم تسابق مع أصحابك.",langSwitch:"English",
   moveTitle:"توجد نسخة أسرع من هذا الموقع",moveHelp:"تفتح فوراً حتى عندما يكون خادم اللعبة نائماً. اسمك وسلاسلك ومركزك في الترتيب تنتقل معك.",moveBtn:"انقلني إليها",
   todayLbl:"اليوم · #{n}",seasonLine:"الموسم {s} · اليوم {d} من 30",
   hangman:"سباق المشنقة",hangmanDesc:"نفس الكلمة في نفس اللحظة. حلّها أسرع وبأقل عدد من الأحرف الخاطئة.",
@@ -206,6 +254,11 @@ function apply(){
 $("#lang").onclick=()=>{lang=lang==="ar"?"en":"ar";try{localStorage.setItem("hr-lang",lang)}catch(e){}apply()};
 apply();
 setInterval(renderStatus,30000);
+// the countdown to the next dailies (they change at midnight UTC)
+const nextIn=$("#nextIn");
+function tick(){const ms=Math.max(0,R.msToMidnight()),s=Math.floor(ms/1000),p=n=>String(n).padStart(2,"0");
+  nextIn.textContent=p(Math.floor(s/3600))+":"+p(Math.floor(s/60)%60)+":"+p(s%60);if(ms<1000)setTimeout(()=>{apply()},1500)}
+tick();setInterval(tick,1000);
 window.addEventListener("pageshow",renderStatus);
 
 // fresh trivia status once the server is awake

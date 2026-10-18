@@ -3,59 +3,74 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style>
+<style>:root{color-scheme:dark;background:#0B0C10;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}[hidden]{display:none!important}</style>
 <title>Trivia Rush</title>
+<meta name="description" content="Five questions, fifteen seconds each, in English or Arabic. Answer fast and right to top today’s board.">
+<meta name="theme-color" content="#0B0C10">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rush Games">
+<meta property="og:title" content="Trivia Rush">
+<meta property="og:description" content="Five questions, fifteen seconds each, in English or Arabic. Answer fast and right to top today’s board.">
+<meta property="og:url" content="https://rushgames.cc/trivia/">
+<meta property="og:image" content="https://rushgames.cc/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script>/* record script load failures, so the page can say what went wrong */window.__rushErrs=[];window.addEventListener("error",function(e){var t=e.target;if(t&&t!==window&&t.src)window.__rushErrs.push("couldn't load "+t.src.split("/").pop());else if(e.message)window.__rushErrs.push(e.message)},true)</script>
 <script src="/shared/config.js"></script>
 <script src="/shared/rules.js"></script>
 <script src="/shared/rush.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Aref+Ruqaa:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@100..125,400..800&family=Figtree:wght@400..800&family=Cairo:wght@400..900&display=swap">
 <link rel="stylesheet" href="/shared/rush.css">
 <style>
 /* Trivia Rush additions to the shared Rush look */
-.lobbytop{justify-content:space-between;gap:10px}
-.langbtn.home{color:inherit;text-decoration:none}
-.langbtn.home::before{content:"\2190\00a0"}
-:root[lang="ar"] .langbtn.home::before{content:"\2192\00a0"}
-.play{min-height:620px;align-content:start}
+.play{min-height:600px;align-content:start}
 /* on phones the question comes first, the board underneath */
-@media (max-width:820px){.board{order:0}}
-.qhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.dots{display:flex;gap:6px;direction:ltr}
-.dots i{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);background:var(--surface)}
-.dots i.now{border-color:var(--accent)}
-.dots i.ok{background:var(--good);border-color:var(--good)}
-.dots i.no{background:var(--hot);border-color:var(--hot)}
-.qtext{font-family:var(--f-body);font-weight:700;font-size:clamp(20px,5.2vw,26px);line-height:1.3;margin:4px 0 0;text-wrap:balance;min-height:2.6em}
-.qwait{font-family:var(--f-hand);font-weight:400;color:var(--muted)}
-.tbar{height:8px;background:var(--bg);border-radius:9px;overflow:hidden}
+@media (max-width:880px){.board{order:0}}
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.qhead .lbl{color:var(--accent-hi)}
+.dots{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;direction:ltr;width:min(200px,48%)}
+.dots i{height:6px;border-radius:3px;background:var(--key)}
+.dots i.now{background:var(--ink)}
+.dots i.ok{background:var(--accent)}
+.dots i.no{background:var(--hot)}
+.qtext{font-family:var(--f-display);font-stretch:108%;font-weight:700;font-size:clamp(21px,5.4vw,27px);line-height:1.25;margin:0;text-wrap:balance;min-height:3.4em;
+  padding:20px;background:var(--bg);border:1px solid var(--line);border-radius:20px;display:flex;align-items:center}
+:root[lang="ar"] .qtext{font-family:var(--f-ar);font-stretch:100%;line-height:1.55}
+.qwait{color:var(--muted);font-weight:600}
+.tbar{height:8px;background:var(--key);border-radius:9px;overflow:hidden}
 .tbar i{display:block;height:100%;background:var(--accent);border-radius:9px;transition:width .15s linear}
 .tbar.low i{background:var(--hot)}
 .opts{display:grid;gap:10px}
-.opt{display:flex;align-items:center;gap:12px;text-align:start;border:2px solid var(--ink);background:var(--surface);border-radius:12px;padding:12px 14px;font-weight:600;font-size:16px;box-shadow:3px 3px 0 var(--ink);min-height:54px;transition:transform .08s,box-shadow .08s}
-.opt:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
-.opt .k{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;font-family:var(--f-mono);font-size:13px}
+.opt{display:flex;align-items:center;gap:14px;text-align:start;border:1px solid var(--line2);background:var(--raised);color:var(--ink);border-radius:18px;padding:12px 14px;font-weight:700;font-size:17px;
+  min-height:64px;line-height:1.3;transition:transform .08s,background .15s,border-color .15s}
+.opt:hover:not(:disabled){border-color:#454a59}
+.opt:active:not(:disabled){transform:scale(.99)}
+.opt .k{flex:none;width:38px;height:38px;border-radius:11px;background:var(--key);display:grid;place-items:center;font-family:var(--f-num);font-weight:800;font-size:16px}
 .opt:disabled{cursor:default}
-.opt.gone{opacity:.25;box-shadow:none;text-decoration:line-through}
-.opt.mine{border-color:var(--accent);box-shadow:3px 3px 0 var(--accent)}
-.opt.right{background:var(--good);border-color:var(--good);color:var(--surface);box-shadow:none}
-.opt.right .k{border-color:currentColor}
-.opt.wrong{background:var(--hot);border-color:var(--hot);color:var(--surface);box-shadow:none}
-.opt.wrong .k{border-color:currentColor}
-.feedback{text-align:center;font-weight:700;min-height:22px}
+.opt.gone{opacity:.28;text-decoration:line-through}
+.opt.mine{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.opt.mine .k{background:#0B0C10;color:var(--ink)}
+.opt.right{background:var(--good);border-color:var(--good);color:#0B0C10}
+.opt.right .k,.opt.wrong .k{background:rgba(11,12,16,.85);color:var(--ink)}
+.opt.wrong{background:var(--hot);border-color:var(--hot);color:#0B0C10}
+.feedback{text-align:center;font-weight:800;min-height:22px}
 .feedback.ok{color:var(--good)}
 .feedback.no{color:var(--hot)}
-.archlist{display:grid;gap:0}
-.arow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed var(--line)}
-.arow:first-child{border-top:0}
-.arow .an{font-family:var(--f-num);font-weight:700;min-width:3.5ch}
+#hintRow button{min-height:48px;padding:8px 18px}
+.archlist{display:grid;gap:6px}
+.arow{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;background:var(--bg);border:1px solid #1E2129}
+.arow .an{font-family:var(--f-num);font-weight:800;min-width:3.5ch;color:var(--accent-hi)}
 .arow .ad{flex:1;min-width:0;font-size:13px;color:var(--muted)}
-.arow .btn{padding:6px 12px;box-shadow:2px 2px 0 var(--ink);font-size:13px}
+.arow .btn{min-height:40px;padding:6px 14px;font-size:13.5px}
 .more{justify-self:start}
-.res .rs{font-family:var(--f-mono);font-weight:700}
-.marks{font-family:var(--f-mono);letter-spacing:.1em;font-size:12px;color:var(--muted);direction:ltr;unicode-bidi:isolate}
+.res .rs{font-family:var(--f-num);font-weight:800}
+.marks{font-family:var(--f-num);letter-spacing:.12em;font-size:12.5px;color:var(--muted);direction:ltr;unicode-bidi:isolate}
 .marks b{color:var(--good)}.marks s{color:var(--hot);text-decoration:none}
 </style>
 </head>
@@ -65,7 +80,7 @@
     <div class="lobbytop"><a class="langbtn home" href="/" data-i18n="allGames">All games</a><button class="langbtn" id="langLobby" type="button"></button></div>
     <div>
       <div class="brand">
-        <svg viewBox="0 0 64 72" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h48v38H30l-12 12V48H8z"/><path d="M26 24a6 6 0 1 1 9 5c-2 1-3 2-3 5" stroke="var(--hot)"/><circle cx="32" cy="41" r="1.6" fill="var(--hot)" stroke="var(--hot)"/></svg>
+        <span class="gtile" aria-hidden="true"><span class="rmark"></span></span>
         <h1 data-i18n="brand">Trivia Rush</h1>
       </div>
       <p class="tag" data-i18n="tagline">Five questions, fifteen seconds each. Answer fast and right to top the board.</p>
@@ -790,7 +805,7 @@ function rowData(){
 function marks(a){const s=el("span","marks");(Array.isArray(a)?a:[]).slice(0,T.QUESTIONS).forEach(x=>{s.appendChild(x===1?el("b",null,"✓"):x===0?el("s",null,"✗"):document.createTextNode("·"))});return s}
 function playerRow(r,round,first){
   const d=el("div","pl"+(first?" first":""));const dot=el("span","dot");dot.style.background=R.safeColor(r.c);
-  const nm=el("span","pn",nm16(r.n));if(r.me)nm.appendChild(el("small",null,t("you")));if(r.h===1&&mode==="room")nm.appendChild(el("small",null,t("hostTag")));
+  const nm=el("span","pn",nm16(r.n));if(r.me)nm.appendChild(el("small","me",t("you")));if(r.h===1&&mode==="room")nm.appendChild(el("small",null,t("hostTag")));
   const pp=el("div","pp");
   if(!round||r.r!==round)pp.appendChild(el("span",null,t("waitingNext")));
   else{pp.appendChild(marks(r.a));pp.appendChild(el("span",null,"+"+num(r.rs)))}
@@ -818,7 +833,9 @@ function renderBoard(){
   list.forEach((r,i)=>box.appendChild(playerRow(r,round,i===0)));
 }
 /* daily board */
-function nameCell(p,i){const nm=el("span","pn",(i+1)+". "+nm16(p.n));const tg=R.tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.id===uid)nm.appendChild(el("small",null,t("you")));return nm}
+/* "1. Name" with the rank in its own badge (gold, silver and bronze for the top three) */
+function rankName(i,name){const nm=el("span","pn");const rk=el("span","rkn",String(i+1));rk.dataset.r=String(i+1);nm.append(rk,document.createTextNode(name));return nm}
+function nameCell(p,i){const nm=rankName(i,nm16(p.n));const tg=R.tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.id===uid)nm.appendChild(el("small","me",t("you")));return nm}
 function renderDailyBoard(box){
   $("#boardLbl").textContent=t("boardDaily");
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===boardTab)));
