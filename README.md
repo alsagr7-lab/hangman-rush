@@ -61,6 +61,8 @@ Players stay anonymous by default. Signing in with Google links a player's progr
 
 Signed-in players get their own daily AI allowance in Harf rooms instead of sharing their network's.
 
+When a device with guest progress of its own switches to an account that already has progress, its results are merged into the account (`merges.js`): days only that device played come across; where both played the same day, the result played first counts (daily results record when they were played); days from before play times were recorded keep the higher score. Once per account per season. The left-behind guest player is hidden from the leaderboards.
+
 To turn it on, set `GOOGLE_CLIENT_ID` on `hangman-rush`: in Google Cloud Console, create an OAuth client ID of type "Web application" with these Authorized JavaScript origins: `https://rush-games.onrender.com` and `https://hangman-rush.onrender.com`. No client secret is needed. Without `GOOGLE_CLIENT_ID` the sign-in box doesn't appear.
 
 ## Limits against abuse
