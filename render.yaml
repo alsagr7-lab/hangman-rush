@@ -34,7 +34,7 @@ services:
       # optional: turns on "Sign in with Google" (an OAuth web client id; no secret needed)
       - key: GOOGLE_CLIENT_ID
         sync: false
-      # the static site's address, e.g. https://rush-games.onrender.com (offers players a move to it)
+      # the static site's address, e.g. https://rushgames.cc (offers players a move to it)
       - key: SITE_URL
         sync: false
 
@@ -44,7 +44,7 @@ services:
     runtime: static
     staticPublishPath: ./dist
     # Each page is built as one file with the shared styles and scripts inside.
-    # API_URL is the game server's address, e.g. https://hangman-rush.onrender.com
+    # API_URL is the game server's address, e.g. https://api.rushgames.cc
     buildCommand: node scripts/build-site.js
     envVars:
       - key: API_URL

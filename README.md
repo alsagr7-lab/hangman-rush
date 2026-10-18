@@ -64,7 +64,7 @@ Signed-in players get their own daily AI allowance in Harf rooms instead of shar
 
 When a device with guest progress of its own switches to an account that already has progress, its results are merged into the account (`merges.js`): days only that device played come across; where both played the same day, the result played first counts (daily results record when they were played); days from before play times were recorded keep the higher score. Once per account per season. The left-behind guest player is hidden from the leaderboards.
 
-To turn it on, set `GOOGLE_CLIENT_ID` on `hangman-rush`: in Google Cloud Console, create an OAuth client ID of type "Web application" with these Authorized JavaScript origins: `https://rush-games.onrender.com` and `https://hangman-rush.onrender.com`. No client secret is needed. Without `GOOGLE_CLIENT_ID` the sign-in box doesn't appear.
+To turn it on, set `GOOGLE_CLIENT_ID` on `hangman-rush`: in Google Cloud Console, create an OAuth client ID of type "Web application" with these Authorized JavaScript origins: `https://rushgames.cc` and `https://api.rushgames.cc`. No client secret is needed. Without `GOOGLE_CLIENT_ID` the sign-in box doesn't appear.
 
 ## Limits against abuse
 
@@ -100,9 +100,9 @@ Without `DAILY_KEY` and `TRIVIA_KEY` the two dailies show as unavailable; everyt
 
 1. On render.com: **Blueprints → your blueprint → Manual sync** (or **New → Blueprint** the first time).
 2. Set these environment variables:
-   - On `hangman-rush`: `DAILY_KEY` (Hangman words), `DAILY_AR_KEY` (Arabic Hangman words), `TRIVIA_KEY` (trivia questions), `SITE_URL` = the static site's address (e.g. `https://rush-games.onrender.com`).
+   - On `hangman-rush`: `DAILY_KEY` (Hangman words), `DAILY_AR_KEY` (Arabic Hangman words), `TRIVIA_KEY` (trivia questions), `SITE_URL` = the static site's address (e.g. `https://rushgames.cc`).
      Optional: `ANTHROPIC_API_KEY` so Harf Rush checks categories (see above).
-   - On `rush-games`: `API_URL` = the game server's address (e.g. `https://hangman-rush.onrender.com`), then redeploy it.
+   - On `rush-games`: `API_URL` = the game server's address (e.g. `https://api.rushgames.cc`), then redeploy it.
      Its build command is `node scripts/build-site.js` and its publish directory is `dist`.
    - Optional on `hangman-rush`: `TRIVIA_START` (`YYYY-MM-DD`, the first day of trivia set 1; set it to your launch day), `TRIVIA_COOLDOWN_DAYS` (default 60).
 3. Share the static site's address. The old server address keeps working too; its home page offers players a one-tap move to the static site that keeps their identity and leaderboard place.

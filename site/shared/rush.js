@@ -12,25 +12,36 @@
   const cfg = window.RUSH_CONFIG || {};
   const API = String(cfg.api || "").replace(/\/+$/, "");
   const http = p => API + p;
+  // the public address: shared links always use it, and old onrender.com addresses send players to it
+  const HOME = String(cfg.home || "").replace(/\/+$/, "");
   const wsUrl = API ? API.replace(/^http/, "ws") + "/ws" : (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws";
 
   /* ---------- identity ----------
      Moving to the static site: the old address links here with #move=<id>.<token>.<profile>, so the player keeps
      their leaderboard entry. The fragment never reaches any server. */
+  const MOVED = ["hr-me", "hr-lang", "hr-daily", "hr-daily-ar", "hr-cv", "tr-cv", "hr-acct"];
   (function adopt() {
     const m = location.hash.match(/^#move=([A-Za-z0-9_-]{8,64})\.([0-9a-f]{16,128})(?:\.(.*))?$/);
     if (!m) return;
     store.set("hr-uid", m[1]); store.set("hr-token", m[2]);
-    if (m[3]) { try { const extra = JSON.parse(decodeURIComponent(m[3])); for (const k of ["hr-me", "hr-lang", "hr-daily", "hr-cv", "tr-cv"]) if (typeof extra[k] === "string") store.set(k, extra[k]); } catch {} }
+    if (m[3]) { try { const extra = JSON.parse(decodeURIComponent(m[3])); for (const k of MOVED) if (typeof extra[k] === "string") store.set(k, extra[k]); } catch {} }
     history.replaceState(null, "", location.pathname + location.search);
   })();
   let uid = store.get("hr-uid"); if (!uid) { uid = "p_" + rand(10); store.set("hr-uid", uid); }
   let token = store.get("hr-token"); if (!token) { token = rand(24); store.set("hr-token", token); }
   function moveLink(target) {
     const extra = {};
-    for (const k of ["hr-me", "hr-lang", "hr-daily", "hr-cv", "tr-cv"]) { const v = store.get(k); if (v) extra[k] = v; }
+    for (const k of MOVED) { const v = store.get(k); if (v) extra[k] = v; }
     return target.replace(/\/+$/, "") + location.pathname + "#move=" + uid + "." + token + "." + encodeURIComponent(JSON.stringify(extra));
   }
+  // an old onrender.com address: carry the player (id, profile, sign-in) over to the public address
+  (function leaveOld() {
+    if (!HOME || !/\.onrender\.com$/i.test(location.hostname)) return;
+    try { if (new URL(HOME).origin === location.origin) return; } catch { return; }
+    location.replace(moveLink(HOME));
+  })();
+  // the link put in shared results
+  function shareUrl() { return (HOME || location.origin) + location.pathname; }
 
   /* ---------- waking the free server ----------
      A free Render service sleeps after 15 idle minutes and takes up to a minute to wake. Pages load instantly from
@@ -428,7 +439,7 @@
     const pg = (location.pathname.match(/\/(hangman|trivia|harf)(\/|$)/) || [])[1] || "home", b = JSON.stringify({ p: pg, v: uid });
     if (!(navigator.sendBeacon && navigator.sendBeacon(http("/api/hit"), b))) fetch(http("/api/hit"), { method: "POST", body: b, keepalive: true }).catch(() => {});
   } catch {}
-  window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink,
+  window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink, shareUrl,
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, db, user, daily };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };

@@ -1239,7 +1239,7 @@ function dailyOverlay(ov,panel){
     out.push(el("h2",null,e.ok?t("solvedIn",{t:fmtS(e.t)}):t("hangedToday")));
     if(W){const rv=el("div","reveal",W.w);if(dlg==="ar"){rv.dir="rtl";rv.style.fontFamily='"IBM Plex Sans Arabic",system-ui,sans-serif';rv.style.textAlign="center"}out.push(rv)}
     const st=el("div","stats");[[e.pts,"statPoints"],[e.m,"statMisses"],[s,"statStreak"],[r.best,"statBest"]].forEach(([v,l])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,t(l)));st.appendChild(d)});out.push(st);
-    const share=t("shareHead",{s:curSeason(),n:dailyNo()})+" · "+LGN[dlg]+"\n"+(e.ok?t("shareSolved",{t:fmtS(e.t),m:missTxt(e.m)+(e.hn?"، ".replace("، ",lang==="ar"?"، ":", ")+hintTxt(e.hn):""),p:e.pts}):t("shareHanged"))+(s?"\n"+t("shareStreak",{n:s}):"");
+    const share=t("shareHead",{s:curSeason(),n:dailyNo()})+" · "+LGN[dlg]+"\n"+(e.ok?t("shareSolved",{t:fmtS(e.t),m:missTxt(e.m)+(e.hn?"، ".replace("، ",lang==="ar"?"، ":", ")+hintTxt(e.hn):""),p:e.pts}):t("shareHanged"))+(s?"\n"+t("shareStreak",{n:s}):"")+"\n"+Rush.shareUrl();
     const b=el("button","btn primary",t("copyResult"));b.onclick=()=>copyText(share,b,"copyResult");out.push(b);
     out.push(el("p","note",t("nextWordUtc",{t:untilNext()})));
     return out;
