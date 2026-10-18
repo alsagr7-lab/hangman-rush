@@ -248,6 +248,6 @@ setInterval(() => {
   }
 }, 30000);
 
-store.init().then(() => admin.loadHidden()).then(() => {
+store.init().then(() => admin.loadHidden()).then(() => require("./merges").runMerges().catch(e => console.error("Merge failed", e))).then(() => {
   server.listen(PORT, () => console.log(`Rush Games listening on ${PORT} (storage: ${store.kind})`));
 }).catch(e => { console.error("Storage failed to start", e); process.exit(1); });

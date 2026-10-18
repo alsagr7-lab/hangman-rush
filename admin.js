@@ -170,4 +170,4 @@ async function handle(req, res, url, { send, readJson, ip }) {
   return true;
 }
 
-module.exports = { handle, isHidden, loadHidden };
+module.exports = { handle, isHidden, loadHidden, setHidden };
