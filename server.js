@@ -72,6 +72,22 @@ async function readJson(req) {
 
 const hashToken = t => crypto.createHash("sha256").update(String(t)).digest("hex");
 
+// Hangman results are written by the player's device, so the server keeps them within what the game allows:
+// no days past tomorrow (the device dates by its own clock, which may run a little fast near midnight UTC), at most
+// 340 points a day (0 for a miss), and a finished day can't be changed afterwards.
+// shortcut: a device can still claim a perfect score for today; the real fix is server-timed play like Trivia and Harf.
+const HM_MAX_PTS = 340;
+function hangmanDays(h, stored) {
+  const out = {}, last = R.dayKey(R.dayNum() + 1), old = (stored && stored.data && stored.data.h) || {};
+  if (!h || typeof h !== "object" || Array.isArray(h)) return out;
+  for (const [k, v] of Object.entries(h)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || k > last || !v || typeof v !== "object") continue;
+    if (old[k] && "ok" in old[k]) { out[k] = old[k]; continue; }
+    out[k] = "ok" in v ? { ...v, ok: v.ok ? 1 : 0, pts: v.ok ? Math.min(HM_MAX_PTS, Math.max(0, R.num(v.pts))) : 0 } : v;
+  }
+  return out;
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://x");
@@ -130,6 +146,7 @@ const server = http.createServer(async (req, res) => {
       if (!own.ok) return send(res, 403, { error: "This player belongs to another device" });
       if (own.isNew && !limits.allowNewId(ip, ident.baseId(id))) return send(res, 429, { error: "Too many new players from this network today" });
       body.data.n = R.nm16(body.data.n);
+      body.data.h = hangmanDays(body.data.h, own.recs[id.endsWith("_ar") ? "hmAr" : "hm"]);
       await store.put(id, th, body.data);
       return send(res, 200, { ok: true });
     }

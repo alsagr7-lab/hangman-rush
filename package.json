@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Rush Games: Hangman Rush and Trivia Rush, daily multiplayer games with shared profiles, rooms and seasons.",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
+  "scripts": { "start": "node server.js", "test": "node --test" },
   "engines": { "node": ">=18" },
   "dependencies": { "pg": "^8.11.3", "ws": "^8.16.0" },
   "license": "MIT"

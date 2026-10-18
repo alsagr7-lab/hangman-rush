@@ -762,14 +762,9 @@ async function rescoreWord(k, v) {
   for (const dk of reopen) await reopenDay(dk);
   return changed;
 }
-function adminOk(req) {
-  if (!ADMIN_KEY) return false;
-  const a = crypto.createHash("sha256").update(String(req.headers["x-admin-key"] || "")).digest();
-  const b = crypto.createHash("sha256").update(ADMIN_KEY).digest();
-  return crypto.timingSafeEqual(a, b);
-}
 async function admin(req, res, p, { send, readJson }) {
-  if (!adminOk(req)) { send(res, ADMIN_KEY ? 403 : 404, { error: ADMIN_KEY ? "Wrong admin key" : "Not found" }); return true; }
+  if (!ADMIN_KEY) { send(res, 404, { error: "Not found" }); return true; }
+  if (!require("./admin").checkAdmin(req, res, send)) return true;
   if (p === "/api/harf/admin/verdicts" && req.method === "GET") {
     send(res, 200, { hour: hour.k ? hour : null, perHour: CALLS_PER_HOUR, roomShare: ROOM_SHARE, roomPerIp: ROOM_AI_PER_IP, list: await store.wordsRecent(400), usage: await usageSummary() });
     return true;

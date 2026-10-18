@@ -6,11 +6,15 @@ const NEW_IDS_PER_DAY = Math.max(1, Number(process.env.NEW_IDS_PER_IP_DAY) || 40
 /* ---------- the visitor's address ----------
    Requests reach the server through Render's proxies. The first entry of X-Forwarded-For is whatever the visitor
    sent, so it can't be trusted. Cloudflare (in front of Render) sets CF-Connecting-IP itself, overwriting any value
-   the visitor sends; without it, the last X-Forwarded-For entry is the one the nearest proxy added. */
+   the visitor sends; without it, the last X-Forwarded-For entry is the one the nearest proxy added.
+   But the onrender.com address can be reached without Cloudflare, and there anyone can send their own
+   CF-Connecting-IP. With PROXY_SECRET set (and a Cloudflare Transform Rule adding it as the x-proxy-secret header),
+   the header is only trusted on requests that really came through Cloudflare. */
+const PROXY_SECRET = process.env.PROXY_SECRET || "";
 function clientIp(req) {
   const h = req.headers || {};
-  const cf = String(h["cf-connecting-ip"] || h["true-client-ip"] || "").trim();
-  if (cf) return cf;
+  const cf = String(h["cf-connecting-ip"] || "").trim();
+  if (cf && (!PROXY_SECRET || h["x-proxy-secret"] === PROXY_SECRET)) return cf;
   const xff = String(h["x-forwarded-for"] || "").split(",").map(s => s.trim()).filter(Boolean);
   if (xff.length) return xff[xff.length - 1];
   return (req.socket && req.socket.remoteAddress) || "";
@@ -54,6 +58,17 @@ function allowNewId(ip, uid) {
   return true;
 }
 
+/* ---------- wrong admin keys, counted for everyone together ----------
+   Per-address limits don't stop guessing from many addresses, so wrong keys also share one bucket: 10 at once, then
+   one every 2 minutes. While it's empty the admin API answers 429, even for the right key. */
+const ADMIN_FAILS = { t: 10, at: Date.now() };
+function adminLocked() {
+  const now = Date.now();
+  ADMIN_FAILS.t = Math.min(10, ADMIN_FAILS.t + (now - ADMIN_FAILS.at) / 120000); ADMIN_FAILS.at = now;
+  return ADMIN_FAILS.t < 1;
+}
+function adminFailed() { adminLocked(); ADMIN_FAILS.t -= 1; }
+
 // forget old entries now and then
 setInterval(() => {
   const now = Date.now(), d = today();
@@ -62,4 +77,4 @@ setInterval(() => {
   for (const k of newIds.keys()) if (!k.startsWith(d)) newIds.delete(k);
 }, 5 * 60000).unref();
 
-module.exports = { clientIp, take, count, allowNewId, NEW_IDS_PER_DAY };
+module.exports = { clientIp, take, count, allowNewId, NEW_IDS_PER_DAY, adminLocked, adminFailed };

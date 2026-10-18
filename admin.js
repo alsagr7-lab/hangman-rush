@@ -19,6 +19,15 @@ function adminOk(req) {
   return crypto.timingSafeEqual(a, b);
 }
 
+// -> true when the request carries the right key; otherwise answers it (403 wrong key, 429 locked after many wrong keys)
+function checkAdmin(req, res, send) {
+  if (limits.adminLocked()) { send(res, 429, { error: "Too many wrong keys. Try again in a few minutes." }); return false; }
+  if (adminOk(req)) return true;
+  limits.adminFailed();
+  send(res, 403, { error: "Wrong admin key" });
+  return false;
+}
+
 /* ---------- visits ----------
    Each page load sends {p: page, v: the device's player id}. Counted per UTC day as page views plus unique devices
    (a short hash of the id; no IPs, nothing else). Kept in memory and saved once a minute, 35 days kept. */
@@ -153,7 +162,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
   if (!p.startsWith("/api/admin/")) return false;
   // admin requests: a limited number a minute per address, so the key can't be guessed by trying many
   if (!limits.take("adm|" + ip, 20, 20)) { send(res, 429, { error: "Too many tries. Wait a minute." }); return true; }
-  if (!adminOk(req)) { send(res, 403, { error: "Wrong admin key" }); return true; }
+  if (!checkAdmin(req, res, send)) return true;
   if (p === "/api/admin/overview" && req.method === "GET") {
     const [visitsOut, hangman, trivia, harf] = await Promise.all([visitSummary(), gameSummary("hangman"), gameSummary("trivia"), gameSummary("harf")]);
     send(res, 200, { visits: visitsOut, games: { hangman, trivia, harf }, today: R.todayKey() });
@@ -170,4 +179,4 @@ async function handle(req, res, url, { send, readJson, ip }) {
   return true;
 }
 
-module.exports = { handle, isHidden, loadHidden, setHidden };
+module.exports = { handle, isHidden, loadHidden, setHidden, checkAdmin };
