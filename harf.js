@@ -347,20 +347,26 @@ async function recheckCorrections() {
 async function reopenDays() {
   const flag = "reopen_2026-10-17_v1", day = "2026-10-17";
   if (await store.metaGet(flag)) return;
+  const n = await reopenDay(day);
+  await store.metaPut(flag, { at: Date.now(), records: n });
+  console.log(`Harf: reopened ${day} on ${n} record(s) for a second check`);
+}
+// a finished day opened again on every record (rarity bonuses cleared), so the nightly pass counts it again;
+// -> how many records had the day
+async function reopenDay(day) {
   let n = 0;
   for (const r of await store.hAll()) {
     if (!r.data || !r.data.h || !r.data.h[day]) continue;
     await withLock(r.id, async () => {
       const fresh = await store.hGet(r.id); if (!fresh) return;
       const d = tidy(fresh.data), e = d.h[day];
-      if (!e || !Array.isArray(e.a)) return;
+      if (!e || !Array.isArray(e.a) || e.rb == null) return;
       e.rb = null; e.a.forEach(a => delete a.n);
       await store.hSetData(r.id, d); n++;
     });
   }
-  await store.metaPut(flag, { at: Date.now(), records: n });
-  finalDone = ""; finalTry = 0;
-  console.log(`Harf: reopened ${day} on ${n} record(s) for a second check`);
+  finalDone = ""; finalTry = 0; ensureFinal();
+  return n;
 }
 async function migrate() {
   const legacy = (await store.hAll()).filter(r => !/_(ar|en)$/.test(r.id));
@@ -417,17 +423,38 @@ async function expire(rec) {
   await finish(rec, run, run.dr || [], H.DAILY_MS);
   return true;
 }
-// today's entry after an answer turned valid (a won appeal, or a check that couldn't happen at first): count its
-// points again and, if that makes five, count the day as perfect from the streak it started with
+// today's entry after an answer changed (a won appeal, a late check, an admin's verdict): count its points again,
+// and count the day again from the streak it started with if it became perfect, or stopped being perfect
 function recount(rec, e) {
   e.c = e.a.filter(x => x.ok).length; e.b = e.c * H.BASE;
-  if (e.c === N && !e.ok && e.pre) {
+  const perfect = e.c === N;
+  if (e.pre && perfect !== !!e.ok) {
     Object.assign(rec, { ls: e.pre.ls, streak: e.pre.streak, best: e.pre.best, wins: e.pre.wins });
     rec.played = Math.max(0, num(rec.played) - 1);
-    R.countDaily(rec, true);
-    e.ok = 1; e.sb = Math.min(H.STREAK_MAX, rec.streak);
+    R.countDaily(rec, perfect);
+    e.ok = perfect ? 1 : 0; e.sb = perfect ? Math.min(H.STREAK_MAX, rec.streak) : 0;
   }
   e.pts = e.b + e.sb + num(e.rb);
+}
+// yesterday's entry after a won appeal: the answer's 10 points, plus its rarity bonus if the day is already counted
+// (other players' bonuses stay as they are)
+async function addYesterday(id, e, i) {
+  const a = e.a[i];
+  e.c = e.a.filter(x => x.ok).length; e.b = e.c * H.BASE;
+  if (e.rb != null) {
+    const day = R.ydayKey(), key = R.harfKey(a.f || a.w, e.lg);
+    let cnt = 1;
+    for (const r of await store.hAll()) {
+      const x = r.id !== id && r.data && r.data.h && r.data.h[day];
+      if (!x || x.lg !== e.lg || !Array.isArray(x.a)) continue;
+      const o = x.a[i];
+      if (o && o.ok && o.w && R.harfKey(o.f || o.w, e.lg) === key) cnt++;
+    }
+    const np = num(e.np) || 1;
+    a.n = cnt;
+    if (np >= 2) e.rb = num(e.rb) + (cnt === 1 ? H.RARE_ONLY : cnt / np < H.RARE_SHARE ? H.RARE_FEW : 0);
+  }
+  e.pts = e.b + num(e.sb) + num(e.rb);
 }
 // answers in today's entry that couldn't be checked at the time get another try (at most once a minute per player)
 const recheckAt = new Map();
@@ -639,7 +666,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
 
     // the daily: appeal one of today's answers; a win adds its points (and the perfect streak, if that makes five)
     if (p === "/api/harf/appeal") {
-      const e = rec.h[today], i = Number(body.i);
+      const yd = !!body.yd, e = rec.h[yd ? R.ydayKey() : today], i = Number(body.i);
       const a = e && Array.isArray(e.a) && Number.isInteger(i) ? e.a[i] : null;
       // an answer still waiting for its check isn't turned down yet, so there's nothing to appeal
       if (!a || !a.w || a.ok || a.l || a.ap || a.u) { send(res, 409, { error: "That answer can't be appealed", state: stateOut(rec) }); return true; }
@@ -649,7 +676,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
       if (!r) { send(res, 503, { error: "Appeals aren't available right now", state: stateOut(rec) }); return true; }
       rec.ap++;
       a.ap = r.ok ? 1 : -1; if (r.why) a.why = r.why;
-      if (r.ok) { a.ok = 1; recount(rec, e); }
+      if (r.ok) { a.ok = 1; if (yd) await addYesterday(id, e, i); else recount(rec, e); }
       await save();
       send(res, 200, { ok: r.ok, why: r.why, left: APPEALS_PER_DAY - rec.ap, state: stateOut(rec) });
       return true;
@@ -694,6 +721,36 @@ async function usageSummary() {
   }
   return { periods, days, price: PRICE };
 }
+/* an admin's verdict also re-scores answers with that word from today and the last two days: today's entries are
+   counted again on the spot (perfect streak included); a finished earlier day is opened again for everyone, so its
+   points and rarity bonuses are counted afresh by the nightly pass. -> how many answers changed */
+async function rescoreWord(k, v) {
+  const [lg, cat] = k.split("|"), ci = H.CATS.indexOf(cat), today = R.todayKey();
+  const days = [0, 1, 2].map(i => R.dayKey(R.dayNum() - i)), reopen = new Set();
+  const hits = (d, dk) => { const e = d.h[dk]; return e && e.lg === lg && Array.isArray(e.a) && e.a[ci] && e.a[ci].w && vkey(lg, cat, e.a[ci].w) === k ? e : null; };
+  let changed = 0;
+  for (const r of await store.hAll()) {
+    if (!days.some(dk => hits(tidy(r.data), dk))) continue;
+    await withLock(r.id, async () => {
+      const fresh = await store.hGet(r.id); if (!fresh) return;
+      const d = tidy(fresh.data);
+      let any = false;
+      for (const dk of days) {
+        const e = hits(d, dk); if (!e) continue;
+        const a = e.a[ci], sig = () => [a.ok, a.f || "", a.l || 0, a.u || 0].join("|"), before = sig();
+        applyVerdict(a, v, e.L, lg);
+        if (sig() === before) continue;
+        changed++; any = true;
+        if (dk === today) recount(d, e);
+        else if (e.rb != null) reopen.add(dk);
+        else { e.c = e.a.filter(x => x.ok).length; e.b = e.c * H.BASE; e.pts = e.b + num(e.sb); }
+      }
+      if (any) await store.hSetData(r.id, d);
+    });
+  }
+  for (const dk of reopen) await reopenDay(dk);
+  return changed;
+}
 function adminOk(req) {
   if (!ADMIN_KEY) return false;
   const a = crypto.createHash("sha256").update(String(req.headers["x-admin-key"] || "")).digest();
@@ -715,8 +772,9 @@ async function admin(req, res, p, { send, readJson }) {
     const v = { ok, fix: (prev && prev.fix) || null };
     verdicts.set(k, v);
     await store.wordsPut([[k, v]]);
-    console.log(`Harf admin: ${k} -> ${ok ? "valid" : "not valid"}`);
-    send(res, 200, { ok: true });
+    const rescored = await rescoreWord(k, v);
+    console.log(`Harf admin: ${k} -> ${ok ? "valid" : "not valid"} (${rescored} answer(s) re-scored)`);
+    send(res, 200, { ok: true, rescored });
     return true;
   }
   send(res, 404, { error: "Not found" });

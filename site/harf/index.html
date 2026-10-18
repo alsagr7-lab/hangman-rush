@@ -236,7 +236,7 @@ en:{
   appealNone:"No appeals left today.",appealDown:"Appeals aren't available right now. Try again later.",appealsLeft:"{n} appeals left today",
   playIn:"Play today's letter in",playInHelp:"Arabic and English each have their own letter, streak and leaderboard. You can play both.",
   boardLangLbl:"Leaderboard",
-  appealHelp:"Think a word was unfairly turned down? Appeal it and a stronger referee takes a second look.",appealMine:"Appeal your answers:"
+  appealHelp:"Think a word was unfairly turned down? Appeal it and a stronger referee takes a second look.",appealMine:"Appeal your answers:",ydAppeal:"Think one of yesterday's answers was unfairly turned down? You can appeal it until the letters change tonight."
 },
 ar:{
   brand:"سباق الحروف",tagline:"حرف واحد وخمس خانات: إنسان وحيوان ونبات وجماد وبلاد. املأها قبل أن ينتهي الوقت.",allGames:"كل الألعاب",
@@ -292,7 +292,7 @@ ar:{
   appealNone:"لا اعتراضات متبقية اليوم.",appealDown:"الاعتراض غير متاح الآن. حاول لاحقاً.",appealsLeft:"باقي {n} اعتراضات اليوم",
   playIn:"العب حرف اليوم بـ",playInHelp:"للعربية والإنجليزية حرف وسلسلة ولوحة ترتيب لكل منهما. تستطيع لعب الاثنين.",
   boardLangLbl:"لوحة الترتيب",
-  appealHelp:"تظن أن كلمة رُفضت ظلماً؟ اعترض عليها ليعيد حَكَم أقوى النظر فيها.",appealMine:"اعترض على إجاباتك:"
+  appealHelp:"تظن أن كلمة رُفضت ظلماً؟ اعترض عليها ليعيد حَكَم أقوى النظر فيها.",appealMine:"اعترض على إجاباتك:",ydAppeal:"تظن أن إحدى إجابات الأمس رُفضت ظلماً؟ تستطيع الاعتراض عليها حتى تتغيّر الحروف الليلة."
 }};
 let lang=LS.get("hr-lang",null);
 if(lang!=="ar"&&lang!=="en"){try{lang=localStorage.getItem("hr-lang")}catch(e){}}
@@ -385,25 +385,31 @@ function answerRow(cat,a,L,lg,np,opts,i){
   else if(why)li.append(el("span","why",why));
   if(a&&a.ap===-1)li.append(el("span","why",t("appealLost")+(a.why?": "+a.why:"")));
   if(opts.appeal&&w&&!ok&&!a.l&&!a.ap&&!a.u){
-    const b=el("button","apbtn",t("appeal"));b.type="button";b.onclick=()=>appealDaily(i,b);li.append(b);
+    const b=el("button","apbtn",t("appeal"));b.type="button";b.onclick=()=>appealDaily(i,b,opts.yd?lg:null);li.append(b);
   }
   return li;
 }
-// the daily: appeal one of today's answers
-let appealMsg="";
-async function appealDaily(i,btn){
+// the daily: appeal one of today's answers, or (ydLg set) one of yesterday's until midnight UTC
+let appealMsg="",ydMsg="";
+async function appealDaily(i,btn,ydLg){
   btn.disabled=true;btn.textContent=t("appealing");
-  try{const r=await Rush.harf.appeal(drun.lg,null,i,null,true);setDs(r.state);appealMsg=""}
-  catch(e){if(e.data&&e.data.state)setDs(e.data.state);appealMsg=e.status===429?"appealNone":"appealDown"}
-  const ent=todayEntry();if(ent)marksFor(ent.a);lastPanelKey="";render();Rush.db.collection("harf").refresh();
+  const yd=!!ydLg;let msg="";
+  try{const r=await Rush.harf.appeal(yd?ydLg:drun.lg,null,i,null,true,yd);setDs(r.state)}
+  catch(e){if(e.data&&e.data.state)setDs(e.data.state);msg=e.status===429?"appealNone":"appealDown"}
+  Rush.db.collection("harf").refresh();
+  if(yd){ydMsg=msg;renderYday();return}
+  appealMsg=msg;const ent=todayEntry();if(ent)marksFor(ent.a);lastPanelKey="";render();
 }
 function renderYday(){
   const box=$("#yBox");box.textContent="";
   const ys=LGS.map(lg=>dstates[lg]&&dstates[lg].yday).filter(Boolean);box.hidden=!ys.length;
   ys.forEach(y=>{
     box.append(el("p","lbl",LGN[y.lg]+" · "+t("ydayTitle",{L:y.L,p:y.pts})));
-    const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,y.a[i],y.L,y.lg,num(y.np),{base:true,rare:true})));box.append(ul);
+    const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,y.a[i],y.L,y.lg,num(y.np),{base:true,rare:true,appeal:apiOn!==false,yd:true},i)));box.append(ul);
     box.append(el("p","note",num(y.np)<2?t("ydayAlone"):(y.rb?t("ydayRare",{n:y.rb}):t("ydayNoRare"))));
+    // yesterday's turned-down answers can be appealed until the letters change at midnight UTC
+    if(apiOn!==false&&y.a.some(a=>a&&a.w&&!a.ok&&!a.l&&!a.ap&&!a.u))box.append(el("p","note",t("ydAppeal")+" "+t("appealsLeft",{n:num(dstates[y.lg]&&dstates[y.lg].appealsLeft)})));
+    if(ydMsg)box.append(el("p","note warn",t(ydMsg)));
   });
 }
 let netMsg=null;

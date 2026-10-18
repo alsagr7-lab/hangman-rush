@@ -200,8 +200,8 @@ function render(){
       td(CAT[c]||c);td(l==="ar"?"عربي":"EN");td(v.ok?"valid":"not valid",v.ok?"ok":"no");
       td(v.at?new Date(v.at).toLocaleString():"");
       const b=document.createElement("button");b.textContent=v.ok?"Mark not valid":"Mark valid";
-      b.onclick=async()=>{b.disabled=true;try{await call("/api/harf/admin/verdict",{method:"POST",body:JSON.stringify({k:v.k,ok:v.ok?0:1})});v.ok=v.ok?0:1;render()}catch(e){b.textContent=e.message}};
-      const a=document.createElement("td");a.appendChild(b);tr.appendChild(a);tb.appendChild(tr)});
+      b.onclick=async()=>{b.disabled=true;try{const r=await call("/api/harf/admin/verdict",{method:"POST",body:JSON.stringify({k:v.k,ok:v.ok?0:1})});v.ok=v.ok?0:1;v.rs=r.rescored||0;render()}catch(e){b.textContent=e.message}};
+      const a=document.createElement("td");a.prepend(b);if(v.rs!=null){const n=document.createElement("small");n.textContent=" "+v.rs+" answer"+(v.rs===1?"":"s")+" re-scored";a.appendChild(n)}tr.appendChild(a);tb.appendChild(tr)});
 }
 $("#go").onclick=load;$("#key").addEventListener("keydown",e=>{if(e.key==="Enter")load()});
 $("#refresh").onclick=load;

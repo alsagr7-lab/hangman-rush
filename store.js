@@ -18,6 +18,8 @@ function jsonStore() {
   const file = process.env.DATA_FILE || path.join(__dirname, "data", "players.json");
   let db = { players: {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {}, acct: {} };
   let writing = Promise.resolve();
+  // reads hand out copies, like Postgres does, so changing what was read never changes the stored data by accident
+  const cp = v => (v == null ? v : structuredClone(v));
   const flush = () => (writing = writing.then(() => fs.promises.writeFile(file, JSON.stringify(db))).catch(e => console.error(e)));
   return {
     kind: "json file",
@@ -30,18 +32,18 @@ function jsonStore() {
           : { players: raw || {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {}, acct: {} };
       } catch { /* fresh file */ }
     },
-    async all() { return Object.entries(db.players).map(([id, r]) => ({ id, data: r.data })); },
-    async get(id) { return db.players[id] ? { id, ...db.players[id] } : null; },
-    async put(id, token, data) { db.players[id] = { token, data }; return flush(); },
+    async all() { return Object.entries(db.players).map(([id, r]) => ({ id, data: cp(r.data) })); },
+    async get(id) { return db.players[id] ? cp({ id, ...db.players[id] }) : null; },
+    async put(id, token, data) { db.players[id] = { token, data: cp(data) }; return flush(); },
 
-    async tAll() { return Object.entries(db.trivia).map(([id, r]) => ({ id, data: r.data })); },
-    async tGet(id) { return db.trivia[id] ? { id, ...db.trivia[id] } : null; },
-    async tPut(id, token, data) { db.trivia[id] = { token, data }; return flush(); },
+    async tAll() { return Object.entries(db.trivia).map(([id, r]) => ({ id, data: cp(r.data) })); },
+    async tGet(id) { return db.trivia[id] ? cp({ id, ...db.trivia[id] }) : null; },
+    async tPut(id, token, data) { db.trivia[id] = { token, data: cp(data) }; return flush(); },
 
-    async hAll() { return Object.entries(db.harf).map(([id, r]) => ({ id, data: r.data })); },
-    async hGet(id) { return db.harf[id] ? { id, ...db.harf[id] } : null; },
-    async hPut(id, token, data) { db.harf[id] = { token, data }; return flush(); },
-    async hSetData(id, data) { if (db.harf[id]) { db.harf[id].data = data; return flush(); } },
+    async hAll() { return Object.entries(db.harf).map(([id, r]) => ({ id, data: cp(r.data) })); },
+    async hGet(id) { return db.harf[id] ? cp({ id, ...db.harf[id] }) : null; },
+    async hPut(id, token, data) { db.harf[id] = { token, data: cp(data) }; return flush(); },
+    async hSetData(id, data) { if (db.harf[id]) { db.harf[id].data = cp(data); return flush(); } },
     async hDel(id) { delete db.harf[id]; return flush(); },
     // verdicts: {ok: 1/0, fix: correct spelling or null}; older files hold a bare 1/0
     async wordsGet(keys) { const m = new Map(); for (const k of keys) if (k in db.words) { const v = db.words[k]; m.set(k, typeof v === "object" && v ? { ok: Number(v.ok) ? 1 : 0, fix: v.fix || null } : { ok: Number(v) ? 1 : 0, fix: null }); } return m; },

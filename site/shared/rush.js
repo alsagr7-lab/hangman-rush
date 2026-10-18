@@ -329,7 +329,7 @@
     save: (dr, lg) => post("/api/harf/daily/save", { dr, lg }),
     submit: (answers, lg) => post("/api/harf/daily/submit", { answers, lg }),
     check: (lg, L, answers) => post("/api/harf/check", { lg, L, answers }),
-    appeal: (lg, L, i, w, daily) => post("/api/harf/appeal", { lg, L, i, w, daily: !!daily }),
+    appeal: (lg, L, i, w, daily, yd) => post("/api/harf/appeal", { lg, L, i, w, daily: !!daily, yd: !!yd }),
   };
 
   /* ---------- sign in with Google ----------
