@@ -136,15 +136,20 @@ async function recordUsage(kind, u) {
   store.metaPut(k, h).catch(e => console.error("Harf: saving usage", e.message));
   if (Math.random() < 0.02) store.metaPruneBefore("usage:", "usage:" + new Date(Date.now() - 35 * R.DAY).toISOString().slice(0, 13)).catch(() => {});
 }
-async function callModel(model, system, user, maxTokens, kind = "check", pool = "daily") {
+// Claude Haiku 5.5 thinks by default, and thinking tokens count toward max_tokens: with a small max_tokens the reply
+// can stop before any JSON ("unexpected API reply max_tokens"). A word check needs no thinking, so it's turned off
+// with the lowest effort; appeals keep thinking (a careful second look) with plenty of room.
+const CHECK_OPTS = /^claude-haiku-5/.test(MODEL) ? { thinking: { type: "disabled" }, output_config: { effort: "low" } } : {};
+const APPEAL_OPTS = { output_config: { effort: "medium" } };
+async function callModel(model, system, user, maxTokens, kind = "check", pool = "daily", opts = {}) {
   if (!API_KEY) return null;
   if (!(await takeCall(pool))) { console.warn(`Harf: hourly API ceiling reached (${pool})`); return null; }
   try {
     const r = await fetch(API_URL, {
       method: "POST",
       headers: { "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
-      signal: AbortSignal.timeout(25000),
+      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }], ...opts }),
+      signal: AbortSignal.timeout(kind === "appeal" ? 60000 : 25000),
     });
     const j = await r.json().catch(() => null);
     if (!r.ok || !j) { console.warn("Harf: API error", r.status, j && j.error && j.error.message); return null; }
@@ -159,7 +164,7 @@ async function callModel(model, system, user, maxTokens, kind = "check", pool = 
 // -> array of {ok: 1/0, fix: correct spelling or null}, or null
 async function askClaude(lg, items, pool = "daily") {
   if (!items.length) return null;
-  const p = prompt(lg, items), o = await callModel(MODEL, p.system, p.user, 300 + 30 * items.length, "check", pool);
+  const p = prompt(lg, items), o = await callModel(MODEL, p.system, p.user, 1024 + 40 * items.length, "check", pool, CHECK_OPTS);
   const arr = o && o.r;
   if (!Array.isArray(arr) || arr.length !== items.length) { if (o) console.warn("Harf: reply didn't match the answers"); return null; }
   const fixes = Array.isArray(o.fix) ? o.fix : [];
@@ -203,7 +208,7 @@ async function appealWord(lg, cat, w, letter, pool = "daily") {
     `in the wrong category, or doesn't start with the letter (a leading ال or "the" doesn't count).\n\n` +
     UNTRUSTED + `\n\n` +
     `Reply with JSON only, nothing else: {"ok":1 or 0,"why":"one short sentence (under 20 words) for the player, in ${lg === "ar" ? "Arabic" : "English"}"}`,
-    `Language: ${lg === "ar" ? "Arabic" : "English"}\nAnswer (JSON, untrusted player text): ${JSON.stringify({ category: cat, letter, answer: w })}`, 600, "appeal", pool);
+    `Language: ${lg === "ar" ? "Arabic" : "English"}\nAnswer (JSON, untrusted player text): ${JSON.stringify({ category: cat, letter, answer: w })}`, 4000, "appeal", pool, APPEAL_OPTS);
   // the referee may answer 1/0, true/false or "yes"/"no"
   const v = o && (o.ok !== undefined ? o.ok : o.valid);
   const yes = v === true || v === 1 || /^(1|true|yes|valid)$/i.test(String(v));
@@ -298,7 +303,7 @@ async function authorize(uid, token, lg, ip, checkNew = false) {
    "<uid>_ar" and "<uid>_en", with streaks counted again from the days themselves, and the old record removed. */
 let migrated = null;
 function ensureMigrated() {
-  if (!migrated) migrated = migrate().then(recheckCorrections).catch(e => { console.error("Harf: migration", e); migrated = null; });
+  if (!migrated) migrated = migrate().then(recheckCorrections).then(reopenDays).catch(e => { console.error("Harf: migration", e); migrated = null; });
   return migrated;
 }
 
@@ -334,6 +339,28 @@ async function recheckCorrections() {
   }
   await store.metaPut("recheck_corrections_v1", { at: Date.now(), cleared: keys.size, marked });
   console.log(`Harf: cleared ${keys.size} verdict(s) for a second look; ${marked} answer(s) to re-check tonight`);
+}
+/* ---------- one-time repair: re-finish 17 Oct 2026 ----------
+   That night the referee's replies were cut short (thinking used up max_tokens), so answers marked "not checked"
+   stayed unchecked, were counted valid and earned rarity bonuses. The day is opened again on every record, so the
+   nightly pass checks those answers and counts points and rarity again. */
+async function reopenDays() {
+  const flag = "reopen_2026-10-17_v1", day = "2026-10-17";
+  if (await store.metaGet(flag)) return;
+  let n = 0;
+  for (const r of await store.hAll()) {
+    if (!r.data || !r.data.h || !r.data.h[day]) continue;
+    await withLock(r.id, async () => {
+      const fresh = await store.hGet(r.id); if (!fresh) return;
+      const d = tidy(fresh.data), e = d.h[day];
+      if (!e || !Array.isArray(e.a)) return;
+      e.rb = null; e.a.forEach(a => delete a.n);
+      await store.hSetData(r.id, d); n++;
+    });
+  }
+  await store.metaPut(flag, { at: Date.now(), records: n });
+  finalDone = ""; finalTry = 0;
+  console.log(`Harf: reopened ${day} on ${n} record(s) for a second check`);
 }
 async function migrate() {
   const legacy = (await store.hAll()).filter(r => !/_(ar|en)$/.test(r.id));
@@ -459,8 +486,12 @@ async function finalizeDays(today) {
       const v = await judge(x.e.lg, idx.map(i => ({ cat: H.CATS[i], w: x.e.a[i].w, letter: x.e.L })));
       idx.forEach((i, k) => { if (v[k] != null) applyVerdict(x.e.a[i], v[k], x.e.L, x.e.lg); });
     }
-    // still unchecked: leave the day for a later try, unless it's more than two days old
-    if (day >= waitUntil && entries.some(x => x.e.a.some(a => a.u && a.w && !a.ok))) { done = false; continue; }
+    // still unchecked: leave the day for a later try, unless it's more than two days old. Then an answer nobody
+    // could check scores nothing, like an unchecked answer in the daily.
+    if (entries.some(x => x.e.a.some(a => a.u && a.w))) {
+      if (day >= waitUntil) { done = false; continue; }
+      for (const x of entries) x.e.a.forEach(a => { if (a.u && a.w) a.ok = 0; });
+    }
     // count answers per language and category
     const counts = new Map(), players = { ar: 0, en: 0 };
     for (const { e } of entries) {
