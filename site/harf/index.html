@@ -863,7 +863,7 @@ function renderOverlay(){
       const soon=el("div","bonus soon");soon.append(el("span",null,t("rareSoon")),el("span",null,t("rareSoonV")));out.push(soon);
       out.push(stats([[e.pts,"statPoints"],[e.c+"/5","statValid"],[s,"statStreak"],[best,"statBest"]]));
       const grid=e.a.map(a=>a.ok?"🟩":"⬛").join("");
-      const share=t("shareHead",{n:R.dailyNo(),lg:LGN[drun.lg]}) /* never the letter: it would spoil the day */+"\n"+grid+" "+t("pts",{n:e.pts})+(s?" 🔥"+s:"")+"\n"+location.origin+location.pathname;
+      const share=t("shareHead",{n:R.dailyNo(),lg:LGN[drun.lg]}) /* never the letter: it would spoil the day */+"\n"+grid+" "+t("pts",{n:e.pts})+(s?" 🔥"+s:"")+"\n"+Rush.shareUrl();
       const cb=el("button","btn primary",t("copyResult"));cb.onclick=()=>copyText(share,cb,"copyResult");
       out.push(cb,el("p","note",t("nextLetter",{t:untilNext()})));return out});
     return hideOverlay(ov);

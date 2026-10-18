@@ -95,7 +95,7 @@ const server = http.createServer(async (req, res) => {
     }
     // pages served from here talk to this same server; SITE_URL points players at the static copy
     if (url.pathname === "/shared/config.js")
-      return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)}};`, "text/javascript; charset=utf-8");
+      return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)},home:${JSON.stringify(require("./scripts/build-site").HOME)}};`, "text/javascript; charset=utf-8");
     const ctx = { send, readJson, ip };
     if (await trivia.handle(req, res, url, ctx)) return;
     if (await harf.handle(req, res, url, ctx)) return;

@@ -880,7 +880,7 @@ function renderOverlay(){
       const e=todayEntry()||{c,pts:p,s:run.res.map(x=>x.ok?1:0).join("")};
       const s=dstate?num(dstate.streak):0,best=dstate?num(dstate.best):0;
       const grid=String(e.s||"").split("").map(x=>x==="1"?"🟩":"⬛").join("");
-      const share=t("shareHead",{s:R.curSeason(),n:run.n})+"\n"+grid+" "+t("pts",{n:e.pts})+"\n"+location.origin+location.pathname;
+      const share=t("shareHead",{s:R.curSeason(),n:run.n})+"\n"+grid+" "+t("pts",{n:e.pts})+"\n"+Rush.shareUrl();
       const cb=el("button","btn primary",t("copyResult"));cb.onclick=()=>copyText(share,cb,"copyResult");
       return[el("h2",null,t("doneTitle",{c:e.c})),el("div","reveal",grid),stats([[e.pts,"statPoints"],[e.c+"/5","statRight"],[s,"statStreak"],[best,"statBest"]]),cb,el("p","note",t("nextSetUtc",{t:untilNext()}))]});
     return hideOverlay(ov);
