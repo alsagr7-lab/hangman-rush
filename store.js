@@ -46,8 +46,8 @@ function jsonStore() {
     async hSetData(id, data) { if (db.harf[id]) { db.harf[id].data = cp(data); return flush(); } },
     async hDel(id) { delete db.harf[id]; return flush(); },
     // verdicts: {ok: 1/0, fix: correct spelling or null}; older files hold a bare 1/0
-    async wordsGet(keys) { const m = new Map(); for (const k of keys) if (k in db.words) { const v = db.words[k]; m.set(k, typeof v === "object" && v ? { ok: Number(v.ok) ? 1 : 0, fix: v.fix || null } : { ok: Number(v) ? 1 : 0, fix: null }); } return m; },
-    async wordsPut(pairs) { for (const [k, v] of pairs) db.words[k] = { ok: v.ok ? 1 : 0, fix: v.fix || null, at: Date.now() }; return flush(); },
+    async wordsGet(keys) { const m = new Map(); for (const k of keys) if (k in db.words) { const v = db.words[k]; m.set(k, typeof v === "object" && v ? { ok: Number(v.ok) ? 1 : 0, fix: v.fix || null, base: v.base || null } : { ok: Number(v) ? 1 : 0, fix: null, base: null }); } return m; },
+    async wordsPut(pairs) { for (const [k, v] of pairs) db.words[k] = { ok: v.ok ? 1 : 0, fix: v.fix || null, base: v.base || null, at: Date.now() }; return flush(); },
     async wordsRecent(limit) {
       return Object.entries(db.words).map(([k, v]) => ({ k, ok: typeof v === "object" ? Number(v.ok) : Number(v), fix: (v && v.fix) || null, at: (v && v.at) || 0 }))
         .sort((a, b) => b.at - a.at).slice(0, limit);
@@ -122,6 +122,7 @@ function pgStore(url) {
       await pool.query(`CREATE TABLE IF NOT EXISTS harf_words (
         k TEXT PRIMARY KEY, ok SMALLINT NOT NULL, at TIMESTAMPTZ DEFAULT now())`);
       await pool.query(`ALTER TABLE harf_words ADD COLUMN IF NOT EXISTS fix TEXT`);
+      await pool.query(`ALTER TABLE harf_words ADD COLUMN IF NOT EXISTS base TEXT`);
       await pool.query(`CREATE TABLE IF NOT EXISTS harf_ip (
         ip TEXT NOT NULL, month TEXT NOT NULL, uid TEXT NOT NULL, PRIMARY KEY (ip, month, uid))`);
       await pool.query(`CREATE TABLE IF NOT EXISTS harf_meta (k TEXT PRIMARY KEY, v JSONB NOT NULL)`);
@@ -143,14 +144,14 @@ function pgStore(url) {
     async hDel(id) { await pool.query("DELETE FROM harf_players WHERE id=$1", [id]); },
     async wordsGet(keys) {
       if (!keys.length) return new Map();
-      const r = await pool.query("SELECT k, ok, fix FROM harf_words WHERE k = ANY($1)", [keys]);
-      return new Map(r.rows.map(x => [x.k, { ok: Number(x.ok) ? 1 : 0, fix: x.fix || null }]));
+      const r = await pool.query("SELECT k, ok, fix, base FROM harf_words WHERE k = ANY($1)", [keys]);
+      return new Map(r.rows.map(x => [x.k, { ok: Number(x.ok) ? 1 : 0, fix: x.fix || null, base: x.base || null }]));
     },
     async wordsPut(pairs) {
       if (!pairs.length) return;
-      await pool.query(`INSERT INTO harf_words (k, ok, fix) SELECT * FROM unnest($1::text[], $2::smallint[], $3::text[])
-        ON CONFLICT (k) DO UPDATE SET ok = EXCLUDED.ok, fix = EXCLUDED.fix, at = now()`,
-        [pairs.map(p => p[0]), pairs.map(p => (p[1].ok ? 1 : 0)), pairs.map(p => p[1].fix || null)]);
+      await pool.query(`INSERT INTO harf_words (k, ok, fix, base) SELECT * FROM unnest($1::text[], $2::smallint[], $3::text[], $4::text[])
+        ON CONFLICT (k) DO UPDATE SET ok = EXCLUDED.ok, fix = EXCLUDED.fix, base = EXCLUDED.base, at = now()`,
+        [pairs.map(p => p[0]), pairs.map(p => (p[1].ok ? 1 : 0)), pairs.map(p => p[1].fix || null), pairs.map(p => p[1].base || null)]);
     },
     async wordsRecent(limit) {
       const r = await pool.query("SELECT k, ok, fix, at FROM harf_words ORDER BY at DESC LIMIT $1", [limit]);

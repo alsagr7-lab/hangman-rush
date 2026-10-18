@@ -127,16 +127,42 @@
   }
   const harfKey = (s, lg) => harfStem(s, lg).replace(/ /g, "");
   const harfLetterOk = (s, letter, lg) => { const k = harfKey(s, lg); return k.length >= 2 && k[0] === harfNorm(letter, lg)[0]; };
+  /* the same answer for rare and shared answers: singular and plural count as one word in the animal, plant and
+     object categories (تمرة, تمرات and تمر; cherries and cherry; mice and mouse). Names and places are left alone,
+     since a final ة or s is part of them (فاطمة, Paris). Irregular plurals no rule can catch (قطط for قطة) come from
+     the referee as the answer's singular form (`base`, see harf.js). */
+  const EN_IRREG = { mice: "mouse", geese: "goose", teeth: "tooth", feet: "foot", oxen: "ox", lice: "louse", children: "child", people: "person",
+    men: "man", women: "woman", leaves: "leaf", loaves: "loaf", knives: "knife", wives: "wife", wolves: "wolf", calves: "calf", halves: "half",
+    shelves: "shelf", scarves: "scarf", thieves: "thief", potatoes: "potato", tomatoes: "tomato", mangoes: "mango", heroes: "hero",
+    cacti: "cactus", fungi: "fungus", dice: "die", octopi: "octopus" };
+  function singular(w, lg) {
+    if (lg === "ar") {
+      if (w.length >= 5 && w.endsWith("ات")) return w.slice(0, -2);          // تمرات -> تمر, سيارات -> سيار(ة)
+      if (w.length >= 3 && w.endsWith("ه")) return w.slice(0, -1);           // تمره (تمرة) -> تمر
+      return w;
+    }
+    if (EN_IRREG[w]) return EN_IRREG[w];
+    if (w.length > 4 && w.endsWith("ies")) return w.slice(0, -3) + "y";       // cherries -> cherry
+    if (w.length > 4 && /(ches|shes|sses|xes|zes)$/.test(w)) return w.slice(0, -2); // peaches, boxes
+    if (w.length > 3 && w.endsWith("s") && !/(ss|us|is)$/.test(w)) return w.slice(0, -1); // cats, horses
+    return w;
+  }
+  function harfGroup(s, lg, cat) {
+    if (cat === "name" || cat === "place") return harfKey(s, lg);
+    const words = harfStem(s, lg).split(" ").filter(Boolean);
+    if (words.length) words[words.length - 1] = singular(words[words.length - 1], lg);
+    return words.join("");
+  }
   // a room round: answers {player: [5 words]}, valid {player: [1/0 x5]} -> points {player: [pts x5]}
   function harfRoomPoints(answers, valid, lg) {
     const counts = HARF.CATS.map(() => new Map()), out = {};
-    for (const p of Object.keys(answers)) HARF.CATS.forEach((_, i) => {
+    for (const p of Object.keys(answers)) HARF.CATS.forEach((c, i) => {
       if (!(valid[p] && valid[p][i])) return;
-      const k = harfKey(answers[p][i], lg); counts[i].set(k, (counts[i].get(k) || 0) + 1);
+      const k = harfGroup(answers[p][i], lg, c); counts[i].set(k, (counts[i].get(k) || 0) + 1);
     });
-    for (const p of Object.keys(answers)) out[p] = HARF.CATS.map((_, i) => {
+    for (const p of Object.keys(answers)) out[p] = HARF.CATS.map((c, i) => {
       if (!(valid[p] && valid[p][i])) return 0;
-      return counts[i].get(harfKey(answers[p][i], lg)) > 1 ? HARF.ROOM_SHARED : HARF.ROOM_UNIQUE;
+      return counts[i].get(harfGroup(answers[p][i], lg, c)) > 1 ? HARF.ROOM_SHARED : HARF.ROOM_UNIQUE;
     });
     return out;
   }
@@ -159,6 +185,6 @@
     num, DAY, EPOCH_DAY, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight,
     COLORS, safeColor, nm16, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
-    HARF, harfNorm, harfStem, harfKey, harfLetterOk, harfRoomPoints,
+    HARF, harfNorm, harfStem, harfKey, harfGroup, harfLetterOk, harfRoomPoints,
   };
 });

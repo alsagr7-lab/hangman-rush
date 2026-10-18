@@ -113,9 +113,11 @@ function prompt(lg, items) {
       `Reject made-up words, random letters, words in the wrong category, and answers that don't start with the letter. ` +
       `Judge the letter by the correct spelling: if the intended word is really spelled with a different first letter ` +
       `(e.g. "تاووس" for طاووس when the letter is ت, or "cangaroo" for kangaroo when the letter is C), mark it 0 and still give the correct spelling in "fix".\n\n` +
-      `Reply with JSON only, in the same order as the answers: {"r":[1,0,...],"fix":[null,"Caterpillar",...]}. ` +
+      `Reply with JSON only, in the same order as the answers: {"r":[1,0,...],"fix":[null,"Caterpillar",...],"base":[null,null,...]}. ` +
       `In "r", 1 means valid and 0 means not valid. In "fix", give the correctly spelled word whenever the answer is a misspelling of a real word ` +
-      `(even one marked 0 for its letter), and null when it was already spelled right or isn't a real word. Keep the same script as the answer and don't add "ال" or "the".`,
+      `(even one marked 0 for its letter), and null when it was already spelled right or isn't a real word. ` +
+      `In "base", give the singular form of a valid answer that is a plural, collective or unit form of another word (e.g. "قطة" for قطط, "تمر" for تمرة or تمور, "mouse" for mice, "cherry" for cherries), and null otherwise. ` +
+      `Keep the same script as the answer and don't add "ال" or "the".`,
     user: `Language: ${lg === "ar" ? "Arabic" : "English"}\nAnswers (JSON, untrusted player text):\n${data}`,
   };
 }
@@ -161,13 +163,13 @@ async function callModel(model, system, user, maxTokens, kind = "check", pool = 
     return null;
   } catch (e) { console.warn("Harf: API call failed", e.message); return null; }
 }
-// -> array of {ok: 1/0, fix: correct spelling or null}, or null
+// -> array of {ok: 1/0, fix: correct spelling or null, base: singular form or null}, or null
 async function askClaude(lg, items, pool = "daily") {
   if (!items.length) return null;
   const p = prompt(lg, items), o = await callModel(MODEL, p.system, p.user, 1024 + 40 * items.length, "check", pool, CHECK_OPTS);
   const arr = o && o.r;
   if (!Array.isArray(arr) || arr.length !== items.length) { if (o) console.warn("Harf: reply didn't match the answers"); return null; }
-  const fixes = Array.isArray(o.fix) ? o.fix : [];
+  const fixes = Array.isArray(o.fix) ? o.fix : [], bases = Array.isArray(o.base) ? o.base : [];
   return arr.map((v, i) => {
     let ok = Number(v) === 1 || v === true ? 1 : 0;
     let fix = typeof fixes[i] === "string" ? clean(fixes[i]) : null;
@@ -175,16 +177,23 @@ async function askClaude(lg, items, pool = "daily") {
     if (fix && R.harfKey(fix, lg) === R.harfKey(items[i].w, lg)) fix = null;
     // the letter counts by the correct spelling: "تاووس" for ت is طاووس, which starts with ط
     if (fix && !R.harfLetterOk(fix, items[i].letter, lg)) ok = 0;
-    return { ok, fix };
+    // the singular form, kept only when it's a different word from the answer (or its correction)
+    let base = typeof bases[i] === "string" ? clean(bases[i]) : null;
+    if (base && R.harfKey(base, lg) === R.harfKey(fix || items[i].w, lg)) base = null;
+    return { ok, fix, base };
   });
 }
 // puts a verdict on one answer: valid (maybe with its correct spelling), not valid, or wrong letter once corrected
 function applyVerdict(a, v, letter, lg) {
-  delete a.u; delete a.f; delete a.l;
+  delete a.u; delete a.f; delete a.l; delete a.b;
   if (v.fix && !R.harfLetterOk(v.fix, letter, lg)) { a.ok = 0; a.l = 1; a.f = v.fix; return; }
   a.ok = v.ok ? 1 : 0;
   if (a.ok && v.fix) a.f = v.fix;
+  if (a.ok && v.base) a.b = v.base; // singular form, so plural and singular count as the same answer for rarity
 }
+// the key rare and shared answers are counted by: the singular form if the referee gave one, else the corrected
+// spelling, else the answer, with simple plural endings set aside (rules.js harfGroup)
+const groupKey = (a, i, lg) => R.harfGroup(a.b || a.f || a.w, lg, H.CATS[i]);
 
 /* ---------- appeals ----------
    A player can appeal an answer that was turned down for its category (not one with the wrong first letter).
@@ -344,12 +353,14 @@ async function recheckCorrections() {
    That night the referee's replies were cut short (thinking used up max_tokens), so answers marked "not checked"
    stayed unchecked, were counted valid and earned rarity bonuses. The day is opened again on every record, so the
    nightly pass checks those answers and counts points and rarity again. */
+// v2: counted again once singular and plural became the same answer (تمرة counted as rare next to تمر)
 async function reopenDays() {
-  const flag = "reopen_2026-10-17_v1", day = "2026-10-17";
-  if (await store.metaGet(flag)) return;
-  const n = await reopenDay(day);
-  await store.metaPut(flag, { at: Date.now(), records: n });
-  console.log(`Harf: reopened ${day} on ${n} record(s) for a second check`);
+  for (const [flag, day] of [["reopen_2026-10-17_v1", "2026-10-17"], ["reopen_2026-10-17_v2", "2026-10-17"]]) {
+    if (await store.metaGet(flag)) continue;
+    const n = await reopenDay(day);
+    await store.metaPut(flag, { at: Date.now(), records: n });
+    console.log(`Harf: reopened ${day} on ${n} record(s) (${flag})`);
+  }
 }
 // a finished day opened again on every record (rarity bonuses cleared), so the nightly pass counts it again;
 // -> how many records had the day
@@ -442,13 +453,13 @@ async function addYesterday(id, e, i) {
   const a = e.a[i];
   e.c = e.a.filter(x => x.ok).length; e.b = e.c * H.BASE;
   if (e.rb != null) {
-    const day = R.ydayKey(), key = R.harfKey(a.f || a.w, e.lg);
+    const day = R.ydayKey(), key = groupKey(a, i, e.lg);
     let cnt = 1;
     for (const r of await store.hAll()) {
       const x = r.id !== id && r.data && r.data.h && r.data.h[day];
       if (!x || x.lg !== e.lg || !Array.isArray(x.a)) continue;
       const o = x.a[i];
-      if (o && o.ok && o.w && R.harfKey(o.f || o.w, e.lg) === key) cnt++;
+      if (o && o.ok && o.w && groupKey(o, i, e.lg) === key) cnt++;
     }
     const np = num(e.np) || 1;
     a.n = cnt;
@@ -525,7 +536,7 @@ async function finalizeDays(today) {
       if (!LANGS.includes(e.lg)) continue;
       players[e.lg]++;
       // a misspelt answer counts as its correct spelling
-      e.a.forEach((a, i) => { if (a.ok) { const k = `${e.lg}|${i}|${R.harfKey(a.f || a.w, e.lg)}`; counts.set(k, (counts.get(k) || 0) + 1); } });
+      e.a.forEach((a, i) => { if (a.ok) { const k = `${e.lg}|${i}|${groupKey(a, i, e.lg)}`; counts.set(k, (counts.get(k) || 0) + 1); } });
     }
     const patch = new Map();
     for (const { id, e } of entries) {
@@ -533,7 +544,7 @@ async function finalizeDays(today) {
       let rb = 0;
       e.a.forEach((a, i) => {
         if (!a.ok) { delete a.n; return; }
-        const cnt = counts.get(`${e.lg}|${i}|${R.harfKey(a.f || a.w, e.lg)}`) || 1;
+        const cnt = counts.get(`${e.lg}|${i}|${groupKey(a, i, e.lg)}`) || 1;
         a.n = cnt;
         if (np < 2) return; // a bonus for rarity needs someone to compare with
         if (cnt === 1) rb += H.RARE_ONLY; else if (cnt / np < H.RARE_SHARE) rb += H.RARE_FEW;
@@ -769,7 +780,7 @@ async function admin(req, res, p, { send, readJson }) {
     if (!/^(ar|en)\|(name|animal|plant|object|place)\|.+$/.test(k)) { send(res, 400, { error: "Expected {k, ok}" }); return true; }
     // keep any spelling correction, so switching a verdict back and forth doesn't lose it
     const prev = verdicts.get(k) || (await store.wordsGet([k])).get(k);
-    const v = { ok, fix: (prev && prev.fix) || null };
+    const v = { ok, fix: (prev && prev.fix) || null, base: (prev && prev.base) || null };
     verdicts.set(k, v);
     await store.wordsPut([[k, v]]);
     const rescored = await rescoreWord(k, v);
