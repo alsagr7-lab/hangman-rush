@@ -321,6 +321,17 @@
     if (!r.ok) { const e = new Error("HTTP " + r.status); e.status = r.status; throw e; }
     return r.json();
   }
+  // the Hangman daily, run by the server (hangman.js): the word stays there until the player has finished
+  const hangman = {
+    async info(lg) {
+      await Promise.race([ready, new Promise(r => setTimeout(r, 70000))]);
+      return get("/api/hangman/info" + (lg === "ar" ? "?lg=ar" : ""));
+    },
+    state: (lg, profile) => post("/api/hangman/daily/state", Object.assign({ lg }, profile)),
+    start: (lg, profile) => post("/api/hangman/daily/start", Object.assign({ lg }, profile)),
+    guess: (lg, L) => post("/api/hangman/daily/guess", { lg, L }),
+    hint: (lg, kind) => post("/api/hangman/daily/hint", { lg, kind }),
+  };
   const trivia = {
     info: () => get("/api/trivia/info"),
     state: profile => post("/api/trivia/daily/state", profile),
@@ -618,6 +629,6 @@
   } catch {}
   window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
-  const caps = { room, db, user, daily };
+  const caps = { room, db, user, daily, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };
 })();

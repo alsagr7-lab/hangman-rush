@@ -2,37 +2,23 @@
 // Run: npm test
 const { test, before, after } = require("node:test");
 const assert = require("node:assert");
-const { spawn } = require("node:child_process");
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
 const R = require("../site/shared/rules");
+const { startServer } = require("./helper");
 
-const PORT = 3900 + Math.floor(Math.random() * 90);
-const BASE = `http://127.0.0.1:${PORT}`;
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "rush-test-"));
-let proc, log = "";
-
+let srv, BASE;
+const log = () => srv.log();
 before(async () => {
-  proc = spawn(process.execPath, [path.join(__dirname, "..", "server.js")], {
-    // an unreachable database: the server should retry, then fall back to the file
-    env: { ...process.env, PORT: String(PORT), DATA_FILE: path.join(tmp, "data.json"), ADMIN_KEY: "right-key-123",
-      PROXY_SECRET: "s3cret", DATABASE_URL: "postgres://x:y@127.0.0.1:1/none", PG_RETRY_MS: "50,50", ANTHROPIC_API_KEY: "" },
-  });
-  proc.stdout.on("data", d => (log += d)); proc.stderr.on("data", d => (log += d));
-  for (let i = 0; i < 100; i++) {
-    try { if ((await fetch(BASE + "/healthz")).ok) return; } catch {}
-    await new Promise(r => setTimeout(r, 100));
-  }
-  throw new Error("server didn't start:\n" + log);
+  // an unreachable database: the server should retry, then fall back to the file
+  srv = await startServer({ env: { ADMIN_KEY: "right-key-123", PROXY_SECRET: "s3cret", DATABASE_URL: "postgres://x:y@127.0.0.1:1/none", PG_RETRY_MS: "50,50" } });
+  BASE = srv.base;
 });
-after(() => { proc.kill(); fs.rmSync(tmp, { recursive: true, force: true }); });
+after(() => srv.stop());
 
 const put = (id, body) => fetch(`${BASE}/api/players/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 test("retries Postgres before falling back to the file", () => {
-  assert.match(log, /trying again in 0.05s/);
-  assert.match(log, /using the JSON file instead/);
+  assert.match(log(), /trying again in 0.05s/);
+  assert.match(log(), /using the JSON file instead/);
 });
 
 test("pages load", async () => {

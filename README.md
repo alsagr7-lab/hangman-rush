@@ -73,7 +73,7 @@ All in `limits.js`, kept in memory (a restart clears them):
 - **Real address:** taken from `CF-Connecting-IP` (set by Cloudflare in front of Render), else the last `X-Forwarded-For` entry; never the first, which the visitor controls. `GET /api/whoami` shows what the server sees for you.
 - **Proxy secret (optional, recommended):** the onrender.com address can be reached without Cloudflare, where anyone can send their own `CF-Connecting-IP`. To close that, set it up in this order: (1) in Cloudflare, add a Transform Rule (Modify request header) on `api.rushgames.cc` that sets `x-proxy-secret` to a long random value; (2) check `https://api.rushgames.cc/api/whoami` still shows your own address; (3) set the same value as `PROXY_SECRET` on `hangman-rush` and redeploy. Setting `PROXY_SECRET` without the Cloudflare rule makes every player look like one of Cloudflare's few addresses, so the per-address limits would hit everyone.
 - **Admin key:** besides 20 tries a minute per address, wrong keys share one bucket for everyone: after 10 wrong keys the admin pages answer "Too many wrong keys" for a few minutes (one more try every 2 minutes), even with the right key.
-- **Hangman results** are saved by the player's device, so the server keeps them in bounds: at most 340 points a day (0 for a miss), no days past tomorrow, and a finished day can't be changed afterwards.
+- **Hangman daily:** played on the server (`hangman.js`), like Trivia and Harf. The word stays on the server until the player has finished: the page sends one letter at a time and gets back where it appears, and the server keeps the clock, misses and hints, scores the word and writes the result into the same `players` records as before. Saves from the page can't remove or change a result the server wrote. Until older open pages are gone, the server still accepts their saves (at most 340 points a day, 0 for a miss, no days past tomorrow, a finished day can't be changed) and still answers `/api/daily` for them.
 - **Writes:** 120 a minute per address across the API; Hangman saves 30 a minute; Harf checks 20 a minute; trivia room picks 12 a minute; visit counts 20 a minute (extra ones are ignored); admin requests 20 a minute.
 - **New players:** an address may start `NEW_IDS_PER_IP_DAY` new player ids a day (default 40).
 - **One owner per id:** a player's records in all three games must share one token, so nobody can claim an unused game slot and lock a player out (`ident.js`).
@@ -185,6 +185,7 @@ dropping the separate files, which left pages unstyled or offline.
   - `shared/rush.js`: player identity, rooms (WebSocket), leaderboards, the trivia API and the wake-up notice.
   - `shared/rush.css`: the shared look. `shared/config.js`: where the game server is (rewritten by the static site's build).
 - `server.js`: serves `site/`, rooms at `/ws`, the Hangman daily word and leaderboard, and CORS so the static site can call it.
+- `hangman.js`: the Hangman daily, played on the server (`/api/hangman/...`), and the encrypted word lists.
 - `trivia.js`: the Trivia daily, past dailies, leaderboard, question picks and levels (`/api/trivia/...`).
 - `harf.js`: the Harf daily, answer checks, the overnight rarity pass and its leaderboard (`/api/harf/...`).
 - `store.js`: Postgres when `DATABASE_URL` is set, otherwise a JSON file.
