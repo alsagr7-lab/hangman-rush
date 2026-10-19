@@ -1,0 +1,46 @@
+# Deploys to Render after every push to main, using each service's Deploy Hook.
+# The hook URLs are secrets (anyone holding one can redeploy), so they live in the repo's Actions secrets:
+#   RENDER_HOOK_SERVER  - hangman-rush (game server): Render > hangman-rush > Settings > Deploy Hook
+#   RENDER_HOOK_SITE    - rush-games (static site):   Render > rush-games > Settings > Deploy Hook
+# The game server deploys on every push (it also builds the pages). The static site deploys only when the pages or
+# their build changed. A missing secret just skips that service.
+name: Deploy to Render
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # "Run workflow" button on the Actions tab deploys both
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Work out what changed
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" != "push" ] || ! git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
+            echo "site=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -qE '^(site/|scripts/build-site\.js)'; then
+            echo "site=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "site=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy the game server (hangman-rush)
+        env:
+          HOOK: ${{ secrets.RENDER_HOOK_SERVER }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "RENDER_HOOK_SERVER isn't set, skipping"; exit 0; fi
+          curl -fsS -X POST "$HOOK" > /dev/null && echo "game server deploy started"
+
+      - name: Deploy the static site (rush-games)
+        if: steps.changed.outputs.site == 'true'
+        env:
+          HOOK: ${{ secrets.RENDER_HOOK_SITE }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "RENDER_HOOK_SITE isn't set, skipping"; exit 0; fi
+          curl -fsS -X POST "$HOOK" > /dev/null && echo "static site deploy started"
