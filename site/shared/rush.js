@@ -42,6 +42,15 @@
   })();
   // the link put in shared results
   function shareUrl() { return (HOME || location.origin) + location.pathname; }
+  // Keeps the address on the page's language: /ar/... in Arabic, /... in English, so a shared link opens (and
+  // previews) in the language it was shared from. Runs now and whenever the page switches language.
+  function syncLangPath() {
+    const ar = document.documentElement.lang === "ar", base = basePath();
+    const want = (ar ? "/ar" + (base === "/" ? "/" : base) : base);
+    if (want !== location.pathname) { try { history.replaceState(history.state, "", want + location.search + location.hash); } catch {} }
+  }
+  new MutationObserver(syncLangPath).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+  document.addEventListener("DOMContentLoaded", syncLangPath);
 
   /* ---------- waking the free server ----------
      A free Render service sleeps after 15 idle minutes and takes up to a minute to wake. Pages load instantly from
@@ -56,9 +65,11 @@
     hangman: { en: "Hangman Rush", ar: "سباق المشنقة" },
     trivia: { en: "Trivia Rush", ar: "سباق المعلومات" },
     harf: { en: "Harf Rush", ar: "سباق الحروف" },
-    hub: { en: "Rush Games", ar: "ألعاب السباق" },
+    hub: { en: "Rush Games", ar: "ألعاب رش" },
   };
-  const gameKey = /^\/hangman/.test(location.pathname) ? "hangman" : /^\/trivia/.test(location.pathname) ? "trivia" : /^\/harf/.test(location.pathname) ? "harf" : "hub";
+  // the page's address without the /ar/ prefix the Arabic copies live under
+  const basePath = () => location.pathname.replace(/^\/ar(?=\/|$)/, "") || "/";
+  const gameKey = /^\/hangman/.test(basePath()) ? "hangman" : /^\/trivia/.test(basePath()) ? "trivia" : /^\/harf/.test(basePath()) ? "harf" : "hub";
   // each game has its own accent colour in rush.css
   document.documentElement.setAttribute("data-game", gameKey);
   const isAr = () => (store.get("hr-lang") || (navigator.language || "").slice(0, 2)) === "ar";
