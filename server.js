@@ -159,6 +159,11 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": TYPES[".html"], "Cache-Control": "no-cache", ...SECURE });
       return res.end(page);
     }
+    // /ar -> /ar/ (the Arabic pages are built in memory, so there's no folder on disk to find)
+    if (PAGES.has(p.replace(/^\/+/, "") + "/index.html")) {
+      res.writeHead(301, { Location: url.pathname + "/" + url.search });
+      return res.end();
+    }
     let decoded;
     try { decoded = decodeURIComponent(p); } catch { return send(res, 400, "Bad address", "text/plain"); }
     const file = path.normalize(path.join(PUBLIC, decoded));
