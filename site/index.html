@@ -114,6 +114,12 @@
 .ldg-h b{font-family:var(--f-hand);font-stretch:112%;font-weight:800;font-size:16px}
 .ldg-h .note{margin-inline-start:auto}
 .ldg .you{font-size:13px;color:var(--muted);padding-inline:4px}
+.ld-sub{display:flex;align-items:center;gap:8px}
+.ldq{flex:none;width:22px;height:22px;border-radius:999px;border:1px solid var(--line3);background:transparent;color:var(--muted);font:800 12px/1 var(--f-body);display:grid;place-items:center;padding:0}
+.ldq[aria-expanded="true"]{background:var(--gold);border-color:var(--gold);color:#0B0C10}
+.ld-help{margin:0;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line-soft);font-size:13px}
+.ldg-h a{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;min-width:0}
+.ld-row .sc small{display:block;font-family:var(--f-body);font-weight:600;font-size:11.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -158,7 +164,7 @@
 
     <section class="card leaders" id="leaders" hidden>
       <div class="ld-h"><h2 data-i18n="ldTitle">Who's leading</h2><span class="note" id="ldSeason"></span></div>
-      <div class="ld-all"><div class="lbl" data-i18n="ldOverall">Overall</div><ol class="ld-list" id="ldAll"></ol><p class="note" data-i18n="ldHow"></p></div>
+      <div class="ld-all"><div class="ld-sub"><span class="lbl" data-i18n="ldOverall">Overall</span><button type="button" class="ldq" data-help="hOverall">?</button></div><p class="note ld-help" hidden></p><ol class="ld-list" id="ldAll"></ol></div>
       <div class="ld-games" id="ldGames"></div>
     </section>
     <div class="card">
@@ -197,7 +203,7 @@ const R=RushRules,num=R.num;
 const $=s=>document.querySelector(s);
 const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
 const I18N={
-en:{brand:"Rush Games",ldTitle:"Who's leading",sh_hangman:"Hangman",sh_trivia:"Trivia",sh_harf:"Harf",ldOverall:"Overall",ldHow:"Every game counts the same: season points as a share of that game's leader.",ldNone:"No results yet this season.",ldYou:"You: #{r}",ldPts:"{p} pts",ldPlayers:"{n} players",ldSeason:"Season {s} · {l} days left",heroA:"Three games.",heroB:"One daily rush.",nextIn:"Next dailies in",yourDay:"Your day",playDaily:"Play daily",tagline:"Three daily games, one profile. Play today's word, questions and letter, then race your friends.",langSwitch:"عربي",
+en:{brand:"Rush Games",ldTitle:"Who's leading",sh_hangman:"Hangman",sh_trivia:"Trivia",sh_harf:"Harf",ldOverall:"Overall",ldBest:"{lg} · {p} pts",lgAr:"Arabic",lgEn:"English",ldQ:"How is this counted?",hOverall:"Each game gives up to 100: a game's season leader gets 100 and everyone else a share of that. The three games are added up, so each counts the same (300 is the most).",hTwo:"Arabic and English have separate boards, each scored on its own: its leader gets 100 and everyone else a share of that, so neither language is easier to win. Your better language counts.",hOne:"One board: the season leader gets 100 and everyone else a share of that leader's points.",ldNone:"No results yet this season.",ldYou:"You: #{r}",ldPts:"{p} pts",ldPlayers:"{n} players",ldSeason:"Season {s} · {l} days left",heroA:"Three games.",heroB:"One daily rush.",nextIn:"Next dailies in",yourDay:"Your day",playDaily:"Play daily",tagline:"Three daily games, one profile. Play today's word, questions and letter, then race your friends.",langSwitch:"عربي",
   moveTitle:"There's a faster version of this site",moveHelp:"It opens instantly, even when the game server is asleep. Your name, streaks and leaderboard place come with you.",moveBtn:"Move me over",
   todayLbl:"Today · #{n}",seasonLine:"Season {s} · day {d} of 30",
   hangman:"Hangman Rush",hangmanDesc:"Same word, same moment. Solve it fastest with the fewest wrong letters.",
@@ -213,7 +219,7 @@ en:{brand:"Rush Games",ldTitle:"Who's leading",sh_hangman:"Hangman",sh_trivia:"T
   nameHintEmpty:"Pick a name so friends can find you on the leaderboards.",nameHintAs:"You'll show as ",nameHintTag:" in every game.",
   s1b:"One profile",s1:"Your name, colour and tag are the same in every game.",s2b:"30-day seasons",s2:"The leaderboards reset together, and each game keeps its own streak.",
   s3b:"Rooms",s3:"Share a 4-letter code, vote on categories, play free-for-all or in teams."},
-ar:{brand:"ألعاب رش",ldTitle:"المتصدرون",sh_hangman:"المشنقة",sh_trivia:"المعلومات",sh_harf:"الحروف",ldOverall:"الترتيب العام",ldHow:"كل لعبة لها نفس الوزن: نقاط الموسم مقارنةً بمتصدر اللعبة.",ldNone:"لا نتائج بعد في هذا الموسم.",ldYou:"ترتيبك: {r}",ldPts:"{p} نقطة",ldPlayers:"{n} لاعب",ldSeason:"الموسم {s} · باقي {l} أيام",heroA:"ثلاث ألعاب.",heroB:"سباق كل يوم.",nextIn:"التحديات القادمة بعد",yourDay:"يومك",playDaily:"العب تحدي اليوم",tagline:"ثلاث ألعاب يومية وملف واحد. العب كلمة اليوم وأسئلته وحرفه، ثم تسابق مع أصحابك.",langSwitch:"English",
+ar:{brand:"ألعاب رش",ldTitle:"المتصدرون",sh_hangman:"المشنقة",sh_trivia:"المعلومات",sh_harf:"الحروف",ldOverall:"الترتيب العام",ldBest:"{lg} · {p} نقطة",lgAr:"العربية",lgEn:"الإنجليزية",ldQ:"كيف يُحسب هذا؟",hOverall:"كل لعبة تعطي حتى 100: متصدر الموسم في اللعبة يأخذ 100 والباقي نسبة من ذلك. تُجمع الألعاب الثلاث، فلكل لعبة نفس الوزن (الحد الأعلى 300).",hTwo:"للعربي والإنجليزي لوحتان منفصلتان، وكل لوحة تُحسب لوحدها: متصدرها يأخذ 100 والباقي نسبة من ذلك، فلا لغة أسهل من الأخرى. تُحسب لغتك الأقوى.",hOne:"لوحة واحدة: متصدر الموسم يأخذ 100 والباقي نسبة من نقاطه.",ldNone:"لا نتائج بعد في هذا الموسم.",ldYou:"ترتيبك: {r}",ldPts:"{p} نقطة",ldPlayers:"{n} لاعب",ldSeason:"الموسم {s} · باقي {l} أيام",heroA:"ثلاث ألعاب.",heroB:"سباق كل يوم.",nextIn:"التحديات القادمة بعد",yourDay:"يومك",playDaily:"العب تحدي اليوم",tagline:"ثلاث ألعاب يومية وملف واحد. العب كلمة اليوم وأسئلته وحرفه، ثم تسابق مع أصحابك.",langSwitch:"English",
   moveTitle:"توجد نسخة أسرع من هذا الموقع",moveHelp:"تفتح فوراً حتى عندما يكون خادم اللعبة نائماً. اسمك وسلاسلك ومركزك في الترتيب تنتقل معك.",moveBtn:"انقلني إليها",
   todayLbl:"اليوم · #{n}",seasonLine:"الموسم {s} · اليوم {d} من 30",
   hangman:"سباق المشنقة",hangmanDesc:"نفس الكلمة في نفس اللحظة. حلّها أسرع وبأقل عدد من الأحرف الخاطئة.",
@@ -281,6 +287,8 @@ function ldRow(x,score,extra){
 function renderLeaders(){
   const box=$("#leaders");if(!lead){box.hidden=true;return}
   box.hidden=false;$("#ldSeason").textContent=t("ldSeason",{s:lead.se,l:lead.left});
+  box.querySelectorAll(".ldq").forEach(b=>{b.setAttribute("aria-label",t("ldQ"));b.title=t("ldQ")});
+  const oh=box.querySelector(".ld-all .ld-help");if(!oh.hidden)oh.textContent=t("hOverall");
   const all=$("#ldAll");all.textContent="";
   if(!lead.overall.length)all.append(el("li","note",t("ldNone")));
   lead.overall.slice(0,5).concat(lead.me?[lead.me]:[]).forEach(x=>{
@@ -290,16 +298,26 @@ function renderLeaders(){
   const gb=$("#ldGames");gb.textContent="";
   LD_GAMES.forEach(g=>{
     const G=lead.games[g]||{players:0,top:[]},card=document.querySelector(".game."+g);
-    const a=el("a","ldg "+g);a.href=card?card.getAttribute("href"):"/"+g+"/";
+    const a=el("div","ldg "+g),link=el("a");link.href=card?card.getAttribute("href"):"/"+g+"/";
     const h=el("div","ldg-h"),tile=el("span","gtile "+g);tile.setAttribute("aria-hidden","true");tile.append(el("span","rmark"));
-    h.append(tile,el("b",null,t(g)),el("span","note",t("ldPlayers",{n:G.players})));a.append(h);
+    link.append(tile,el("b",null,t(g)));
+    const q=el("button","ldq","?");q.type="button";q.dataset.help=g==="trivia"?"hOne":"hTwo";
+    h.append(link,q,el("span","note",t("ldPlayers",{n:G.players})));a.append(h,Object.assign(el("p","note ld-help"),{hidden:true}));
     const ol=el("ol","ld-list");
     if(!G.top.length)ol.append(el("li","note",t("ldNone")));
-    G.top.forEach(x=>ol.append(ldRow(x,t("ldPts",{p:x.pts}))));
+    G.top.forEach(x=>{const sc=document.createDocumentFragment();sc.append(String(x.score));
+      const sm=el("small",null,x.lg?t("ldBest",{lg:t(x.lg==="ar"?"lgAr":"lgEn"),p:x.pts}):t("ldPts",{p:x.pts}));
+      const li=ldRow(x,"");li.querySelector(".sc").append(sc,sm);ol.append(li)});
     a.append(ol);if(G.me)a.append(el("div","you",t("ldYou",{r:G.me.rank})));
+    a.querySelector(".ldq").setAttribute("aria-label",t("ldQ"));a.querySelector(".ldq").title=t("ldQ");a.querySelector(".ldq").setAttribute("aria-expanded","false");
     gb.append(a);
   });
 }
+$("#leaders").addEventListener("click",e=>{
+  const b=e.target.closest(".ldq");if(!b)return;
+  const p=b.closest(".ldg,.ld-all").querySelector(".ld-help"),open=p.hidden;
+  p.hidden=!open;p.textContent=t(b.dataset.help);b.setAttribute("aria-expanded",String(open));
+});
 async function loadLeaders(){
   try{await Rush.ready;const r=await fetch(Rush.http("/api/board/hub?me="+encodeURIComponent(Rush.uid)),{cache:"no-store"});if(!r.ok)return;lead=await r.json();renderLeaders()}catch(e){}
 }
