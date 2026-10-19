@@ -3,7 +3,7 @@
 //
 //   GET /api/board?game=hangman|trivia|harf&lg=en|ar&tab=today|yday|season&me=<uid>
 //        -> { game, lg, tab, se, day, len, left, total, rows: [...top 50], me: {rank, row} | null }
-//   GET /api/board/hub?me=<uid>  -> each game's season leaders (both languages added up) and an overall ranking
+//   GET /api/board/hub?me=<uid>  -> each game's season leaders (best language, scored against its board's leader) and overall
 //   GET /api/me?uid=<uid>        -> the player's own public records in every game (what the board would show)
 //   POST /api/profile {uid, token, n, c} -> sets the name and colour on every record the player has, in every game
 //
@@ -106,24 +106,26 @@ async function board(game, lg, tab, me) {
 }
 
 // ---------- the hub: who leads each game this season, and overall ----------
+// Each language board is scored against its own leader (the leader gets 100), so a harder or easier language
+// doesn't matter. In a game with two boards, a player's better language counts. The overall ranking adds the three
+// game scores, so every game counts the same.
 async function hub(me) {
   const mb = me ? base(me) : "", games = {}, overall = new Map();
   for (const game of ["hangman", "trivia", "harf"]) {
     const S = SOURCES[game], per = new Map();
     for (const lg of S.langs) {
-      const c = await view(game, lg, "season");
-      for (const r of c.views.get(lg + "|season")) {
-        const x = per.get(r.id) || { id: r.id, n: r.n, c: r.c, pts: 0, days: 0 };
-        x.pts += r.pts; x.days += num(r.d.p);
-        per.set(r.id, x);
+      const c = await view(game, lg, "season"), rows = c.views.get(lg + "|season");
+      const top = rows.length ? rows[0].pts : 0;
+      for (const r of rows) {
+        const score = top > 0 ? Math.round(100 * r.pts / top) : 0;
+        const x = per.get(r.id);
+        if (!x || score > x.score || (score === x.score && r.pts > x.pts)) per.set(r.id, { id: r.id, n: r.n, c: r.c, score, pts: r.pts, lg });
       }
     }
-    const list = [...per.values()].sort((a, b) => b.pts - a.pts);
-    const top = list.length ? list[0].pts || 1 : 1;
+    const list = [...per.values()].sort((a, b) => b.score - a.score || b.pts - a.pts);
     list.forEach((x, i) => {
-      // overall: each game counts the same, as a share of that game's leader (so Trivia's bigger numbers don't win it)
       const o = overall.get(x.id) || { id: x.id, n: x.n, c: x.c, score: 0, games: {} };
-      o.score += Math.round(100 * x.pts / top); o.games[game] = i + 1;
+      o.score += x.score; o.games[game] = i + 1;
       overall.set(x.id, o);
     });
     const mi = mb ? list.findIndex(x => x.id === mb) : -1;
