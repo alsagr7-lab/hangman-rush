@@ -45,6 +45,8 @@ const newKey = role => "rg_" + ({ admin: "ad", moderator: "md", agent: "ag" }[ro
 /* ---------- who's asking ---------- */
 function keyOf(req) {
   const h = req.headers || {}, b = String(h.authorization || "").match(/^Bearer\s+(.+)$/i);
+  // headers carry only Latin-1, so the admin page sends a key with other characters (Arabic, say) UTF-8 + base64
+  if (h["x-admin-key-b64"]) { try { return Buffer.from(String(h["x-admin-key-b64"]), "base64").toString("utf8").trim(); } catch { return ""; } }
   return String(h["x-admin-key"] || (b && b[1]) || "").trim();
 }
 function eq(a, b) { return crypto.timingSafeEqual(crypto.createHash("sha256").update(a).digest(), crypto.createHash("sha256").update(b).digest()); }

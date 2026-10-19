@@ -130,3 +130,13 @@ test("settings change the referee and can be undone", async () => {
   s = (await get("/api/harf/admin/settings")).j.settings;
   assert.equal(s.style, "normal"); assert.equal(s.notes.ar, "");
 });
+
+test("a key with Arabic letters works through the encoded header", async () => {
+  const s2 = await startServer({ env: { ADMIN_KEY: "مفتاح-سري-123" } });
+  try {
+    const b64 = Buffer.from("مفتاح-سري-123", "utf8").toString("base64");
+    const r = await fetch(s2.base + "/api/mod/me", { headers: { "x-admin-key-b64": b64 } });
+    assert.equal(r.status, 200);
+    assert.equal((await r.json()).me.role, "owner");
+  } finally { await s2.stop(); }
+});

@@ -128,8 +128,16 @@ let key="",me=null,tab="review",cache={};
 try{key=sessionStorage.getItem("harf-admin")||localStorage.getItem("rush-admin")||"";tab=sessionStorage.getItem("admin-tab")||"review";$("#remember").checked=!!localStorage.getItem("rush-admin")}catch(e){}
 $("#key").value=key;
 
+// a key pasted on a phone can carry invisible marks (direction marks, zero-width spaces), and headers only take
+// Latin-1: invisible marks are dropped, and any other key (Arabic letters, say) is sent UTF-8 + base64 encoded
+const cleanKey=k=>String(k||"").replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF\u00AD]/g,"").trim();
+function keyHeaders(k){
+  if(/^[\x20-\x7e]*$/.test(k))return {"x-admin-key":k};
+  const b=new TextEncoder().encode(k);let s="";b.forEach(c=>s+=String.fromCharCode(c));
+  return {"x-admin-key-b64":btoa(s)};
+}
 async function api(path,body){
-  const opts={cache:"no-store",headers:{"x-admin-key":key,"Content-Type":"application/json"}};
+  const opts={cache:"no-store",headers:Object.assign(keyHeaders(key),{"Content-Type":"application/json"})};
   if(body!==undefined){opts.method="POST";opts.body=JSON.stringify(body)}
   const r=await fetch(path,opts);
   const ct=r.headers.get("content-type")||"";
@@ -159,7 +167,7 @@ async function act(name,args,label,btn){
 
 /* ---------- sign in ---------- */
 async function signIn(){
-  key=$("#key").value.trim();
+  key=cleanKey($("#key").value);
   const st=$("#status");st.className="note";st.textContent="Checking…";
   try{
     const r=await api("/api/mod/me");me=r.me;
