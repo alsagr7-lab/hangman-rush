@@ -108,11 +108,13 @@ async function board(game, lg, tab, me) {
 // ---------- the hub: who leads each game this season, and overall ----------
 // Each game's column on the hub is just its season boards as they are (top three per language, plain points).
 // The overall ranking is where the boards are put on one scale:
-//  - two-board games (Hangman, Harf): when both language boards have more than 5 active players this season, points
-//    are measured against each board's average (twice your board's average counts the same in either language), so a
-//    board where everyone scores high doesn't inflate what that game adds; with 5 or fewer, against each board's leader;
-//  - a player's better board counts in full and the other adds a tenth, then the game's top player gets 100 and
-//    everyone else a share of that; Trivia (one board) is its points against the leader;
+//  - two-board games (Hangman, Harf): when both language boards have more than 5 active players this season, each
+//    player is measured by how far above their board's average they are, in units of how spread out that board is
+//    (a standard score), so standing out on a busy, close board counts for more; with 5 or fewer, against the leader;
+//  - a player's better board counts in full and the other adds a tenth, but only if it's above average: a weak
+//    second language never costs anything, and playing one language is never a penalty;
+//  - the game's top player gets 100, everyone else a share of that (below average counts as 0); Trivia (one board)
+//    is its points against the leader;
 //  - the three games' contributions (up to 100 each) are added up, so every game counts the same.
 // Scores keep one decimal.
 const MIN_ACTIVE = 6;
@@ -120,17 +122,18 @@ const one = d => Math.round(d * 10) / 10;
 function gameScores(boards, byAvg) {
   const per = new Map();
   for (const { rows } of boards) {
-    const top = rows.length ? rows[0].pts : 0, avg = rows.length ? rows.reduce((a, r) => a + r.pts, 0) / rows.length : 0;
-    const unit = byAvg ? avg : top;
+    const n = rows.length, top = n ? rows[0].pts : 0, avg = n ? rows.reduce((a, r) => a + r.pts, 0) / n : 0;
+    const sd = n ? Math.sqrt(rows.reduce((a, r) => a + (r.pts - avg) ** 2, 0) / n) : 0;
+    const z = byAvg && sd > 0;
     for (const r of rows) {
       const x = per.get(r.id) || { id: r.id, n: r.n, c: r.c, shares: [] };
-      x.shares.push({ share: unit > 0 ? 100 * r.pts / unit : 0, pts: r.pts });
+      x.shares.push({ share: z ? (r.pts - avg) / sd : top > 0 ? r.pts / top : 0, pts: r.pts });
       per.set(r.id, x);
     }
   }
   for (const x of per.values()) {
     x.shares.sort((a, b) => b.share - a.share || b.pts - a.pts);
-    x.raw = x.shares[0].share + (x.shares[1] ? x.shares[1].share / 10 : 0); delete x.shares;
+    x.raw = Math.max(0, x.shares[0].share + (x.shares[1] ? Math.max(0, x.shares[1].share) / 10 : 0)); delete x.shares;
   }
   const topRaw = Math.max(0, ...[...per.values()].map(x => x.raw));
   for (const x of per.values()) { x.score = topRaw > 0 ? one(100 * x.raw / topRaw) : 0; delete x.raw; }
