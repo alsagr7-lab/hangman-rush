@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{color-scheme:dark;background:#0B0C10;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}img{max-width:100%}[hidden]{display:none!important}</style>
+<script>(function(){var t;try{t=localStorage.getItem("rush-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.setAttribute("data-theme",t)})()</script>
+<style>:root{color-scheme:dark;background:#0B0C10;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}img{max-width:100%}[hidden]{display:none!important}:root[data-theme="light"]{color-scheme:light;background:#F5F3EE}:root[data-theme="light"] body{background:#F5F3EE;color:#15161B}</style>
 <script>/* record script load failures, so the page can say what went wrong */window.__rushErrs=[];window.addEventListener("error",function(e){var t=e.target;if(t&&t!==window&&t.src)window.__rushErrs.push("couldn't load "+t.src.split("/").pop());else if(e.message)window.__rushErrs.push(e.message)},true)</script>
 <script src="/shared/config.js"></script>
 <script src="/shared/rush.js"></script>
