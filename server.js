@@ -22,11 +22,11 @@ const ident = require("./ident");
 const R = require("./site/shared/rules");
 // pages are served as single files with the shared styles and scripts written in (see scripts/build-site.js)
 const PAGES = require("./scripts/build-site").build({ api: "", site: SITE_URL });
+const NOT_FOUND = (() => { try { return fs.readFileSync(path.join(__dirname, "site", "404.html")); } catch { return null; } })();
 
 // ---------- daily word ----------
 // The lists live in hangman.js, which also runs the daily on the server. /api/daily below still hands today's word to
 // pages from before the server-run daily; it goes once those are gone.
-const DAY = 864e5, EPOCH_DAY = Math.floor(Date.UTC(2026, 9, 13) / DAY);
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json" };
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
@@ -61,37 +61,15 @@ const hashToken = t => crypto.createHash("sha256").update(String(t)).digest("hex
 // no days past tomorrow (the device dates by its own clock, which may run a little fast near midnight UTC), at most
 // 340 points a day (0 for a miss), and a finished day can't be changed afterwards.
 // shortcut: a device can still claim a perfect score for today; the real fix is server-timed play like Trivia and Harf.
-const HM_MAX_PTS = 340;
-function hangmanDays(h, stored) {
-  const out = {}, last = R.dayKey(R.dayNum() + 1), old = (stored && stored.data && stored.data.h) || {};
-  if (!h || typeof h !== "object" || Array.isArray(h)) return out;
-  for (const [k, v] of Object.entries(h)) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || k > last || !v || typeof v !== "object") continue;
-    if (old[k] && "ok" in old[k]) { out[k] = old[k]; continue; }
-    out[k] = "ok" in v ? { ...v, ok: v.ok ? 1 : 0, pts: v.ok ? Math.min(HM_MAX_PTS, Math.max(0, R.num(v.pts))) : 0 } : v;
-  }
-  return out;
-}
-
-// The server now writes daily results too (hangman.js), and a page saves its whole record from what it last had, so
-// a save keeps what only the server knows: the run in progress, finished days this season the page doesn't have yet,
-// and the counts that go with them when the server's are ahead.
-function keepServerParts(data, stored) {
-  const old = stored && stored.data;
-  data.h = hangmanDays(data.h, stored);
-  if (!old) return;
-  if (old.run) data.run = old.run; else delete data.run;
-  if (R.seasonOfRec(old) !== R.seasonOfRec(data)) return;
-  const first = R.dayKey(EPOCH_DAY + (R.seasonOfRec(old) - 1) * R.SEASON_LEN + 1);
-  for (const [k, v] of Object.entries(old.h || {})) if (k >= first && v && "ok" in v && !(data.h[k] && "ok" in data.h[k])) data.h[k] = v;
-  if (R.num(old.played) > R.num(data.played)) for (const f of ["played", "wins", "streak", "best", "ls"]) data[f] = old[f];
-}
-
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://x");
     if (req.method === "OPTIONS") { res.writeHead(204, CORS); return res.end(); }
-    if (url.pathname === "/healthz") return send(res, 200, "ok", "text/plain");
+    // Render restarts the server when this fails: it checks the database answers, not just that the process is up
+    if (url.pathname === "/healthz") {
+      try { await store.ping(); return send(res, 200, "ok", "text/plain"); }
+      catch (e) { return send(res, 503, "database not answering", "text/plain"); }
+    }
     const ip = limits.clientIp(req);
     // the address the server sees for this visitor, so the limits below can be checked against the real one
     if (url.pathname === "/api/whoami" && req.method === "GET") {
@@ -123,16 +101,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (await auth.handle(req, res, url, ctx)) return;
 
-    if (url.pathname === "/api/daily" && req.method === "GET") {
-      const lg = url.searchParams.get("lg") === "ar" ? "ar" : "en", n = Math.floor(Date.now() / DAY) - EPOCH_DAY, W = hangman.wordFor(n, lg);
-      if (!W) return send(res, 503, { error: "Today's word isn't set up on this server yet" });
-      const [c, w, en, ar, m] = W;
-      return send(res, 200, { n, lg, c, w, en, ar, m });
-    }
-
     if (url.pathname === "/api/players" && req.method === "GET") {
       const rows = await store.all();
-      return send(res, 200, rows.filter(r => !admin.isHidden("hangman", r.id)).map(r => ({ id: r.id, data: hangman.publicRec(r.data) })));
+      return send(res, 200, rows.filter(r => !admin.isHidden("hangman", r.id) && R.namedRec(r.data)).map(r => ({ id: r.id, data: hangman.publicRec(r.data) })));
     }
 
     const m = url.pathname.match(/^\/api\/players\/([^/]+)$/);
@@ -151,9 +122,13 @@ const server = http.createServer(async (req, res) => {
         const own = await ident.owner(id, th);
         if (!own.ok) return send(res, 403, { error: "This player belongs to another device" });
         if (own.isNew && !limits.allowNewId(ip, ident.baseId(id))) return send(res, 429, { error: "Too many new players from this network today" });
-        body.data.n = R.nm16(body.data.n);
-        keepServerParts(body.data, own.recs[id.endsWith("_ar") ? "hmAr" : "hm"]);
-        await store.put(id, th, body.data);
+        // the daily is played on the server, which writes every result and count: a save from the page only changes
+        // the name and colour shown with them
+        const stored = own.recs[id.endsWith("_ar") ? "hmAr" : "hm"], rec = hangman.tidy(stored && stored.data);
+        if (typeof body.data.n === "string" && body.data.n.trim().length >= 2) rec.n = R.nm16(body.data.n.trim());
+        if (body.data.c) rec.c = R.safeColor(body.data.c);
+        delete rec.run; if (stored && stored.data && stored.data.run) rec.run = stored.data.run;
+        await store.put(id, th, rec);
         return send(res, 200, { ok: true });
       });
     }
@@ -180,7 +155,13 @@ const server = http.createServer(async (req, res) => {
       return res.end();
     }
     fs.readFile(file, (err, buf) => {
-      if (err) return send(res, 404, "Not found", "text/plain");
+      if (err) {
+        // a page address that doesn't exist gets the friendly page; anything else (a missing file) a plain answer
+        const ext = path.extname(url.pathname), nf = !ext || ext === ".html" ? NOT_FOUND : null;
+        if (!nf) return send(res, 404, "Not found", "text/plain");
+        res.writeHead(404, { "Content-Type": TYPES[".html"], "Cache-Control": "no-cache", ...SECURE });
+        return res.end(nf);
+      }
       res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] || "application/octet-stream", "Cache-Control": "no-cache", ...SECURE });
       res.end(buf);
     });

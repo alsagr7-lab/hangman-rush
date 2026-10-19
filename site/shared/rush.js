@@ -319,15 +319,6 @@
   const user = { id: async () => uid, isOwner: () => false, canEdit: () => false, can: () => true };
 
   /* ---------- Hangman daily word (served one day at a time) ---------- */
-  const daily = {
-    async today(lg) {
-      await Promise.race([ready, new Promise(r => setTimeout(r, 70000))]);
-      const r = await fetch(http("/api/daily" + (lg === "ar" ? "?lg=ar" : "")), { cache: "no-store" });
-      if (!r.ok) throw new Error("daily " + r.status);
-      return r.json();
-    },
-  };
-
   /* ---------- Trivia ---------- */
   async function post(path, body) {
     const r = await fetch(http(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({ uid, token }, body || {})) });
@@ -726,6 +717,6 @@
 
   window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
-  const caps = { room, db, user, daily, hangman };
+  const caps = { room, db, user, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };
 })();

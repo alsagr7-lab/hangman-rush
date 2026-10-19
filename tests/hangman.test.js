@@ -10,7 +10,7 @@ const today = R.todayKey(), yday = R.ydayKey(), ago = n => R.dayKey(R.dayNum() -
 const OLD = {
   p_old0000001: { n: "Old One", c: "#2c56e0", h: { [ago(3)]: { m: 0, t: 17614, hn: 0, ok: 1, pts: 270 }, [ago(2)]: { m: 6, t: 35813, hn: 0, ok: 0, pts: 0 }, [yday]: { m: 3, t: 40939, hn: 0, ok: 1, pts: 146 } }, ls: yday, se: R.curSeason(), sk: 4, best: 1, prev: null, wins: 2, played: 3, streak: 1 },
   p_old0000001_ar: { n: "Old One", c: "#2c56e0", h: { [yday]: { m: 1, t: 11689, hn: 0, ok: 1, pts: 283 } }, ls: yday, se: R.curSeason(), sk: 0, best: 1, prev: null, wins: 1, played: 1, streak: 1 },
-  p_old0000002: { n: "Player", c: "#2c56e0", h: { [ago(3)]: { m: 5, t: 60000, ok: 0, pts: 0 } }, ls: "", se: R.curSeason(), best: 0, prev: null, wins: 0, played: 1, streak: 0 },
+  p_old0000002: { n: "Old Two", c: "#2c56e0", h: { [ago(3)]: { m: 5, t: 60000, ok: 0, pts: 0 } }, ls: "", se: R.curSeason(), best: 0, prev: null, wins: 0, played: 1, streak: 0 },
   p_old0000003: { n: "خالد", c: "#8a3ffc", h: {}, ls: "", se: R.curSeason(), sk: -4, best: 0, prev: null, wins: 0, played: 0, streak: 0 },
 };
 const TOK = id => "token-for-" + id.replace(/_ar$/, "");
@@ -128,9 +128,12 @@ test("only the device holding the token can play an id; the run isn't shown on t
   assert.equal(b.n, "Newbie"); assert.equal(b.run, undefined);
 });
 
-test("the old /api/daily still answers for pages from before", async () => {
-  const d = await (await fetch(BASE + "/api/daily")).json();
-  assert.equal(d.w, "GIRAFFE");
+test("today's word isn't handed out any more (the old /api/daily is gone)", async () => {
+  for (const q of ["", "?lg=ar"]) {
+    const r = await fetch(BASE + "/api/daily" + q);
+    assert.equal(r.status, 404);
+    assert.doesNotMatch(await r.text(), /GIRAFFE|أسد/);
+  }
 });
 
 test("a save arriving at the same moment as the winning guess doesn't wipe the result", async () => {

@@ -157,7 +157,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
   const n = R.dailyNo();
 
   if (p === "/api/trivia/players" && req.method === "GET") {
-    const rows = (await store.tAll()).filter(r => !require("./admin").isHidden("trivia", r.id));
+    const rows = (await store.tAll()).filter(r => !require("./admin").isHidden("trivia", r.id) && R.namedRec(r.data));
     send(res, 200, rows.map(r => ({ id: r.id, data: publicRec(tidy(r.data)) })));
     return true;
   }
