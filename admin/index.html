@@ -6,211 +6,517 @@
 <meta name="robots" content="noindex">
 <title>Rush Games admin</title>
 <style>
-:root{--bg:#eef2f7;--surface:#fff;--ink:#1b2333;--muted:#5d6a80;--line:#d3dbe8;--good:#178a5c;--hot:#d93c30;--accent:#2c56e0;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#1a2120;--surface:#232c2a;--ink:#eef1ea;--muted:#9aa69f;--line:#35423e;--good:#5fd3a0;--hot:#ff7b6c;--accent:#8fb2ff;color-scheme:dark}}
+:root{--bg:#eef1f5;--surface:#fff;--sunk:#f5f7fa;--ink:#18202e;--muted:#5d6a7e;--line:#d6dde8;--good:#147a52;--good-bg:#e2f4ec;--hot:#c8372c;--hot-bg:#fbe6e3;
+  --warn:#9a6400;--warn-bg:#fdf1d8;--accent:#2b55d6;--accent-bg:#e5ecfd;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#14181f;--surface:#1d232d;--sunk:#181d26;--ink:#e9edf3;--muted:#98a3b4;--line:#323b49;--good:#5fd3a0;--good-bg:#173528;
+  --hot:#ff8577;--hot-bg:#3d1f1c;--warn:#f0c060;--warn-bg:#3a2e14;--accent:#8fb0ff;--accent-bg:#1f2b48;color-scheme:dark}}
+*{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI","IBM Plex Sans Arabic",sans-serif}
-.wrap{max-width:820px;margin:0 auto;padding:18px 16px 40px;display:grid;gap:14px}
-h1{margin:0;font-size:22px}
-.card{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px}
+.wrap{max-width:900px;margin:0 auto;padding:14px 16px 90px;display:grid;gap:12px}
+h1{margin:0;font-size:20px}h2{margin:0;font-size:16px}h3{margin:0;font-size:14px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.me{color:var(--muted);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;min-width:0}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-input,select{font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);min-width:0}
-input[type=password],input[type=search]{flex:1 1 180px}
-button{font:inherit;font-weight:700;padding:8px 12px;border-radius:8px;border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);cursor:pointer}
+.grow{flex:1 1 160px;min-width:0}
+input,select,textarea{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);min-width:0}
+textarea{width:100%;min-height:70px;resize:vertical}
+button{font:inherit;font-weight:650;font-size:14px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+button:disabled{opacity:.5;cursor:default}
+button.pri{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+button.yes{background:var(--good-bg);color:var(--good);border-color:transparent}
+button.no{background:var(--hot-bg);color:var(--hot);border-color:transparent}
+button.sm{padding:4px 9px;font-size:13px}
+button.link{border:0;background:none;padding:0;color:var(--accent);font-weight:600}
 .note{color:var(--muted);font-size:13px;margin:0}
 .err{color:var(--hot)}
+[hidden]{display:none!important}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0;margin:0 -2px}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;background:none;font-weight:600;padding:8px 11px;color:var(--muted);flex:none}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--surface)}
+.tabs .n{font-size:11px;background:var(--hot);color:#fff;border-radius:9px;padding:1px 6px;margin-inline-start:4px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.tile{background:var(--sunk);border-radius:10px;padding:10px}
+.tile b{display:block;font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}
+.tile span{color:var(--muted);font-size:12px}
+.badge{display:inline-block;font-size:12px;font-weight:650;padding:1px 7px;border-radius:9px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.b-good{background:var(--good-bg);color:var(--good)}.b-hot{background:var(--hot-bg);color:var(--hot)}.b-warn{background:var(--warn-bg);color:var(--warn)}.b-acc{background:var(--accent-bg);color:var(--accent)}
+.item{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px;background:var(--surface)}
+.item .w{font-size:18px;font-weight:750;overflow-wrap:anywhere}
+.item .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.list{display:grid;gap:8px}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{text-align:start;padding:7px 6px;border-top:1px solid var(--line);vertical-align:middle}
-th{font-size:12px;color:var(--muted);font-weight:700;border-top:0}
-td.w{font-weight:700;overflow-wrap:break-word;min-width:110px}
-/* on a phone: word, category, verdict and the button */
-@media (max-width:560px){#vt th:nth-child(3),#vt td:nth-child(3),#vt th:nth-child(5),#vt td:nth-child(5){display:none}
-  #pt th:nth-child(4),#pt td:nth-child(4){display:none}
-  #useCard table{font-size:13px}#useCard td,#useCard th{padding:7px 4px}}
-.ok{color:var(--good);font-weight:700}.no{color:var(--hot);font-weight:700}
-td button{padding:4px 10px;font-size:13px}
+th{font-size:12px;color:var(--muted);font-weight:650;border-top:0}
 td.n,th.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
-h2{margin:0;font-size:16px}
-[hidden]{display:none!important}
-section{display:grid;gap:14px}
+td:first-child{white-space:nowrap}
+.scroll{overflow-x:auto}
+.chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{font-size:13px;padding:3px 8px;border-radius:7px;border:1px solid var(--line);background:var(--sunk);cursor:pointer;max-width:100%;overflow-wrap:anywhere;font-weight:600}
+.chip.ok{background:var(--good-bg);color:var(--good);border-color:transparent}
+.chip.no{background:var(--hot-bg);color:var(--hot);border-color:transparent}
+.chip.u{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+.chip.e{color:var(--muted);cursor:default;font-weight:400}
+.chip .c{font-size:10px;opacity:.75;display:block;font-weight:500}
+.prow{border-top:1px solid var(--line);padding:8px 0;display:grid;gap:6px}
+.prow:first-child{border-top:0}
+.ph{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ph b{overflow-wrap:anywhere}
 details summary{cursor:pointer;color:var(--muted);font-size:13px}
-.tabs{display:flex;gap:6px;flex-wrap:wrap}
-.tabs button{border-color:var(--line);font-weight:600;padding:7px 11px}
-.tabs button[aria-selected=true]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-.tile{border:1.5px solid var(--line);border-radius:10px;padding:10px}
-.tile b{display:block;font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums}
-.tile span{color:var(--muted);font-size:12px}
-tr.hid td{color:var(--muted)}tr.hid td.w{text-decoration:line-through}
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.switch{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)}
+.switch:first-of-type{border-top:0}
+.switch label{display:grid;gap:1px}
+.switch small{color:var(--muted);font-size:12px}
+.switch input[type=checkbox]{width:22px;height:22px;flex:none}
+.switch input[type=number],.switch select{width:120px}
+.keybox{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--sunk);border-radius:8px;padding:10px;overflow-wrap:anywhere;user-select:all}
+pre{white-space:pre-wrap;font-size:12px;background:var(--sunk);border-radius:8px;padding:10px;margin:0;max-height:420px;overflow:auto}
+.bars{display:flex;align-items:flex-end;gap:3px;height:90px;padding-top:6px}
+.bars div{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.bars div.ar{background:var(--good)}
+.barlbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.kill{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border-radius:10px;background:var(--good-bg)}
+.kill.off{background:var(--hot-bg)}
+.toast{position:fixed;inset-inline:12px;bottom:14px;max-width:560px;margin:0 auto;background:var(--ink);color:var(--surface);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;justify-content:space-between;z-index:20;box-shadow:0 6px 24px #0004}
+.toast button{background:transparent;color:var(--surface);border-color:#fff6}
+.sheet{position:fixed;inset:0;background:#0007;z-index:15;display:flex;justify-content:center;align-items:flex-end}
+.sheet .in{background:var(--bg);width:100%;max-width:900px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 16px 40px;display:grid;gap:10px}
+@media (min-width:700px){.sheet{align-items:center}.sheet .in{border-radius:16px;max-height:88vh}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><h1>Rush Games admin</h1><button id="out" hidden>Sign out</button></div>
+  <div class="top"><h1>Rush Games admin</h1><div class="row"><span class="me" id="me"></span><button id="out" class="sm" hidden>Sign out</button></div></div>
+
   <div class="card" id="login">
-    <div class="row"><input type="password" id="key" placeholder="Admin key" autocomplete="current-password"><button id="go">Load</button></div>
+    <h2>Sign in</h2>
+    <div class="row"><input type="password" id="key" class="grow" placeholder="Your admin or team key" autocomplete="current-password"><button id="go" class="pri">Sign in</button></div>
+    <label class="row note"><input type="checkbox" id="remember"> Remember on this device</label>
     <p class="note" id="status"></p>
   </div>
-  <div class="tabs" id="tabs" hidden role="tablist">
-    <button data-tab="overview" aria-selected="true">Overview</button><button data-tab="hangman">Hangman</button><button data-tab="trivia">Trivia</button><button data-tab="harf">Harf</button>
-    <button id="refresh" title="Reload the numbers" style="margin-inline-start:auto">Refresh</button>
-  </div>
 
-  <section data-panel="overview" hidden>
-    <div class="card">
-      <h2>Visitors</h2>
-      <div class="tiles" id="vTiles"></div>
-      <table><thead><tr><th>Page</th><th class="n">Today</th><th class="n">7 days</th><th class="n">30 days</th></tr></thead><tbody id="vPages"></tbody></table>
-      <details><summary>By day (last 14 days, UTC)</summary>
-        <table><thead><tr><th>Day</th><th class="n">Visitors</th><th class="n">Page views</th></tr></thead><tbody id="vDays"></tbody></table>
-      </details>
-      <p class="note">Visitors are devices (counted once per day per page, from the player id each browser keeps, never IP addresses); page views count every load. Counting started when this was added.</p>
-    </div>
-    <div class="card">
-      <h2>Players</h2>
-      <table><thead><tr><th>Game</th><th class="n">Players</th><th class="n">Played today</th><th class="n">Active 7 days</th></tr></thead><tbody id="gSum"></tbody></table>
-      <p class="note">"Played" means a daily challenge saved on that day. Arabic and English count separately.</p>
-    </div>
-  </section>
-
-  <section data-panel="game" hidden>
-    <div class="card">
-      <h2 id="gTitle"></h2>
-      <div class="tiles" id="gTiles"></div>
-    </div>
-    <div class="card">
-      <div class="row"><input type="search" id="pq" placeholder="Search a player"><select id="pf"><option value="">Everyone</option><option value="hid">Hidden only</option></select></div>
-      <table id="pt"><thead><tr><th>Player</th><th>Lang</th><th>Last played</th><th class="n">Days</th><th></th></tr></thead><tbody id="pRows"></tbody></table>
-      <p class="note">Hiding takes a player off this game's leaderboards in both languages (for cheaters or test accounts). Their scores are kept, and you can show them again any time.</p>
-    </div>
-  </section>
-
-  <section data-panel="harf" hidden>
-  <div class="card" id="useCard">
-    <h2>API usage</h2>
-    <table><thead><tr><th></th><th class="n">Checks</th><th class="n">Appeals</th><th class="n">Tokens in / out</th><th class="n">Est. cost</th></tr></thead><tbody id="use"></tbody></table>
-    <details><summary>By day (last 14 days, UTC)</summary>
-      <table><thead><tr><th>Day</th><th class="n">Checks</th><th class="n">Appeals</th><th class="n">Est. cost</th></tr></thead><tbody id="useDays"></tbody></table>
-    </details>
-    <p class="note">Estimated from the tokens Claude reports on each call, at list prices (checks $<span id="pc"></span>, appeals $<span id="pa"></span> per million tokens in / out). Counting started when this page got the usage section, so older calls aren't included; the Claude Console's usage page has the exact bill.</p>
-  </div>
-  <div class="card" id="listCard">
-    <h2>Saved verdicts</h2>
-    <p class="note">Every answer the AI has judged is saved and reused. Change a wrong one here; it applies to answers from now on (past scores stay as they were). Words in the built-in list are always valid and don't appear here.</p>
-    <p class="note" id="hStatus"></p>
-    <div class="row">
-      <input type="search" id="q" placeholder="Search a word">
-      <select id="lg"><option value="">All languages</option><option value="ar">Arabic</option><option value="en">English</option></select>
-      <select id="ok"><option value="">Valid and not valid</option><option value="1">Valid</option><option value="0">Not valid</option></select>
-    </div>
-    <table id="vt"><thead><tr><th>Word</th><th>Category</th><th>Lang</th><th>Verdict</th><th>When</th><th></th></tr></thead><tbody id="rows"></tbody></table>
-  </div>
-  </section>
+  <nav class="tabs" id="tabs" hidden role="tablist"></nav>
+  <main id="view"></main>
 </div>
+<div class="toast" id="toast" hidden><span id="toastMsg"></span><span class="row"><button id="toastUndo" class="sm" hidden>Undo</button><button id="toastX" class="sm">OK</button></span></div>
+
 <script>
 (function(){
+"use strict";
+/* ---------- basics ---------- */
 const $=s=>document.querySelector(s);
-const CAT={name:"Name",animal:"Animal",plant:"Plant",object:"Object",place:"Place"};
-const GAME={hangman:"Hangman Rush",trivia:"Trivia Rush",harf:"Harf Rush"},PAGE={home:"Home",hangman:"Hangman",trivia:"Trivia",harf:"Harf"};
-const LANG={en:"English",ar:"Arabic",all:"All"};
-let list=[],key="",ov=null,tab="overview";
-try{key=sessionStorage.getItem("harf-admin")||"";tab=sessionStorage.getItem("admin-tab")||"overview"}catch(e){}
+// every bit of player text goes in with textContent: names and answers are typed by players
+function h(tag,attrs,...kids){const e=document.createElement(tag);if(attrs)for(const[k,v]of Object.entries(attrs)){if(v==null||v===false)continue;
+  if(k==="class")e.className=v;else if(k.startsWith("on"))e.addEventListener(k.slice(2),v);else if(k==="text")e.textContent=v;else if(k in e&&k!=="list")e[k]=v;else e.setAttribute(k,v===true?"":v)}
+  for(const c of kids.flat()){if(c==null||c===false)continue;e.append(c instanceof Node?c:document.createTextNode(String(c)))}return e}
+const num=n=>Number(n||0).toLocaleString();
+const pct=(a,b)=>b?Math.round(100*a/b)+"%":"–";
+const CATS=["name","animal","plant","object","place"];
+const CAT={name:"Name · إنسان",animal:"Animal · حيوان",plant:"Plant · نبات",object:"Object · جماد",place:"Place · بلاد"};
+const CAT1={name:"Name",animal:"Animal",plant:"Plant",object:"Object",place:"Place"};
+const LANG={ar:"عربي",en:"EN"};
+const GAME={hangman:"Hangman",trivia:"Trivia",harf:"Harf"};
+const SRC={ai:["AI, one check",""],ai2:["AI, checked twice","b-acc"],appeal:["appeal","b-acc"],mod:["team","b-good"],list:["word list","b-good"]};
+const TYPE={rejected:["AI said no","b-hot"],unchecked:["not checked yet","b-warn"],letter:["wrong first letter","b-warn"],"letter-fix":["AI: other letter","b-warn"]};
+const dateOf=t=>{const d=new Date(t);return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})};
+const today=()=>new Date().toISOString().slice(0,10);
+const dayMinus=n=>new Date(Date.now()-n*864e5).toISOString().slice(0,10);
+const wordOf=k=>k.split("|").slice(2).join("|");
+
+let key="",me=null,tab="review",cache={};
+try{key=sessionStorage.getItem("harf-admin")||localStorage.getItem("rush-admin")||"";tab=sessionStorage.getItem("admin-tab")||"review";$("#remember").checked=!!localStorage.getItem("rush-admin")}catch(e){}
 $("#key").value=key;
-async function call(path,opts){
-  const r=await fetch(path,Object.assign({cache:"no-store"},opts||{},{headers:Object.assign({"x-admin-key":key,"Content-Type":"application/json"},(opts||{}).headers||{})}));
-  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j;
+
+async function api(path,body){
+  const opts={cache:"no-store",headers:{"x-admin-key":key,"Content-Type":"application/json"}};
+  if(body!==undefined){opts.method="POST";opts.body=JSON.stringify(body)}
+  const r=await fetch(path,opts);
+  const ct=r.headers.get("content-type")||"";
+  const j=ct.includes("json")?await r.json().catch(()=>({})):await r.text();
+  if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
+  return j;
 }
-const mk=(tag,txt,cls)=>{const x=document.createElement(tag);if(txt!=null)x.textContent=txt;if(cls)x.className=cls;return x};
-const row=(tb,cells)=>{const tr=document.createElement("tr");cells.forEach((c,i)=>{const td=mk("td",c,i?"n":null);tr.appendChild(td)});tb.appendChild(tr);return tr};
-const tiles=(el,items)=>{el.textContent="";items.forEach(([v,l])=>{const t=mk("div",null,"tile");t.append(mk("b",num(v)),mk("span",l));el.appendChild(t)})};
-async function load(){
-  key=$("#key").value.trim();try{sessionStorage.setItem("harf-admin",key)}catch(e){}
-  const st=$("#status");st.className="note";st.textContent="Loading…";
-  try{
-    const [o,h]=await Promise.all([call("/api/admin/overview"),call("/api/harf/admin/verdicts")]);
-    ov=o;list=h.list;
-    st.textContent="";$("#login").hidden=true;$("#out").hidden=false;$("#tabs").hidden=false;
-    $("#hStatus").textContent=list.length+" saved verdicts (latest 400). API calls this hour: "+(h.hour?h.hour.n:0)+" of "+h.perHour+" ("+(h.hour?h.hour.r||0:0)+" of "+h.roomShare+" for rooms and practice). Rooms: "+h.roomPerIp+" AI checks per network a day.";
-    overview();render();usage(h.usage);show(tab);
-  }catch(e){st.className="note err";st.textContent=e.message;$("#login").hidden=false;$("#tabs").hidden=true;document.querySelectorAll("section").forEach(x=>x.hidden=true)}
+const can=p=>me&&me.perms.includes(p);
+
+/* ---------- changes: every one goes through the action endpoint, with an undo in the toast ---------- */
+let toastT=0;
+function toast(msg,undoId){
+  $("#toastMsg").textContent=msg;$("#toast").hidden=false;
+  const u=$("#toastUndo");u.hidden=!undoId;
+  u.onclick=async()=>{u.disabled=true;try{await api("/api/mod/undo",{id:undoId});toast("Undone");refresh()}catch(e){toast(e.message)}finally{u.disabled=false}};
+  clearTimeout(toastT);toastT=setTimeout(()=>$("#toast").hidden=true,undoId?9000:4000);
 }
-function show(t){
-  tab=t;try{sessionStorage.setItem("admin-tab",t)}catch(e){}
-  document.querySelectorAll("#tabs [data-tab]").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
-  document.querySelector('[data-panel="overview"]').hidden=t!=="overview";
-  document.querySelector('[data-panel="harf"]').hidden=t!=="harf";
-  const g=document.querySelector('[data-panel="game"]');g.hidden=t==="overview";
-  // the Harf tab shows its game section first, then API usage and verdicts
-  if(t==="harf")document.querySelector('[data-panel="harf"]').before(g);
-  if(t!=="overview")game(t);
-}
-function overview(){
-  const v=ov.visits;
-  tiles($("#vTiles"),[[v.day.visitors,"visitors today"],[v.week.visitors,"visitors, 7 days"],[v.month.visitors,"visitors, 30 days"],[v.month.views,"page views, 30 days"]]);
-  const vp=$("#vPages");vp.textContent="";
-  const cell=(s,p)=>{const x=s.pages[p];return x?num(x.visitors)+" ("+num(x.views)+")":"0"};
-  Object.keys(PAGE).forEach(p=>row(vp,[PAGE[p],cell(v.day,p),cell(v.week,p),cell(v.month,p)]));
-  const vd=$("#vDays");vd.textContent="";v.days.forEach(d=>row(vd,[d.d,num(d.visitors),num(d.views)]));
-  const gs=$("#gSum");gs.textContent="";
-  Object.keys(GAME).forEach(g=>{const L=ov.games[g].langs;Object.keys(L).sort().forEach(lg=>{const x=L[lg];
-    row(gs,[GAME[g]+(lg==="all"?"":" · "+LANG[lg]),num(x.players),num(x.today),num(x.week)])})});
-}
-function game(g){
-  const G=ov.games[g];$("#gTitle").textContent=GAME[g]+" · "+num(G.total)+(G.total===1?" player":" players");
-  const items=[];Object.keys(G.langs).sort().forEach(lg=>{const x=G.langs[lg],l=lg==="all"?"":" ("+LANG[lg]+")";items.push([x.today,"played today"+l],[x.week,"active 7 days"+l])});
-  tiles($("#gTiles"),items);players();
-}
-function players(){
-  if(tab==="overview")return;
-  const g=tab,G=ov.games[g],q=$("#pq").value.trim().toLowerCase(),f=$("#pf").value,tb=$("#pRows");tb.textContent="";
-  const rows=G.list.filter(p=>(!q||(p.name||"").toLowerCase().includes(q)||p.id.toLowerCase().includes(q))&&(!f||p.hidden));
-  rows.slice(0,300).forEach(p=>{const tr=document.createElement("tr");if(p.hidden)tr.className="hid";
-    const n=mk("td",p.name||"(no name)","w");n.dir="auto";n.title=p.id;tr.appendChild(n);
-    tr.appendChild(mk("td",p.langs.length?p.langs.map(l=>l==="ar"?"عربي":"EN").join(" · "):"—"));
-    tr.appendChild(mk("td",p.last||"—"));tr.appendChild(mk("td",num(p.days),"n"));
-    const b=mk("button",p.hidden?"Show":"Hide");
-    b.onclick=async()=>{if(!p.hidden&&!confirm("Hide "+(p.name||p.id)+" from the "+GAME[g]+" leaderboards?"))return;
-      b.disabled=true;try{await call("/api/admin/hide",{method:"POST",body:JSON.stringify({game:g,id:p.id,hide:!p.hidden})});p.hidden=!p.hidden;players()}catch(e){b.textContent=e.message}};
-    const a=mk("td");a.appendChild(b);tr.appendChild(a);tb.appendChild(tr)});
-  if(!rows.length){const tr=document.createElement("tr");const td=mk("td","No players","note");td.colSpan=5;tr.appendChild(td);tb.appendChild(tr)}
-  else if(rows.length>300){const tr=document.createElement("tr");const td=mk("td","Showing 300 of "+rows.length+"; search to narrow it down","note");td.colSpan=5;tr.appendChild(td);tb.appendChild(tr)}
+$("#toastX").onclick=()=>$("#toast").hidden=true;
+async function act(name,args,label,btn){
+  if(btn)btn.disabled=true;
+  try{const r=await api("/api/mod/act",{act:name,args});
+    if(r.proposed)toast("Sent for approval");else toast(label||"Done",r.log);
+    return r}
+  catch(e){toast(e.message);throw e}
+  finally{if(btn)btn.disabled=false}
 }
 
-function usage(u){
-  if(!u){$("#useCard").hidden=true;return}
-  const P=u.price,cost=t=>["check","appeal"].reduce((s,k)=>s+(t[k].in*P[k][0]+t[k].out*P[k][1])/1e6,0);
-  const money=c=>c<0.01&&c>0?"<$0.01":"$"+c.toFixed(2);
-  const row=(tb,cells)=>{const tr=document.createElement("tr");cells.forEach((c,i)=>{const td=document.createElement("td");if(i)td.className="n";td.textContent=c;tr.appendChild(td)});tb.appendChild(tr)};
-  const tb=$("#use");tb.textContent="";
-  [["24 hours","day"],["7 days","week"],["30 days","month"]].forEach(([l,k])=>{const t=u.periods[k];
-    row(tb,[l,num(t.check.calls),num(t.appeal.calls),num(t.check.in+t.appeal.in)+" / "+num(t.check.out+t.appeal.out),money(cost(t))])});
-  const td=$("#useDays");td.textContent="";
-  const days=Object.keys(u.days).sort().reverse();
-  if(!days.length)row(td,["Nothing yet","","",""]);
-  days.forEach(d=>{const t=u.days[d];row(td,[d,num(t.check.calls),num(t.appeal.calls),money(cost(t))])});
-  $("#pc").textContent=P.check[0]+" / "+P.check[1];$("#pa").textContent=P.appeal[0]+" / "+P.appeal[1];
-  $("#useCard").hidden=false;
+/* ---------- sign in ---------- */
+async function signIn(){
+  key=$("#key").value.trim();
+  const st=$("#status");st.className="note";st.textContent="Checking…";
+  try{
+    const r=await api("/api/mod/me");me=r.me;
+    try{sessionStorage.setItem("harf-admin",key);if($("#remember").checked)localStorage.setItem("rush-admin",key);else localStorage.removeItem("rush-admin")}catch(e){}
+    st.textContent="";$("#login").hidden=true;$("#out").hidden=false;
+    $("#me").textContent=me.name+" · "+me.role;
+    buildTabs();show(TABS.some(t=>t[0]===tab&&t[2]())?tab:"review");
+  }catch(e){st.className="note err";st.textContent=e.message;$("#login").hidden=false;$("#tabs").hidden=true;$("#view").textContent=""}
 }
-function render(){
-  const q=$("#q").value.trim().toLowerCase(),lg=$("#lg").value,ok=$("#ok").value,tb=$("#rows");tb.textContent="";
-  list.filter(v=>{const [l,,w]=v.k.split("|");return (!lg||l===lg)&&(ok===""||String(v.ok)===ok)&&(!q||w.toLowerCase().includes(q)||(v.fix||"").toLowerCase().includes(q))})
-    .forEach(v=>{const [l,c,...rest]=v.k.split("|"),w=rest.join("|");const tr=document.createElement("tr");
-      const td=(t,cls)=>{const x=document.createElement("td");if(cls)x.className=cls;x.textContent=t;tr.appendChild(x);return x};
-      const wt=td(w+(v.fix?" → "+v.fix:""),"w");wt.dir="auto";
-      td(CAT[c]||c);td(l==="ar"?"عربي":"EN");td(v.ok?"valid":"not valid",v.ok?"ok":"no");
-      td(v.at?new Date(v.at).toLocaleString():"");
-      const b=document.createElement("button");b.textContent=v.ok?"Mark not valid":"Mark valid";
-      b.onclick=async()=>{b.disabled=true;try{const r=await call("/api/harf/admin/verdict",{method:"POST",body:JSON.stringify({k:v.k,ok:v.ok?0:1})});v.ok=v.ok?0:1;v.rs=r.rescored||0;render()}catch(e){b.textContent=e.message}};
-      const a=document.createElement("td");a.prepend(b);if(v.rs!=null){const n=document.createElement("small");n.textContent=" "+v.rs+" answer"+(v.rs===1?"":"s")+" re-scored";a.appendChild(n)}tr.appendChild(a);tb.appendChild(tr)});
+$("#go").onclick=signIn;$("#key").addEventListener("keydown",e=>{if(e.key==="Enter")signIn()});
+$("#out").onclick=()=>{try{sessionStorage.removeItem("harf-admin");localStorage.removeItem("rush-admin")}catch(e){}location.reload()};
+
+/* ---------- tabs ---------- */
+const TABS=[
+  ["review","Review",()=>true,review],
+  ["answers","Answers",()=>true,answers],
+  ["players","Players",()=>true,players],
+  ["words","Words",()=>true,words],
+  ["stats","Stats",()=>true,stats],
+  ["settings","Settings",()=>true,settings],
+  ["agents","Agents",()=>true,agentsTab],
+  ["team","Team",()=>can("team"),team],
+  ["log","Log",()=>true,logTab],
+];
+function buildTabs(){
+  const t=$("#tabs");t.textContent="";t.hidden=false;
+  for(const[id,label,ok]of TABS)if(ok())t.append(h("button",{"data-tab":id,role:"tab",onclick:()=>show(id)},label,h("span",{class:"n",id:"n-"+id,hidden:true})));
 }
-$("#go").onclick=load;$("#key").addEventListener("keydown",e=>{if(e.key==="Enter")load()});
-$("#refresh").onclick=load;
-$("#out").onclick=()=>{try{sessionStorage.removeItem("harf-admin")}catch(e){}key="";$("#key").value="";location.reload()};
-document.querySelectorAll("#tabs [data-tab]").forEach(b=>b.onclick=()=>show(b.dataset.tab));
-["#q","#lg","#ok"].forEach(s=>$(s).addEventListener("input",render));
-["#pq","#pf"].forEach(s=>$(s).addEventListener("input",players));
-const num=n=>Number(n||0).toLocaleString();
-if(key)load();
+function show(id){
+  tab=id;try{sessionStorage.setItem("admin-tab",id)}catch(e){}
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===id)));
+  refresh();
+}
+function refresh(){const v=$("#view");v.textContent="";const t=TABS.find(x=>x[0]===tab);v.append(h("div",{class:"card"},h("p",{class:"note"},"Loading…")));
+  t[3]().then(nodes=>{v.textContent="";v.append(h("div",{style:"display:grid;gap:12px"},nodes))}).catch(e=>{v.textContent="";v.append(h("div",{class:"card"},h("p",{class:"note err"},e.message)))})}
+function badge(n,id){const b=$("#n-"+id);if(b){b.hidden=!n;b.textContent=n>99?"99+":n}}
+
+/* ---------- player sheet: one player's history, answer by answer ---------- */
+async function openPlayer(id){
+  const sh=h("div",{class:"sheet",onclick:e=>{if(e.target===sh)sh.remove()}}),inner=h("div",{class:"in"},h("p",{class:"note"},"Loading…"));
+  sh.append(inner);document.body.append(sh);
+  const draw=async()=>{
+    const p=await api("/api/harf/admin/player?id="+encodeURIComponent(id));
+    inner.textContent="";
+    inner.append(h("div",{class:"top"},h("h2",{dir:"auto"},p.name||"(no name)"),h("button",{class:"sm",onclick:()=>sh.remove()},"Close")),
+      h("div",{class:"row"},h("span",{class:"badge"},"id "+p.uid),p.signedIn?h("span",{class:"badge b-acc"},"signed in"):h("span",{class:"badge"},"guest"),p.hidden?h("span",{class:"badge b-hot"},"hidden from boards"):null,
+        can("players")?h("button",{class:"sm",onclick:async e=>{await act("players.hide",{game:"harf",id:p.uid,hide:!p.hidden},p.hidden?"Shown on the boards":"Hidden from the boards",e.target);draw()}},p.hidden?"Show on boards":"Hide from boards"):null));
+    if(!Object.keys(p.langs).length)inner.append(h("p",{class:"note"},"No Harf days yet."));
+    for(const[lg,L]of Object.entries(p.langs)){
+      inner.append(h("div",{class:"card"},
+        h("div",{class:"ph"},h("h3",null,lg==="ar"?"Arabic daily":"English daily"),h("span",{class:"note"},`streak ${L.streak} · best ${L.best} · played ${L.played} · perfect ${L.wins} · appeals today ${L.appealsToday}`)),
+        L.open?h("p",{class:"note"},`Playing now: letter ${L.open.L}, ${Math.ceil(L.open.left/1000)}s left`):null,
+        h("div",null,L.days.slice(0,60).map(d=>h("div",{class:"prow"},
+          h("div",{class:"ph"},h("b",null,d.day+" · "+(d.L||"?")),h("span",{class:"note"},`${d.pts} pts (${d.c}/5${d.sb?" +"+d.sb+" streak":""}${d.rb!=null?" +"+d.rb+" rare":", rarity pending"}) · ${Math.round(d.t/1000)}s${d.live?"":" · archive"}`)),
+          answerChips(d.a,d.live&&can("review")?(a,i)=>toggleAnswer({id:L.id,day:d.day,i},a,draw):null))))));
+    }
+  };
+  draw().catch(e=>{inner.textContent="";inner.append(h("p",{class:"err"},e.message))});
+}
+function chipClass(a){return !a.w?"e":a.ok?"ok":a.u?"u":"no"}
+function chipTitle(a){const t=[];if(a.f)t.push("→ "+a.f);if(a.l)t.push("wrong letter");if(a.u)t.push("not checked yet");if(a.ap===1)t.push("appeal won");if(a.ap===-1)t.push("appeal lost");if(a.mo)t.push("decided by the team");if(a.why)t.push(a.why);if(a.n)t.push(a.n+" gave it");return t.join(" · ")}
+function answerChips(list,onTap){
+  return h("div",{class:"chips"},list.map((a,i)=>{
+    const c=h("button",{class:"chip "+chipClass(a),title:chipTitle(a),dir:"auto",disabled:!a.w||!onTap,onclick:()=>onTap&&a.w&&onTap(a,i)},
+      h("span",{class:"c"},CAT1[CATS[i]]+(a.mo?" · team":a.ap===-1?" · appeal lost":a.l?" · letter":a.u?" · unchecked":"")),a.w||"—",a.f&&a.ok?" → "+a.f:"");
+    return c}));
+}
+async function toggleAnswer(sel,a,after){
+  const ok=a.ok?0:1;
+  if(!confirm((ok?"Count":"Don't count")+" \""+a.w+"\" for this player only?\n\nTo decide the word for everyone, use Valid / Not valid on the Answers or Review tab."))return;
+  await act("harf.answer",Object.assign({ok},sel),ok?"Counted":"Not counted");after&&after();
+}
+
+/* ---------- Review ---------- */
+let rv={days:3,type:"",lg:""};
+async function review(){
+  const [q,props]=await Promise.all([api("/api/harf/admin/queue?days="+rv.days),api("/api/mod/proposals").catch(()=>({list:[]}))]);
+  const pending=props.list.filter(p=>p.status==="pending");
+  badge(q.list.length+pending.length,"review");
+  const out=[];
+  if(pending.length)out.push(h("div",{class:"card"},h("h2",null,"Waiting for your OK ("+pending.length+")"),h("p",{class:"note"},"Agents in propose mode suggest changes here instead of making them."),
+    h("div",{class:"list"},pending.map(p=>h("div",{class:"item"},h("div",null,h("b",null,p.by.name)," wants ",h("b",null,p.act)),
+      h("pre",null,JSON.stringify(p.args)),p.why?h("div",{class:"note",dir:"auto"},"Why: "+p.why):null,
+      can("review")?h("div",{class:"row"},h("button",{class:"yes",onclick:async e=>{e.target.disabled=true;try{const r=await api("/api/mod/proposals",{id:p.id,ok:true});toast(r.status==="approved"?"Approved and done":"Failed: "+(r.error||""),r.log)}catch(x){toast(x.message)}refresh()}},"Approve"),
+        h("button",{class:"no",onclick:async()=>{await api("/api/mod/proposals",{id:p.id,ok:false});toast("Rejected");refresh()}},"Reject")):null)))));
+  const list=q.list.filter(g=>(!rv.type||g.type===rv.type||(rv.type==="letter"&&g.type==="letter-fix"))&&(!rv.lg||g.lg===rv.lg));
+  const sel=(v,opts,on)=>h("select",{onchange:e=>on(e.target.value)},opts.map(([val,l])=>h("option",{value:val,selected:String(v)===String(val)},l)));
+  out.push(h("div",{class:"card"},
+    h("div",{class:"ph"},h("h2",null,"Review queue"),h("span",{class:"note"},list.length+" to look at")),
+    h("p",{class:"note"},"Daily answers that didn't count, grouped by word, most important first (lost appeals, then how many players gave it). Valid / Not valid decides the word for everyone for good and re-scores the last 3 days. Skip just hides it here."),
+    h("div",{class:"row"},sel(rv.days,[[1,"Today"],[3,"3 days"],[7,"7 days"],[14,"14 days"]],v=>{rv.days=+v;refresh()}),
+      sel(rv.type,[["","Everything"],["rejected","AI said no"],["unchecked","Not checked"],["letter","Letter cases"]],v=>{rv.type=v;refresh()}),
+      sel(rv.lg,[["","Both languages"],["ar","Arabic"],["en","English"]],v=>{rv.lg=v;refresh()})),
+    list.length?h("div",{class:"list"},list.map(reviewItem)):h("p",{class:"note"},"Nothing waiting. 🎉")));
+  return out;
+}
+function reviewItem(g){
+  const t=TYPE[g.type]||[g.type,""],box=h("div",{class:"item"});
+  const done=msg=>{box.style.opacity=.45;box.querySelectorAll("button").forEach(b=>b.disabled=true);const n=$("#n-review");if(n&&+n.textContent>1)n.textContent=+n.textContent-1};
+  const v=g.verdict;
+  // (DOM append() would print a null as text: everything goes through h(), which skips them)
+  box.append(...[h("div",{class:"w",dir:"auto"},g.words.join(" / ")),
+    h("div",{class:"meta"},h("span",{class:"badge "+t[1]},t[0]),h("span",null,LANG[g.lg]+" · "+CAT[g.cat]+" · letter "+g.letter),
+      h("span",{class:"badge"},g.n+" player"+(g.n===1?"":"s")),g.lost?h("span",{class:"badge b-hot"},g.lost+" lost appeal"+(g.lost===1?"":"s")):null,
+      v?h("span",{class:"badge "+(SRC[v.src]||["",""])[1]},"saved: "+(v.ok?"valid":"not valid")+", "+(SRC[v.src]||[v.src])[0]):null,
+      h("span",null,g.days.join(", "))),
+    g.fix?h("div",{class:"note",dir:"auto"},"AI's spelling: "+g.fix+(g.type==="letter-fix"?" (starts with another letter)":"")):null,
+    g.why?h("div",{class:"note",dir:"auto"},"Appeal referee: "+g.why):null].filter(Boolean));
+  const who=h("details",null,h("summary",null,"Who gave it"),h("div",{class:"row"},g.players.map(p=>h("button",{class:"link",dir:"auto",onclick:()=>openPlayer(p.id)},(p.name||"(no name)")+" · "+p.day))));
+  box.append(who);
+  if(!can("review"))return box;
+  const row=h("div",{class:"row"});
+  if(g.type==="letter"){
+    row.append(h("button",{class:"yes",onclick:async e=>{for(const day of g.days)await act("harf.answer",{day,lg:g.lg,key:g.key,i:g.i,ok:1},"Counted for these players",e.target);done()}},"Count it for them"),
+      h("button",{onclick:async e=>{await act("harf.dismiss",{id:g.id},"Skipped",e.target);done()}},"Skip"));
+    box.append(h("p",{class:"note"},"It failed the first-letter check, so a word decision can't count it; this counts these players' answers only."));
+  }else{
+    row.append(h("button",{class:"yes",onclick:async e=>{const a={k:g.key,ok:1};if(g.type==="letter-fix")a.fix="";const r=await act("harf.verdict",a,"Valid for everyone",e.target);done();toast("Valid for everyone · "+r.rescored+" answer(s) re-scored",r.log)}},"Valid"),
+      h("button",{class:"no",onclick:async e=>{const r=await act("harf.verdict",{k:g.key,ok:0},"Not valid",e.target);done();toast("Confirmed not valid",r.log)}},"Not valid"),
+      h("button",{onclick:async e=>{await act("harf.dismiss",{id:g.id},"Skipped",e.target);done()}},"Skip"));
+  }
+  box.append(row);return box;
+}
+
+/* ---------- Answers: every daily answer of a day ---------- */
+let an={day:today(),lg:"",view:"word",st:"",q:"",cat:""};
+async function answers(){
+  const d=await api(`/api/harf/admin/answers?day=${an.day}&lg=${an.lg}`);
+  const controls=h("div",{class:"row"},
+    h("input",{type:"date",value:an.day,max:today(),onchange:e=>{an.day=e.target.value||today();refresh()}}),
+    h("select",{onchange:e=>{an.lg=e.target.value;refresh()}},[["","Both"],["ar","Arabic"],["en","English"]].map(([v,l])=>h("option",{value:v,selected:an.lg===v},l))),
+    h("select",{onchange:e=>{an.view=e.target.value;refresh()}},[["word","By word"],["player","By player"]].map(([v,l])=>h("option",{value:v,selected:an.view===v},l))));
+  const letters=[...new Set(d.players.map(p=>p.lg+" "+p.L))].join(" · ");
+  const head=h("div",{class:"card"},h("div",{class:"ph"},h("h2",null,"Answers · "+d.day),h("span",{class:"note"},d.players.length+" players"+(letters?" · "+letters:""))),controls,
+    h("p",{class:"note"},"Every answer is kept: the last 40 days live on each player, and finished days stay in the archive for good."));
+  if(an.view==="player"){
+    return [head,h("div",{class:"card"},d.players.length?d.players.map(p=>h("div",{class:"prow"},
+      h("div",{class:"ph"},h("button",{class:"link",dir:"auto",onclick:()=>openPlayer(p.uid)},p.name||"(no name)"),h("span",{class:"note"},`${LANG[p.lg]} · ${p.pts} pts · ${p.c}/5 · ${Math.round(p.t/1000)}s${p.hidden?" · hidden":""}`)),
+      answerChips(p.a,can("review")?(a,i)=>toggleAnswer({id:p.id,day:d.day,i},a,refresh):null))):h("p",{class:"note"},"Nobody played that day."))];
+  }
+  const filt=g=>(!an.cat||g.cat===an.cat)&&(!an.q||g.words.some(w=>w.toLowerCase().includes(an.q.toLowerCase())))&&
+    (!an.st||(an.st==="no"&&g.ok<g.n&&!g.l&&!g.u)||(an.st==="ok"&&g.ok===g.n)||(an.st==="l"&&g.l)||(an.st==="u"&&g.u)||(an.st==="mo"&&g.mo));
+  const box=h("div",{class:"list"});
+  const draw=()=>{box.textContent="";const L=d.words.filter(filt);
+    if(!L.length)box.append(h("p",{class:"note"},"No answers match."));
+    L.slice(0,400).forEach(g=>box.append(wordRow(g,d.day)));if(L.length>400)box.append(h("p",{class:"note"},"Showing 400 of "+L.length))};
+  const tools=h("div",{class:"card"},h("div",{class:"row"},
+    h("input",{type:"search",class:"grow",placeholder:"Search answers",value:an.q,oninput:e=>{an.q=e.target.value;draw()}}),
+    h("select",{onchange:e=>{an.cat=e.target.value;draw()}},[["","All categories"],...CATS.map(c=>[c,CAT[c]])].map(([v,l])=>h("option",{value:v,selected:an.cat===v},l))),
+    h("select",{onchange:e=>{an.st=e.target.value;draw()}},[["","Everything"],["no","Turned down"],["ok","Counted"],["l","Wrong letter"],["u","Not checked"],["mo","Team decided"]].map(([v,l])=>h("option",{value:v,selected:an.st===v},l)))),box);
+  draw();return [head,tools];
+}
+function wordRow(g,day){
+  const v=g.verdict,s=v?SRC[v.src]||[v.src,""]:null;
+  const st=g.ok===g.n?["counted","b-good"]:g.u?["not checked","b-warn"]:g.l?["wrong letter","b-warn"]:g.ok?[g.ok+" of "+g.n+" counted","b-warn"]:["turned down","b-hot"];
+  const box=h("div",{class:"item"},h("div",{class:"ph"},h("span",{class:"w",dir:"auto"},g.words.join(" / ")),h("span",{class:"badge"},g.n+"×")),
+    h("div",{class:"meta"},h("span",{class:"badge "+st[1]},st[0]),h("span",null,LANG[g.lg]+" · "+CAT[g.cat]),s?h("span",{class:"badge "+s[1]},"saved: "+(v.ok?"valid":"not valid")+" ("+s[0]+")"):null,
+      v&&v.fix?h("span",{dir:"auto"},"→ "+v.fix):null,g.ap?h("span",{class:"badge"},g.ap+" appealed"):null,g.mo?h("span",{class:"badge b-good"},g.mo+" by hand"):null));
+  if(can("review")){
+    const row=h("div",{class:"row"});
+    if(g.l&&!g.ok)row.append(h("button",{class:"sm yes",onclick:async e=>{await act("harf.answer",{day,lg:g.lg,key:g.k,i:g.i,ok:1},"Counted for these players",e.target);refresh()}},"Count it (letter case)"));
+    else{
+      row.append(h("button",{class:"sm yes",disabled:v&&v.ok&&(v.src==="mod"||g.ok===g.n),onclick:async e=>{const r=await act("harf.verdict",{k:g.k,ok:1},"Valid for everyone",e.target);toast("Valid · "+r.rescored+" re-scored",r.log);refresh()}},"Valid"),
+        h("button",{class:"sm no",disabled:v&&v.src==="mod"&&!v.ok,onclick:async e=>{const r=await act("harf.verdict",{k:g.k,ok:0},"Not valid",e.target);toast("Not valid · "+r.rescored+" re-scored",r.log);refresh()}},"Not valid"));
+    }
+    box.append(row);
+  }
+  return box;
+}
+
+/* ---------- Players ---------- */
+let pl={game:"harf",q:"",f:""};
+async function players(){
+  const ov=cache.ov=await api("/api/admin/overview");
+  const G=ov.games[pl.game],box=h("div");
+  const draw=()=>{box.textContent="";
+    const q=pl.q.trim().toLowerCase(),rows=G.list.filter(p=>(!q||(p.name||"").toLowerCase().includes(q)||p.id.toLowerCase().includes(q))&&(!pl.f||p.hidden));
+    rows.slice(0,300).forEach(p=>box.append(h("div",{class:"prow"},h("div",{class:"ph"},
+      pl.game==="harf"?h("button",{class:"link",dir:"auto",onclick:()=>openPlayer(p.id),title:p.id},(p.name||"(no name)")):h("b",{dir:"auto",title:p.id},p.name||"(no name)"),
+      h("span",{class:"row"},h("span",{class:"note"},(p.langs.map(l=>LANG[l]).join(" · ")||"—")+" · last "+(p.last||"—")+" · "+num(p.days)+" days"),
+        p.hidden?h("span",{class:"badge b-hot"},"hidden"):null,
+        can("players")?h("button",{class:"sm",onclick:async e=>{if(!p.hidden&&!confirm("Hide "+(p.name||p.id)+" from the "+GAME[pl.game]+" boards?"))return;await act("players.hide",{game:pl.game,id:p.id,hide:!p.hidden},p.hidden?"Shown":"Hidden",e.target);p.hidden=!p.hidden;draw()}},p.hidden?"Show":"Hide"):null)))));
+    if(!rows.length)box.append(h("p",{class:"note"},"No players"));else if(rows.length>300)box.append(h("p",{class:"note"},"Showing 300 of "+rows.length+"; search to narrow it down"));
+  };
+  draw();
+  return [h("div",{class:"card"},
+    h("div",{class:"ph"},h("h2",null,GAME[pl.game]+" players · "+num(G.total)),h("span",{class:"note"},Object.entries(G.langs).map(([l,x])=>(l==="all"?"":LANG[l]+": ")+x.today+" today, "+x.week+" this week").join(" · "))),
+    h("div",{class:"row"},h("select",{onchange:e=>{pl.game=e.target.value;refresh()}},Object.keys(GAME).map(g=>h("option",{value:g,selected:pl.game===g},GAME[g]))),
+      h("input",{type:"search",class:"grow",placeholder:"Search name or id",value:pl.q,oninput:e=>{pl.q=e.target.value;draw()}}),
+      h("select",{onchange:e=>{pl.f=e.target.value;draw()}},h("option",{value:""},"Everyone"),h("option",{value:"hid",selected:pl.f==="hid"},"Hidden only"))),
+    h("p",{class:"note"},"Hiding takes a player off that game's boards (both languages); scores are kept. Tap a Harf player for every answer they've given."),box)];
+}
+
+/* ---------- Words: saved verdicts ---------- */
+let wd={q:"",lg:"",cat:"",ok:"",src:""};
+async function words(){
+  const qs=new URLSearchParams(Object.assign({limit:400},wd)).toString();
+  const r=await api("/api/harf/admin/verdicts?"+qs);
+  const sel=(k,opts)=>h("select",{onchange:e=>{wd[k]=e.target.value;refresh()}},opts.map(([v,l])=>h("option",{value:v,selected:wd[k]===v},l)));
+  const add=can("review")?(()=>{const lg=h("select",null,h("option",{value:"ar"},"Arabic"),h("option",{value:"en"},"English")),cat=h("select",null,CATS.map(c=>h("option",{value:c},CAT[c]))),
+    w=h("input",{class:"grow",placeholder:"Word",dir:"auto"}),ok=h("select",null,h("option",{value:"1"},"Valid"),h("option",{value:"0"},"Not valid"));
+    return h("div",{class:"card"},h("h2",null,"Decide a word"),h("p",{class:"note"},"Add a word to the team's list ahead of time, or overrule the built-in list. It applies to everyone from now on and re-scores the last 3 days."),
+      h("div",{class:"row"},lg,cat,w,ok,h("button",{class:"pri",onclick:async e=>{if(!w.value.trim())return;const x=await act("harf.verdict",{lg:lg.value,cat:cat.value,w:w.value.trim(),ok:+ok.value},"Saved",e.target);toast("Saved · "+x.rescored+" re-scored",x.log);w.value="";refresh()}},"Save")))})():null;
+  return [add,h("div",{class:"card"},
+    h("div",{class:"ph"},h("h2",null,"Saved verdicts"),h("span",{class:"note"},r.list.length+(r.list.length>=400?"+":"")+" shown · "+num(r.known)+" words in the built-in list")),
+    h("div",{class:"row"},h("input",{type:"search",class:"grow",placeholder:"Search a word",value:wd.q,onchange:e=>{wd.q=e.target.value;refresh()}}),
+      sel("lg",[["","Both"],["ar","Arabic"],["en","English"]]),sel("cat",[["","All categories"],...CATS.map(c=>[c,CAT1[c]])]),
+      sel("ok",[["","Valid and not"],["1","Valid"],["0","Not valid"]]),sel("src",[["","Any source"],["ai","AI, one check"],["ai2","AI, twice"],["appeal","Appeal"],["mod","Team"]])),
+    h("div",{class:"list"},r.list.map(v=>{const [lg,c]=v.k.split("|"),s=SRC[v.src]||[v.src,""];
+      return h("div",{class:"item"},h("div",{class:"ph"},h("span",{class:"w",dir:"auto"},wordOf(v.k)+(v.fix?" → "+v.fix:"")),h("span",{class:"badge "+(v.ok?"b-good":"b-hot")},v.ok?"valid":"not valid")),
+        h("div",{class:"meta"},h("span",null,LANG[lg]+" · "+CAT[c]),h("span",{class:"badge "+s[1]},s[0]),h("span",null,v.at?dateOf(v.at):"")),
+        can("review")?h("div",{class:"row"},h("button",{class:"sm "+(v.ok?"no":"yes"),onclick:async e=>{const x=await act("harf.verdict",{k:v.k,ok:v.ok?0:1},"Changed",e.target);toast((v.ok?"Not valid":"Valid")+" · "+x.rescored+" re-scored",x.log);refresh()}},v.ok?"Mark not valid":"Mark valid")):null)})),
+    h("p",{class:"note"},"Keys are the word as the game matches it (no ال or \"the\", no hamza differences)."))];
+}
+
+/* ---------- Stats ---------- */
+let sd=14;
+async function stats(){
+  const [s,ov]=await Promise.all([api("/api/harf/admin/stats?days="+sd),api("/api/admin/overview")]);
+  const D=s.days,last=D[D.length-1],both=x=>({players:x.ar.players+x.en.players,perfect:x.ar.perfect+x.en.perfect,pts:x.ar.pts+x.en.pts,valid:x.ar.valid+x.en.valid,rejected:x.ar.rejected+x.en.rejected,
+    letter:x.ar.letter+x.en.letter,unchecked:x.ar.unchecked+x.en.unchecked,won:x.ar.won+x.en.won,lost:x.ar.lost+x.en.lost,mod:x.ar.mod+x.en.mod,time:x.ar.time+x.en.time,newp:x.ar.newp+x.en.newp});
+  const T=both(last),W=D.slice(-7).map(both).reduce((a,x)=>{for(const k in x)a[k]=(a[k]||0)+x[k];return a},{});
+  const U=s.usage,P=U.price,cost=t=>["check","second","appeal"].reduce((a,k)=>a+((t[k]||{in:0}).in*P[k][0]+(t[k]||{out:0}).out*P[k][1])/1e6,0),money=c=>c<0.01&&c>0?"<$0.01":"$"+c.toFixed(2);
+  const filled=x=>x.valid+x.rejected+x.letter+x.unchecked;
+  const max=Math.max(1,...D.map(x=>x.ar.players+x.en.players));
+  const v=ov.visits;
+  const catRows=CATS.map((c,i)=>{const a=D.reduce((t,x)=>t+x.ar.cats[i].no+x.en.cats[i].no,0),b=D.reduce((t,x)=>t+x.ar.cats[i].ok+x.en.cats[i].ok,0);return [CAT[c],a,a+b]});
+  const src=s.sources,srcRow=k=>[(SRC[k]||[k])[0],src[k+"|1"]||0,src[k+"|0"]||0];
+  return [
+    h("div",{class:"card"},h("div",{class:"ph"},h("h2",null,"Harf dailies"),h("select",{onchange:e=>{sd=+e.target.value;refresh()}},[7,14,30,40].map(n=>h("option",{value:n,selected:sd===n},n+" days")))),
+      h("div",{class:"tiles"},[[T.players,"played today"],[T.newp,"new today"],[pct(T.perfect,T.players),"perfect today"],[T.players?Math.round(T.pts/T.players):0,"avg points today"],
+        [pct(W.rejected,W.valid+W.rejected+W.letter+W.unchecked),"turned down, 7 days"],[W.lost+" / "+(W.won+W.lost),"appeals lost, 7 days"],[money(cost(U.periods.week)),"AI cost, 7 days"],[v.day.visitors,"site visitors today"]]
+        .map(([n,l])=>h("div",{class:"tile"},h("b",null,typeof n==="number"?num(n):n),h("span",null,l)))),
+      h("div",null,h("div",{class:"bars",title:"players a day (green Arabic, blue English)"},D.map(x=>h("div",{style:`height:${100*(x.ar.players+x.en.players)/max}%`,class:x.ar.players>=x.en.players?"ar":"",title:`${x.d}: ${x.ar.players} Arabic, ${x.en.players} English`}))),
+        h("div",{class:"barlbl"},h("span",null,D[0].d),h("span",null,"players a day"),h("span",null,last.d)))),
+    h("div",{class:"card"},h("h2",null,"By day"),h("div",{class:"scroll"},h("table",null,h("thead",null,h("tr",null,["Day","Ar","En","New","Perfect","Avg pts","Turned down","Letter","Unchecked","Appeals won/lost","Team","Avg time"].map((x,i)=>h("th",{class:i?"n":""},x)))),
+      h("tbody",null,D.slice().reverse().map(x=>{const b=both(x);return h("tr",null,h("td",null,x.d.slice(5)),[x.ar.players,x.en.players,b.newp,pct(b.perfect,b.players),b.players?Math.round(b.pts/b.players):"–",
+        pct(b.rejected,filled(b)),b.letter,b.unchecked,b.won+"/"+b.lost,b.mod,b.players?Math.round(b.time/b.players/1000)+"s":"–"].map(c=>h("td",{class:"n"},String(c))))}))))),
+    h("div",{class:"card"},h("h2",null,"Where answers get turned down"),h("p",{class:"note"},"Over these days, by category. A category far above the others usually means the referee's description of it is too strict (Settings)."),
+      h("table",null,h("tbody",null,catRows.map(([c,a,t])=>h("tr",null,h("td",null,c),h("td",{class:"n"},a+" of "+t),h("td",{class:"n"},pct(a,t))))))),
+    h("div",{class:"card"},h("h2",null,"Most turned-down answers"),s.top.length?h("div",{class:"list"},s.top.map(t=>h("div",{class:"ph"},h("span",{dir:"auto"},t.w+" · "+LANG[t.lg]+" · "+CAT1[t.cat]),h("span",{class:"row"},h("span",{class:"badge"},t.n+"×"),
+      can("review")?h("button",{class:"sm yes",onclick:async e=>{const r=await act("harf.verdict",{k:t.k,ok:1},"Valid",e.target);toast("Valid · "+r.rescored+" re-scored",r.log)}},"Valid"):null)))):h("p",{class:"note"},"None.")),
+    h("div",{class:"card"},h("h2",null,"Saved verdicts by who decided"),h("table",null,h("thead",null,h("tr",null,h("th",null,""),h("th",{class:"n"},"Valid"),h("th",{class:"n"},"Not valid"))),
+      h("tbody",null,["ai","ai2","appeal","mod"].map(k=>h("tr",null,srcRow(k).map((c,i)=>h("td",{class:i?"n":""},String(c)))))))),
+    h("div",{class:"card"},h("h2",null,"AI usage"),h("table",null,h("thead",null,h("tr",null,["","Checks","Second looks","Appeals","Est. cost"].map((x,i)=>h("th",{class:i?"n":""},x)))),
+      h("tbody",null,[["24 hours","day"],["7 days","week"],["30 days","month"]].map(([l,k])=>{const t=U.periods[k];return h("tr",null,h("td",null,l),[t.check.calls,(t.second||{calls:0}).calls,t.appeal.calls].map(c=>h("td",{class:"n"},num(c))),h("td",{class:"n"},money(cost(t))))}))),
+      h("p",{class:"note"},"Estimated from the tokens Claude reports, at list prices. The Claude Console has the exact bill.")),
+    h("div",{class:"card"},h("h2",null,"Site"),h("table",null,h("thead",null,h("tr",null,["Game","Players","Today","7 days"].map((x,i)=>h("th",{class:i?"n":""},x)))),
+      h("tbody",null,Object.keys(GAME).flatMap(g=>Object.entries(ov.games[g].langs).sort().map(([lg,x])=>h("tr",null,h("td",null,GAME[g]+(lg==="all"?"":" · "+LANG[lg])),[x.players,x.today,x.week].map(c=>h("td",{class:"n"},num(c)))))))),
+      h("p",{class:"note"},`Visitors: ${num(v.day.visitors)} today, ${num(v.week.visitors)} in 7 days, ${num(v.month.visitors)} in 30 days (${num(v.month.views)} page views). Devices, never IP addresses.`)),
+  ];
+}
+
+/* ---------- Settings ---------- */
+async function settings(){
+  const r=await api("/api/harf/admin/settings"),S=r.settings,edit=can("settings"),f={};
+  const sw=(k,label,help)=>h("div",{class:"switch"},h("label",{for:"s-"+k},h("b",null,label),help?h("small",null,help):null),f[k]=h("input",{type:"checkbox",id:"s-"+k,checked:!!S[k],disabled:!edit}));
+  const nm=(k,label,help,min,max)=>h("div",{class:"switch"},h("label",{for:"s-"+k},h("b",null,label),help?h("small",null,help):null),f[k]=h("input",{type:"number",id:"s-"+k,value:S[k],min,max,disabled:!edit}));
+  const tx=(k,label,help)=>h("div",{class:"switch"},h("label",{for:"s-"+k},h("b",null,label),help?h("small",null,help):null),f[k]=h("input",{id:"s-"+k,value:S[k],disabled:!edit,list:"models",style:"width:min(220px,48vw)"}));
+  f.style=h("select",{disabled:!edit},[["lenient","Lenient"],["normal","Normal"],["strict","Strict"]].map(([v,l])=>h("option",{value:v,selected:S.style===v},l)));
+  f.notes={ar:h("textarea",{dir:"rtl",value:S.notes.ar||"",disabled:!edit,placeholder:"مثال: اقبل أسماء الأماكن في الخليج وأسماء الأكلات الشعبية تحت جماد."}),en:h("textarea",{value:S.notes.en||"",disabled:!edit,placeholder:"e.g. Accept brand names as objects."})};
+  f.cats={};CATS.forEach(c=>f.cats[c]=h("textarea",{value:S.cats[c]||"",placeholder:r.catRules[c],disabled:!edit}));
+  const save=async btn=>{const v={ai:f.ai.checked,aiRooms:f.aiRooms.checked,second:f.second.checked,appeals:f.appeals.checked,appealsPerDay:+f.appealsPerDay.value,perHour:+f.perHour.value,roomPerIp:+f.roomPerIp.value,
+    model:f.model.value.trim(),appealModel:f.appealModel.value.trim(),style:f.style.value,notes:{ar:f.notes.ar.value,en:f.notes.en.value},cats:Object.fromEntries(CATS.map(c=>[c,f.cats[c].value]))};
+    await act("harf.settings",v,"Settings saved",btn)};
+  const D=r.daily;
+  return [
+    !r.api?h("div",{class:"card"},h("p",{class:"err"},"ANTHROPIC_API_KEY isn't set on the server: only the word list and saved verdicts are used.")):null,
+    h("div",{class:"card"},h("h2",null,"Referee (Harf)"),
+      sw("ai","AI checks","Judge words the list doesn't know with Claude. Off: unknown words wait unchecked (dailies) or pass on their letter (rooms)."),
+      sw("second","Second look on daily rejections","When the quick model turns a daily answer down, the stronger model checks it before it counts against the player. Fixes most \"correct but not counted\" complaints; costs a little more."),
+      sw("aiRooms","AI checks in rooms and practice",""),
+      sw("appeals","Appeals","Players can ask for a second look at a rejected answer."),
+      nm("appealsPerDay","Appeals per player a day","",0,50),
+      h("div",{class:"switch"},h("label",null,h("b",null,"Strictness"),h("small",null,"How the referee treats borderline answers")),f.style),
+      tx("model","Checking model","Fast and cheap; checks every new word"),
+      tx("appealModel","Second look and appeals model","Stronger; used only for doubts"),
+      h("datalist",{id:"models"},["claude-haiku-5-5","claude-sonnet-5-5","claude-opus-5-5"].map(m=>h("option",{value:m}))),
+      nm("perHour","AI calls an hour, at most","A ceiling against runaway bills; rooms get half",1,2000),
+      nm("roomPerIp","Room checks per network a day","",0,1000)),
+    h("div",{class:"card"},h("h2",null,"Extra guidance for the referee"),h("p",{class:"note"},"Plain instructions added to every check, in your own words, for things it keeps getting wrong."),
+      h("b",null,"Arabic"),f.notes.ar,h("b",null,"English"),f.notes.en),
+    h("details",{class:"card"},h("summary",null,"What each category accepts (leave empty for the default shown)"),CATS.map(c=>h("div",null,h("b",null,CAT[c]),f.cats[c]))),
+    edit?h("div",{class:"row"},h("button",{class:"pri",onclick:e=>save(e.target)},"Save settings"),h("span",{class:"note"},"Takes effect at once, no deploy. Undo from the toast or the Log.")):h("p",{class:"note"},"Your role can view these but not change them."),
+    h("div",{class:"card"},h("h2",null,"Daily rules (set in code)"),h("p",{class:"note"},`${D.ms/1000} seconds, timed by the server (it keeps running if the player leaves the page) · ${D.base} points per valid answer · perfect streak +1 a day up to +${D.streakMax} · rarity +${D.rareOnly} if nobody else wrote it, +${D.rareFew} if under ${Math.round(D.rareShare*100)}% did. Ask Claude to change these: the game pages explain them too.`)),
+  ];
+}
+
+/* ---------- Agents ---------- */
+async function agentsTab(){
+  const [a,props,man]=await Promise.all([api("/api/mod/agents"),api("/api/mod/proposals").catch(()=>({list:[]})),api("/api/mod/manual")]);
+  const A=a.agents,edit=can("settings");
+  const set=async(v,btn)=>{btn&&(btn.disabled=true);try{await api("/api/mod/agents",v);toast("Saved")}catch(e){toast(e.message)}refresh()};
+  const cap=h("input",{type:"number",value:A.cap,min:0,max:5000,disabled:!edit,style:"width:110px"});
+  return [
+    h("div",{class:"card"},h("h2",null,"Agent control room"),
+      h("p",{class:"note"},"Agents are programs (an AI agent you set up later, a script) with their own key from the Team tab. They use the same API as this page, and everything they do is in the Log with a reason and an undo."),
+      h("div",{class:"kill"+(A.paused?" off":"")},h("div",null,h("b",null,A.paused?"Agents are paused":"Agents are running"),h("div",{class:"note"},A.paused?"Every change they try is refused.":"Stop them all at once with one tap.")),
+        edit?h("button",{class:A.paused?"yes":"no",onclick:e=>set({paused:!A.paused},e.target)},A.paused?"Resume":"Pause all"):null),
+      h("div",{class:"switch"},h("label",null,h("b",null,"Mode"),h("small",null,"Act: changes happen at once. Propose: they wait on the Review tab for a person's OK.")),
+        h("select",{disabled:!edit,onchange:e=>set({mode:e.target.value})},h("option",{value:"act",selected:A.mode==="act"},"Act on their own"),h("option",{value:"propose",selected:A.mode==="propose"},"Propose only"))),
+      h("div",{class:"switch"},h("label",null,h("b",null,"Changes per agent a day"),h("small",null,"Past this, the agent is refused until tomorrow (UTC)")),h("span",{class:"row"},cap,edit?h("button",{class:"sm",onclick:e=>set({cap:+cap.value},e.target)},"Save"):null))),
+    h("div",{class:"card"},h("h2",null,"Agents"),a.list.length?a.list.map(m=>h("div",{class:"prow"},h("div",{class:"ph"},h("b",null,m.name),h("span",{class:"note"},(m.off?"off · ":"")+m.today+" changes today · "+(m.seen?"seen "+dateOf(m.seen):"never used"))),h("div",{class:"note"},"Can: "+m.perms.join(", "))))
+      :h("p",{class:"note"},can("team")?"None yet. Add one on the Team tab (role: agent) and give it the key.":"None yet. The owner adds them on the Team tab.")),
+    h("div",{class:"card"},h("h2",null,"Connecting an agent"),
+      h("p",{class:"note"},"Give the agent its key, this server's address, and the manual below (it can also fetch it at /api/mod/manual with its key). A good first job: \"Every hour, go through the review queue and decide each item, with a reason.\""),
+      h("div",{class:"row"},h("span",{class:"keybox grow"},location.origin),h("button",{class:"sm",onclick:()=>{navigator.clipboard.writeText(man);toast("Manual copied")}},"Copy manual")),
+      h("details",null,h("summary",null,"The manual"),h("pre",null,man))),
+    h("div",{class:"card"},h("h2",null,"Recent proposals"),props.list.length?props.list.slice(0,30).map(p=>h("div",{class:"prow"},h("div",{class:"ph"},h("b",null,p.by.name+": "+p.act),h("span",{class:"badge "+(p.status==="approved"?"b-good":p.status==="pending"?"b-warn":"b-hot")},p.status)),h("div",{class:"note",dir:"auto"},p.why))):h("p",{class:"note"},"None.")),
+  ];
+}
+
+/* ---------- Team ---------- */
+async function team(){
+  const r=await api("/api/mod/team");
+  const name=h("input",{class:"grow",placeholder:"Name (e.g. Sara, or Night bot)"}),role=h("select",null,h("option",{value:"moderator"},"Moderator: reviews and players"),h("option",{value:"admin"},"Admin: also settings and agents"),h("option",{value:"agent"},"Agent: a program"));
+  const perms=["view","review","players"].map(p=>h("label",{class:"row note"},h("input",{type:"checkbox",value:p,checked:p!=="players"}),p));
+  const pbox=h("div",{class:"row",hidden:true},h("span",{class:"note"},"Agent may:"),perms);
+  role.onchange=()=>pbox.hidden=role.value!=="agent";
+  // the key is shown once, in a sheet of its own, so it survives the list being redrawn
+  const showKey=(who,k)=>{const sh=h("div",{class:"sheet"});sh.append(h("div",{class:"in"},h("h2",null,"Key for "+who),
+    h("p",{class:"note"},"Shown only this once: copy it now. Send it privately. They sign in to this page with it; an agent sends it in the x-admin-key header."),
+    h("div",{class:"keybox"},k),h("div",{class:"row"},h("button",{class:"pri",onclick:()=>{navigator.clipboard.writeText(k).then(()=>toast("Copied"),()=>toast("Select the key and copy it"))}},"Copy"),h("button",{onclick:()=>sh.remove()},"Done"))));document.body.append(sh)};
+  const upd=async(id,v,btn)=>{btn.disabled=true;try{await api("/api/mod/team",Object.assign({op:"update",id},v));toast("Saved");refresh()}catch(e){toast(e.message);btn.disabled=false}};
+  return [
+    h("div",{class:"card"},h("h2",null,"Add someone"),h("div",{class:"row"},name,role),pbox,
+      h("button",{class:"pri",onclick:async e=>{e.target.disabled=true;try{const x=await api("/api/mod/team",{op:"add",name:name.value,role:role.value,perms:perms.filter(p=>p.firstChild.checked).map(p=>p.firstChild.value)});name.value="";showKey(x.member.name,x.key);refresh()}catch(err){toast(err.message)}e.target.disabled=false}},"Add and make a key")),
+    h("div",{class:"card"},h("h2",null,"Team"),h("div",{class:"prow"},h("div",{class:"ph"},h("b",null,"You (owner)"),h("span",{class:"note"},"ADMIN_KEY on Render; everything"))),
+      r.list.map(m=>h("div",{class:"prow"},h("div",{class:"ph"},h("b",null,m.name),h("span",{class:"row"},h("span",{class:"badge "+(m.off?"b-hot":"b-acc")},m.off?"off":m.role),h("span",{class:"note"},m.seen?"seen "+dateOf(m.seen):"never signed in"))),
+        h("div",{class:"note"},"Can: "+m.perms.join(", ")),
+        h("div",{class:"row"},
+          h("button",{class:"sm",onclick:e=>upd(m.id,{off:!m.off},e.target)},m.off?"Turn on":"Turn off"),
+          h("button",{class:"sm",onclick:async e=>{if(!confirm("Make a new key for "+m.name+"? The old one stops working."))return;const x=await api("/api/mod/team",{op:"rekey",id:m.id});showKey(m.name,x.key)}},"New key"),
+          m.role==="agent"?["view","review","players"].map(p=>h("label",{class:"row note"},h("input",{type:"checkbox",checked:m.perms.includes(p),onchange:e=>upd(m.id,{perms:["view","review","players"].filter(q=>q===p?e.target.checked:m.perms.includes(q))},e.target)}),p))
+            :h("select",{onchange:e=>upd(m.id,{role:e.target.value},e.target)},["moderator","admin"].map(x=>h("option",{value:x,selected:m.role===x},x))),
+          h("button",{class:"sm no",onclick:async()=>{if(!confirm("Remove "+m.name+"?"))return;await api("/api/mod/team",{op:"remove",id:m.id});toast("Removed");refresh()}},"Remove"))))),
+    h("p",{class:"note"},"Roles: moderators review answers and hide players; admins can also change settings and control agents; only you manage the team. Every change anyone makes is in the Log."),
+  ];
+}
+
+/* ---------- Log ---------- */
+let lg={days:7,by:""};
+async function logTab(){
+  const r=await api(`/api/mod/audit?days=${lg.days}&by=${encodeURIComponent(lg.by)}`);
+  const whoList=[...new Map(r.list.map(e=>[e.by.id,e.by.name])).entries()];
+  return [h("div",{class:"card"},h("div",{class:"ph"},h("h2",null,"Log"),h("span",{class:"note"},r.list.length+" changes")),
+    h("div",{class:"row"},h("select",{onchange:e=>{lg.days=+e.target.value;refresh()}},[1,7,30,90].map(n=>h("option",{value:n,selected:lg.days===n},n===1?"Today":n+" days"))),
+      h("select",{onchange:e=>{lg.by=e.target.value;refresh()}},h("option",{value:""},"Everyone"),whoList.map(([id,n])=>h("option",{value:id,selected:lg.by===id},n)))),
+    r.list.length?r.list.map(e=>h("div",{class:"prow"},h("div",{class:"ph"},h("b",{dir:"auto"},e.sum),h("span",{class:"note"},dateOf(e.t))),
+      h("div",{class:"meta note"},h("span",{class:"badge "+(e.by.role==="agent"?"b-acc":"")},e.by.name+" · "+e.by.role),e.ok?h("span",{class:"badge b-good"},"approved"):null,e.proposal?h("span",{class:"badge b-warn"},"proposal"):null,
+        e.undone?h("span",{class:"badge"},"undone"):null,e.undoOf?h("span",{class:"badge"},"an undo"):null),
+      e.why?h("div",{class:"note",dir:"auto"},"Why: "+e.why):null,
+      e.undo&&!e.undone&&Date.now()-e.t<2*864e5?h("div",null,h("button",{class:"sm",onclick:async ev=>{ev.target.disabled=true;try{await api("/api/mod/undo",{id:e.id});toast("Undone");refresh()}catch(x){toast(x.message);ev.target.disabled=false}}},"Undo")):null))
+    :h("p",{class:"note"},"No changes yet."))];
+}
+
+if(key)signIn();
 })();
 </script>
 </body>

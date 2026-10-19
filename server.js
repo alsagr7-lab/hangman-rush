@@ -15,6 +15,7 @@ const trivia = require("./trivia");
 const hangman = require("./hangman");
 const harf = require("./harf");
 const admin = require("./admin");
+const mod = require("./mod");
 const auth = require("./auth");
 const limits = require("./limits");
 const ident = require("./ident");
@@ -115,6 +116,11 @@ const server = http.createServer(async (req, res) => {
     if (await hangman.handle(req, res, url, ctx)) return;
     if (await harf.handle(req, res, url, ctx)) return;
     if (await admin.handle(req, res, url, ctx)) return;
+    // the moderation API (team, audit log, changes, agents): a limited number a minute per address, like the admin API
+    if (url.pathname.startsWith("/api/mod/")) {
+      if (!limits.take("adm|" + ip, 120, 60)) return send(res, 429, { error: "Too many tries. Wait a minute." });
+      if (await mod.handle(req, res, url, ctx)) return;
+    }
     if (await auth.handle(req, res, url, ctx)) return;
 
     if (url.pathname === "/api/daily" && req.method === "GET") {
@@ -271,6 +277,6 @@ setInterval(() => {
   }
 }, 30000);
 
-store.init().then(() => admin.loadHidden()).then(() => require("./merges").runMerges().catch(e => console.error("Merge failed", e))).then(() => {
+store.init().then(() => admin.loadHidden()).then(() => mod.load()).then(() => harf.init()).then(() => require("./merges").runMerges().catch(e => console.error("Merge failed", e))).then(() => {
   server.listen(PORT, () => console.log(`Rush Games listening on ${PORT} (storage: ${store.kind})`));
 }).catch(e => { console.error("Storage failed to start", e); process.exit(1); });

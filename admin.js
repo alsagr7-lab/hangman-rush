@@ -4,29 +4,16 @@ const crypto = require("crypto");
 const R = require("./site/shared/rules");
 const store = require("./store");
 const limits = require("./limits");
+const mod = require("./mod");
 
-const ADMIN_KEY = process.env.ADMIN_KEY || "";
 const PAGES = ["home", "hangman", "trivia", "harf"];
 const GAMES = ["hangman", "trivia", "harf"];
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 const DAY = R.DAY;
 const dayKey = t => new Date(t).toISOString().slice(0, 10);
 
-function adminOk(req) {
-  const k = String(req.headers["x-admin-key"] || "");
-  if (!ADMIN_KEY || !k) return false;
-  const a = crypto.createHash("sha256").update(k).digest(), b = crypto.createHash("sha256").update(ADMIN_KEY).digest();
-  return crypto.timingSafeEqual(a, b);
-}
-
-// -> true when the request carries the right key; otherwise answers it (403 wrong key, 429 locked after many wrong keys)
-function checkAdmin(req, res, send) {
-  if (limits.adminLocked()) { send(res, 429, { error: "Too many wrong keys. Try again in a few minutes." }); return false; }
-  if (adminOk(req)) return true;
-  limits.adminFailed();
-  send(res, 403, { error: "Wrong admin key" });
-  return false;
-}
+// -> true when the request carries a team key with this permission; otherwise answers it (see mod.js)
+const checkAdmin = (req, res, send, perm = "view") => !!mod.auth(req, res, send, perm);
 
 /* ---------- visits ----------
    Each page load sends {p: page, v: the device's player id}. Counted per UTC day as page views plus unique devices
@@ -121,6 +108,18 @@ async function setHidden(game, id, on) {
   await store.metaPut("hidden_players", out);
 }
 
+mod.register("players.hide", {
+  perm: "players",
+  doc: "hide a player from one game's leaderboards (both languages), or show them again; scores are kept",
+  args: '{"game": "hangman|trivia|harf", "id": "<player id>", "hide": true|false}',
+  async run(a) {
+    if (!GAMES.includes(a.game) || !ID_RE.test(String(a.id || "").replace(/_(ar|en)$/, ""))) throw new mod.Fail(400, "Expected {game, id, hide}");
+    const was = isHidden(a.game, a.id);
+    await setHidden(a.game, String(a.id), !!a.hide);
+    return { sum: `${a.hide ? "hid" : "showed"} ${baseId(a.id)} on ${a.game}`, undo: { act: "players.hide", args: { game: a.game, id: a.id, hide: was } } };
+  },
+});
+
 /* ---------- overview ---------- */
 function langOf(game, id) {
   const m = String(id).match(/_(ar|en)$/);
@@ -161,20 +160,22 @@ async function handle(req, res, url, { send, readJson, ip }) {
   }
   if (!p.startsWith("/api/admin/")) return false;
   // admin requests: a limited number a minute per address, so the key can't be guessed by trying many
-  if (!limits.take("adm|" + ip, 20, 20)) { send(res, 429, { error: "Too many tries. Wait a minute." }); return true; }
-  if (!checkAdmin(req, res, send)) return true;
+  if (!limits.take("adm|" + ip, 120, 60)) { send(res, 429, { error: "Too many tries. Wait a minute." }); return true; }
   if (p === "/api/admin/overview" && req.method === "GET") {
+    if (!checkAdmin(req, res, send)) return true;
     const [visitsOut, hangman, trivia, harf] = await Promise.all([visitSummary(), gameSummary("hangman"), gameSummary("trivia"), gameSummary("harf")]);
     send(res, 200, { visits: visitsOut, games: { hangman, trivia, harf }, today: R.todayKey() });
     return true;
   }
+  // older page: the same as the players.hide action
   if (p === "/api/admin/hide" && req.method === "POST") {
+    const w = mod.auth(req, res, send, "players"); if (!w) return true;
     const body = (await readJson(req)) || {};
-    if (!GAMES.includes(body.game) || !ID_RE.test(String(body.id || ""))) { send(res, 400, { error: "Expected {game, id, hide}" }); return true; }
-    await setHidden(body.game, String(body.id), !!body.hide);
-    send(res, 200, { ok: true });
+    try { await mod.run(w, "players.hide", { game: body.game, id: body.id, hide: !!body.hide }, body.why); send(res, 200, { ok: true }); }
+    catch (e) { send(res, e.code || 500, { error: e.message }); }
     return true;
   }
+  if (!checkAdmin(req, res, send)) return true;
   send(res, 404, { error: "Not found" });
   return true;
 }

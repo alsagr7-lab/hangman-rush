@@ -7,16 +7,29 @@
 //   trivia_players  Trivia Rush daily records, written by the server (it times every answer)
 //   trivia_seen     which room/practice questions each player has seen, and when
 //   harf_players    Harf Rush daily records, written by the server (it times and checks every answer)
-//   harf_words      verdicts on Harf Rush answers ("lang|category|word" -> valid or not), so each word is checked once
+//   harf_words      verdicts on Harf Rush answers ("lang|category|word" -> valid or not), so each word is checked once;
+//                   src says who decided (ai, ai2 = checked twice, appeal, mod = the team) and by which member
+//   harf_archive    every finished Harf daily entry, kept for good (player records keep only their last 40 days)
 //   harf_ip         which player ids each network (a hashed IP address, never the address itself) used AI checks for, by month
 //   harf_meta       small counters, such as this hour's Claude API calls, kept across restarts
 //   auth_accounts   Google sign-ins: Google's account number -> player id and the player's token (encrypted)
 const fs = require("fs");
 const path = require("path");
 
+// a verdict search filter, shared by both stores: {q (part of the word), lg, cat, ok (1/0), src}
+function wordMatch(x, o) {
+  const [lg, cat, ...rest] = x.k.split("|"), w = rest.join("|");
+  if (o.lg && lg !== o.lg) return false;
+  if (o.cat && cat !== o.cat) return false;
+  if (o.ok === 0 || o.ok === 1) { if (x.ok !== o.ok) return false; }
+  if (o.src && x.src !== o.src) return false;
+  if (o.q && !w.includes(o.q) && !String(x.fix || "").toLowerCase().includes(o.q)) return false;
+  return true;
+}
+
 function jsonStore() {
   const file = process.env.DATA_FILE || path.join(__dirname, "data", "players.json");
-  let db = { players: {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {}, acct: {} };
+  let db = { players: {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {}, acct: {}, arch: {} };
   let writing = Promise.resolve();
   // reads hand out copies, like Postgres does, so changing what was read never changes the stored data by accident
   const cp = v => (v == null ? v : structuredClone(v));
@@ -28,8 +41,8 @@ function jsonStore() {
       try {
         const raw = JSON.parse(fs.readFileSync(file, "utf8"));
         // older files held only the Hangman players
-        db = raw && raw.players ? { players: raw.players, trivia: raw.trivia || {}, seen: raw.seen || {}, harf: raw.harf || {}, words: raw.words || {}, ip: raw.ip || {}, meta: raw.meta || {}, acct: raw.acct || {} }
-          : { players: raw || {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {}, acct: {} };
+        db = raw && raw.players ? { players: raw.players, trivia: raw.trivia || {}, seen: raw.seen || {}, harf: raw.harf || {}, words: raw.words || {}, ip: raw.ip || {}, meta: raw.meta || {}, acct: raw.acct || {}, arch: raw.arch || {} }
+          : { players: raw || {}, trivia: {}, seen: {}, harf: {}, words: {}, ip: {}, meta: {}, acct: {}, arch: {} };
       } catch { /* fresh file */ }
     },
     async all() { return Object.entries(db.players).map(([id, r]) => ({ id, data: cp(r.data) })); },
@@ -46,8 +59,18 @@ function jsonStore() {
     async hSetData(id, data) { if (db.harf[id]) { db.harf[id].data = cp(data); return flush(); } },
     async hDel(id) { delete db.harf[id]; return flush(); },
     // verdicts: {ok: 1/0, fix: correct spelling or null}; older files hold a bare 1/0
-    async wordsGet(keys) { const m = new Map(); for (const k of keys) if (k in db.words) { const v = db.words[k]; m.set(k, typeof v === "object" && v ? { ok: Number(v.ok) ? 1 : 0, fix: v.fix || null, base: v.base || null } : { ok: Number(v) ? 1 : 0, fix: null, base: null }); } return m; },
-    async wordsPut(pairs) { for (const [k, v] of pairs) db.words[k] = { ok: v.ok ? 1 : 0, fix: v.fix || null, base: v.base || null, at: Date.now() }; return flush(); },
+    async wordsGet(keys) { const m = new Map(); for (const k of keys) if (k in db.words) { const v = db.words[k]; m.set(k, typeof v === "object" && v ? { ok: Number(v.ok) ? 1 : 0, fix: v.fix || null, base: v.base || null, src: v.src || "ai", by: v.by || null } : { ok: Number(v) ? 1 : 0, fix: null, base: null, src: "ai", by: null }); } return m; },
+    async wordsPut(pairs) { for (const [k, v] of pairs) db.words[k] = { ok: v.ok ? 1 : 0, fix: v.fix || null, base: v.base || null, src: v.src || "ai", by: v.by || null, at: Date.now() }; return flush(); },
+    async wordsDel(keys) { for (const k of keys) delete db.words[k]; return flush(); },
+    // {q, lg, cat, ok, src, limit} -> newest first
+    async wordsSearch(o = {}) {
+      return Object.entries(db.words).map(([k, v]) => (typeof v === "object" && v ? { k, ok: Number(v.ok), fix: v.fix || null, base: v.base || null, src: v.src || "ai", by: v.by || null, at: v.at || 0 } : { k, ok: Number(v), fix: null, base: null, src: "ai", by: null, at: 0 }))
+        .filter(x => wordMatch(x, o)).sort((a, b) => b.at - a.at).slice(0, o.limit || 400);
+    },
+    async wordsCount() { const out = {}; for (const v of Object.values(db.words)) { const s = (v && v.src) || "ai", ok = Number(v && typeof v === "object" ? v.ok : v); out[s + "|" + ok] = (out[s + "|" + ok] || 0) + 1; } return out; },
+    async archivePut(rows) { for (const [id, day, e] of rows) (db.arch[id] = db.arch[id] || {})[day] = cp(e); return flush(); },
+    async archiveOf(id) { return cp(db.arch[id] || {}); },
+    async archiveDay(day) { const out = []; for (const [id, m] of Object.entries(db.arch)) if (m[day]) out.push({ id, e: cp(m[day]) }); return out; },
     async wordsRecent(limit) {
       return Object.entries(db.words).map(([k, v]) => ({ k, ok: typeof v === "object" ? Number(v.ok) : Number(v), fix: (v && v.fix) || null, at: (v && v.at) || 0 }))
         .sort((a, b) => b.at - a.at).slice(0, limit);
@@ -55,7 +78,7 @@ function jsonStore() {
     // clears verdicts saved as valid with no correction since a time; -> their keys
     async wordsPurge(sinceMs) {
       const out = [];
-      for (const [k, v] of Object.entries(db.words)) if (v && typeof v === "object" && Number(v.ok) === 1 && !v.fix && (v.at || 0) >= sinceMs) { out.push(k); delete db.words[k]; }
+      for (const [k, v] of Object.entries(db.words)) if (v && typeof v === "object" && Number(v.ok) === 1 && !v.fix && (!v.src || v.src === "ai") && (v.at || 0) >= sinceMs) { out.push(k); delete db.words[k]; }
       await flush(); return out;
     },
     async ipUids(ip, month) { return ((db.ip[month] || {})[ip]) || []; },
@@ -123,6 +146,11 @@ function pgStore(url) {
         k TEXT PRIMARY KEY, ok SMALLINT NOT NULL, at TIMESTAMPTZ DEFAULT now())`);
       await pool.query(`ALTER TABLE harf_words ADD COLUMN IF NOT EXISTS fix TEXT`);
       await pool.query(`ALTER TABLE harf_words ADD COLUMN IF NOT EXISTS base TEXT`);
+      await pool.query(`ALTER TABLE harf_words ADD COLUMN IF NOT EXISTS src TEXT`);
+      await pool.query(`ALTER TABLE harf_words ADD COLUMN IF NOT EXISTS by TEXT`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS harf_archive (
+        id TEXT NOT NULL, day TEXT NOT NULL, data JSONB NOT NULL, PRIMARY KEY (id, day))`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS harf_archive_day ON harf_archive (day)`);
       await pool.query(`CREATE TABLE IF NOT EXISTS harf_ip (
         ip TEXT NOT NULL, month TEXT NOT NULL, uid TEXT NOT NULL, PRIMARY KEY (ip, month, uid))`);
       await pool.query(`CREATE TABLE IF NOT EXISTS harf_meta (k TEXT PRIMARY KEY, v JSONB NOT NULL)`);
@@ -144,21 +172,46 @@ function pgStore(url) {
     async hDel(id) { await pool.query("DELETE FROM harf_players WHERE id=$1", [id]); },
     async wordsGet(keys) {
       if (!keys.length) return new Map();
-      const r = await pool.query("SELECT k, ok, fix, base FROM harf_words WHERE k = ANY($1)", [keys]);
-      return new Map(r.rows.map(x => [x.k, { ok: Number(x.ok) ? 1 : 0, fix: x.fix || null, base: x.base || null }]));
+      const r = await pool.query("SELECT k, ok, fix, base, src, by FROM harf_words WHERE k = ANY($1)", [keys]);
+      return new Map(r.rows.map(x => [x.k, { ok: Number(x.ok) ? 1 : 0, fix: x.fix || null, base: x.base || null, src: x.src || "ai", by: x.by || null }]));
     },
     async wordsPut(pairs) {
       if (!pairs.length) return;
-      await pool.query(`INSERT INTO harf_words (k, ok, fix, base) SELECT * FROM unnest($1::text[], $2::smallint[], $3::text[], $4::text[])
-        ON CONFLICT (k) DO UPDATE SET ok = EXCLUDED.ok, fix = EXCLUDED.fix, base = EXCLUDED.base, at = now()`,
-        [pairs.map(p => p[0]), pairs.map(p => (p[1].ok ? 1 : 0)), pairs.map(p => p[1].fix || null), pairs.map(p => p[1].base || null)]);
+      await pool.query(`INSERT INTO harf_words (k, ok, fix, base, src, by) SELECT * FROM unnest($1::text[], $2::smallint[], $3::text[], $4::text[], $5::text[], $6::text[])
+        ON CONFLICT (k) DO UPDATE SET ok = EXCLUDED.ok, fix = EXCLUDED.fix, base = EXCLUDED.base, src = EXCLUDED.src, by = EXCLUDED.by, at = now()`,
+        [pairs.map(p => p[0]), pairs.map(p => (p[1].ok ? 1 : 0)), pairs.map(p => p[1].fix || null), pairs.map(p => p[1].base || null),
+          pairs.map(p => p[1].src || "ai"), pairs.map(p => p[1].by || null)]);
     },
+    async wordsDel(keys) { if (keys.length) await pool.query("DELETE FROM harf_words WHERE k = ANY($1)", [keys]); },
+    async wordsSearch(o = {}) {
+      const where = [], args = [];
+      const add = (sql, v) => { args.push(v); where.push(sql.replace("?", "$" + args.length)); };
+      if (o.lg) add("k LIKE ?", o.lg + "|%");
+      if (o.cat) add("split_part(k, '|', 2) = ?", o.cat);
+      if (o.ok === 0 || o.ok === 1) add("ok = ?", o.ok);
+      if (o.src) { if (o.src === "ai") add("(src IS NULL OR src = ?)", "ai"); else add("src = ?", o.src); }
+      if (o.q) { args.push("%" + o.q + "%"); where.push(`(split_part(k, '|', 3) LIKE $${args.length} OR lower(coalesce(fix, '')) LIKE $${args.length})`); }
+      args.push(Math.min(2000, o.limit || 400));
+      const r = await pool.query(`SELECT k, ok, fix, base, src, by, at FROM harf_words ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY at DESC LIMIT $${args.length}`, args);
+      return r.rows.map(x => ({ k: x.k, ok: Number(x.ok), fix: x.fix || null, base: x.base || null, src: x.src || "ai", by: x.by || null, at: new Date(x.at).getTime() }));
+    },
+    async wordsCount() {
+      const r = await pool.query("SELECT coalesce(src, 'ai') AS src, ok, count(*)::int AS n FROM harf_words GROUP BY 1, 2");
+      const out = {}; for (const x of r.rows) out[x.src + "|" + Number(x.ok)] = x.n; return out;
+    },
+    async archivePut(rows) {
+      if (!rows.length) return;
+      await pool.query(`INSERT INTO harf_archive (id, day, data) SELECT * FROM unnest($1::text[], $2::text[], $3::jsonb[])
+        ON CONFLICT (id, day) DO UPDATE SET data = EXCLUDED.data`, [rows.map(r => r[0]), rows.map(r => r[1]), rows.map(r => JSON.stringify(r[2]))]);
+    },
+    async archiveOf(id) { const out = {}; for (const x of (await pool.query("SELECT day, data FROM harf_archive WHERE id=$1", [id])).rows) out[x.day] = x.data; return out; },
+    async archiveDay(day) { return (await pool.query("SELECT id, data FROM harf_archive WHERE day=$1", [day])).rows.map(x => ({ id: x.id, e: x.data })); },
     async wordsRecent(limit) {
       const r = await pool.query("SELECT k, ok, fix, at FROM harf_words ORDER BY at DESC LIMIT $1", [limit]);
       return r.rows.map(x => ({ k: x.k, ok: Number(x.ok), fix: x.fix || null, at: new Date(x.at).getTime() }));
     },
     async wordsPurge(sinceMs) {
-      const r = await pool.query("DELETE FROM harf_words WHERE ok = 1 AND fix IS NULL AND at >= $1 RETURNING k", [new Date(sinceMs)]);
+      const r = await pool.query("DELETE FROM harf_words WHERE ok = 1 AND fix IS NULL AND (src IS NULL OR src = 'ai') AND at >= $1 RETURNING k", [new Date(sinceMs)]);
       return r.rows.map(x => x.k);
     },
     async ipUids(ip, month) { return (await pool.query("SELECT uid FROM harf_ip WHERE ip=$1 AND month=$2", [ip, month])).rows.map(x => x.uid); },
@@ -218,6 +271,6 @@ const store = {
     await impl.init();
   },
 };
-for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsRecent", "wordsPurge", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore", "acctGet", "acctByUid", "acctPut"]) store[k] = (...a) => impl[k](...a);
+for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsDel", "wordsSearch", "wordsCount", "wordsRecent", "wordsPurge", "archivePut", "archiveOf", "archiveDay", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore", "acctGet", "acctByUid", "acctPut"]) store[k] = (...a) => impl[k](...a);
 
 module.exports = store;
