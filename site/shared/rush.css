@@ -19,6 +19,7 @@
   --f-ar:"Cairo","Figtree",system-ui,sans-serif;
   --logo-mark:url("/shared/logo-mark.svg");
   --logo-wordmark:url("/shared/logo-wordmark.svg");
+  --logo-wordmark-ar:url("/shared/logo-wordmark-ar.svg");
   --r-lg:24px; --r-md:18px; --r-sm:14px;
 }
 :root[data-game="hangman"]{--accent:#FF6B57;--accent-hi:#FF8A7A;--accent-deep:#3A2320}
@@ -43,6 +44,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .rmark{display:block;background:currentColor;-webkit-mask:var(--logo-mark) center/contain no-repeat;mask:var(--logo-mark) center/contain no-repeat}
 .rwordmark{display:block;background:currentColor;-webkit-mask:var(--logo-wordmark) left center/contain no-repeat;mask:var(--logo-wordmark) left center/contain no-repeat}
 :root[dir="rtl"] .rwordmark{-webkit-mask-position:right center;mask-position:right center}
+/* Arabic pages show the Arabic wordmark (ألعاب رش); it's wider than the English one, so its boxes are too */
+:root[lang="ar"] .rwordmark{-webkit-mask-image:var(--logo-wordmark-ar);mask-image:var(--logo-wordmark-ar)}
 .gtile{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:var(--accent);color:var(--accent-ink)}
 .gtile .rmark{width:58%;height:58%}
 .gtile.hangman{background:var(--coral)}.gtile.trivia{background:var(--blue)}.gtile.harf{background:var(--green)}.gtile.hub{background:var(--gold)}
@@ -87,6 +90,7 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .rbar-in{max-width:1180px;margin:0 auto;height:64px;padding-inline:16px;display:flex;align-items:center;gap:10px}
 .rbar-home{display:flex;align-items:center;color:var(--ink);text-decoration:none;flex:none}
 .rbar-home .rwordmark{width:112px;height:31px}
+:root[lang="ar"] .rbar-home .rwordmark{width:126px;height:30px}
 .rbar-back{flex:none;width:44px;height:44px;border-radius:12px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;color:var(--ink);text-decoration:none}
 .rbar-back svg{width:20px;height:20px}
 :root[dir="rtl"] .rbar-back svg{transform:scaleX(-1)}
@@ -111,6 +115,7 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 @media (min-width:760px){
   .rbar-in{height:76px;padding-inline:24px;gap:14px}
   .rbar-home .rwordmark{width:150px;height:42px}
+  :root[lang="ar"] .rbar-home .rwordmark{width:168px;height:40px}
   .rbar-sep{display:block}
   .rbar-me{height:48px;padding:0 16px 0 6px;background:var(--surface);border:1px solid var(--line)}
   :root[dir="rtl"] .rbar-me{padding:0 6px 0 16px}
@@ -119,7 +124,7 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 }
 @media (max-width:759px){.rbar[data-game]:not([data-game="hub"]) .rbar-home{display:none}}
 .rbar-save .t2{display:none}
-@media (max-width:420px){.rbar-save .t1{display:none}.rbar-save .t2{display:inline}.rbar-home .rwordmark{width:96px;height:27px}.rbar-in{gap:8px}}
+@media (max-width:420px){.rbar-save .t1{display:none}.rbar-save .t2{display:inline}.rbar-home .rwordmark{width:96px;height:27px}:root[lang="ar"] .rbar-home .rwordmark{width:106px;height:25px}.rbar-in{gap:8px}}
 @media (max-width:520px){.rbar-name{font-size:14.5px;font-stretch:108%;letter-spacing:0}.rbar-game{gap:8px}.rbar-game .gtile{width:34px;height:34px;border-radius:10px}.rbar-in>.langbtn{padding:0 10px}}
 @media (max-width:359px){.rbar-game .gtile{display:none}}
 
