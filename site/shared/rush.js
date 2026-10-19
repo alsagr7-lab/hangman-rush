@@ -51,6 +51,14 @@
   }
   new MutationObserver(syncLangPath).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
   document.addEventListener("DOMContentLoaded", syncLangPath);
+  // links between the pages follow the language the page is in now (the Arabic copies are built with /ar/ links,
+  // and the English ones with plain links, but either can be switched after loading)
+  document.addEventListener("click", e => {
+    const a = e.target.closest && e.target.closest("a[href]");
+    if (!a) return;
+    const m = a.getAttribute("href").match(/^\/(?:ar\/)?((?:hangman|trivia|harf)\/)?$/);
+    if (m) a.setAttribute("href", (document.documentElement.lang === "ar" ? "/ar/" : "/") + (m[1] || ""));
+  }, true);
 
   /* ---------- waking the free server ----------
      A free Render service sleeps after 15 idle minutes and takes up to a minute to wake. Pages load instantly from
