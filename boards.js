@@ -106,48 +106,58 @@ async function board(game, lg, tab, me) {
 }
 
 // ---------- the hub: who leads each game this season, and overall ----------
-// Two-board games (Hangman, Harf) put the Arabic and English boards on one scale before comparing:
-//  - when both boards have more than 5 active players this season, points are measured against the board's average
-//    (a player at twice their board's average counts the same in either language), so a board where everyone
-//    scores high doesn't inflate its players;
-//  - with 5 or fewer on either board an average isn't reliable, so each board is measured against its leader.
-// A player's better board counts in full and the other adds a tenth; the game's top player gets 100 and everyone
-// else a share of that, so a game has a single 100. Trivia (one board) is its points against the leader. The overall
-// ranking adds the three game scores, so every game counts the same. Scores keep one decimal.
+// Each game's column on the hub is just its season boards as they are (top three per language, plain points).
+// The overall ranking is where the boards are put on one scale:
+//  - two-board games (Hangman, Harf): when both language boards have more than 5 active players this season, points
+//    are measured against each board's average (twice your board's average counts the same in either language), so a
+//    board where everyone scores high doesn't inflate what that game adds; with 5 or fewer, against each board's leader;
+//  - a player's better board counts in full and the other adds a tenth, then the game's top player gets 100 and
+//    everyone else a share of that; Trivia (one board) is its points against the leader;
+//  - the three games' contributions (up to 100 each) are added up, so every game counts the same.
+// Scores keep one decimal.
 const MIN_ACTIVE = 6;
+const one = d => Math.round(d * 10) / 10;
+function gameScores(boards, byAvg) {
+  const per = new Map();
+  for (const { rows } of boards) {
+    const top = rows.length ? rows[0].pts : 0, avg = rows.length ? rows.reduce((a, r) => a + r.pts, 0) / rows.length : 0;
+    const unit = byAvg ? avg : top;
+    for (const r of rows) {
+      const x = per.get(r.id) || { id: r.id, n: r.n, c: r.c, shares: [] };
+      x.shares.push({ share: unit > 0 ? 100 * r.pts / unit : 0, pts: r.pts });
+      per.set(r.id, x);
+    }
+  }
+  for (const x of per.values()) {
+    x.shares.sort((a, b) => b.share - a.share || b.pts - a.pts);
+    x.raw = x.shares[0].share + (x.shares[1] ? x.shares[1].share / 10 : 0); delete x.shares;
+  }
+  const topRaw = Math.max(0, ...[...per.values()].map(x => x.raw));
+  for (const x of per.values()) { x.score = topRaw > 0 ? one(100 * x.raw / topRaw) : 0; delete x.raw; }
+  return per;
+}
+
 async function hub(me) {
   const mb = me ? base(me) : "", games = {}, overall = new Map();
+  const mark = (x, i) => Object.assign({ rank: i + 1, tag: R.tagOf(x.id), id: x.id, n: x.n, c: x.c, pts: x.pts }, x.id === mb ? { me: 1 } : {});
   for (const game of ["hangman", "trivia", "harf"]) {
-    const S = SOURCES[game], per = new Map(), boards = [];
+    const S = SOURCES[game], boards = [];
     for (const lg of S.langs) boards.push({ lg, rows: (await view(game, lg, "season")).views.get(lg + "|season") });
-    const byAvg = boards.length > 1 && boards.every(b => b.rows.length >= MIN_ACTIVE);
+    // the column: each board as it is
+    const out = {};
     for (const { lg, rows } of boards) {
-      const top = rows.length ? rows[0].pts : 0, avg = rows.length ? rows.reduce((a, r) => a + r.pts, 0) / rows.length : 0;
-      const unit = byAvg ? avg : top; // what counts as 100 on this board
-      for (const r of rows) {
-        const share = unit > 0 ? 100 * r.pts / unit : 0;
-        const x = per.get(r.id) || { id: r.id, n: r.n, c: r.c, shares: [] };
-        x.shares.push({ share, pts: r.pts, lg });
-        per.set(r.id, x);
-      }
+      const mi = mb ? rows.findIndex(r => r.id === mb) : -1;
+      out[lg || "all"] = { players: rows.length, top: rows.slice(0, 3).map(mark), me: mi >= 3 ? mark(rows[mi], mi) : null };
     }
-    const one = d => Math.round(d * 10) / 10;
-    for (const x of per.values()) {
-      x.shares.sort((a, b) => b.share - a.share || b.pts - a.pts);
-      const [best, other] = x.shares;
-      x.raw = best.share + (other ? other.share / 10 : 0);
-      x.pts = best.pts; x.lg = best.lg; delete x.shares;
-    }
-    const topRaw = Math.max(0, ...[...per.values()].map(x => x.raw));
-    for (const x of per.values()) { x.score = topRaw > 0 ? one(100 * x.raw / topRaw) : 0; delete x.raw; }
-    const list = [...per.values()].sort((a, b) => b.score - a.score || b.pts - a.pts);
+    const byAvg = boards.length > 1 && boards.every(b => b.rows.length >= MIN_ACTIVE);
+    games[game] = { method: byAvg ? "average" : boards.length > 1 ? "leader" : "single", boards: out };
+    // the overall: this game's contribution
+    const list = [...gameScores(boards, byAvg).values()].sort((a, b) => b.score - a.score);
     list.forEach((x, i) => {
       const o = overall.get(x.id) || { id: x.id, n: x.n, c: x.c, score: 0, games: {} };
       o.score = one(o.score + x.score); o.games[game] = i + 1;
       overall.set(x.id, o);
     });
-    const mi = mb ? list.findIndex(x => x.id === mb) : -1;
-    games[game] = { players: list.length, method: byAvg ? "average" : boards.length > 1 ? "leader" : "single", top: list.slice(0, 3).map((x, i) => Object.assign({ rank: i + 1, tag: R.tagOf(x.id) }, x, x.id === mb ? { me: 1 } : {})), me: mi >= 3 ? Object.assign({ rank: mi + 1, tag: R.tagOf(list[mi].id), me: 1 }, list[mi]) : null };
   }
   const all = [...overall.values()].sort((a, b) => b.score - a.score || Object.keys(b.games).length - Object.keys(a.games).length);
   const mi = mb ? all.findIndex(x => x.id === mb) : -1;

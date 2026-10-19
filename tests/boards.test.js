@@ -17,7 +17,8 @@ const players = Object.fromEntries([
   rec("p_noname0001", { n: "Player", played: 1, wins: 1, h: { [today]: { ok: 1, pts: 340, t: 1000, m: 0 } } }),
   rec("p_alpha000001_ar", { n: "Alpha", played: 1, wins: 1, h: { [today]: { ok: 1, pts: 280, t: 9000, m: 0 } } }),
   // last season's record: not on this season's boards
-  rec("p_oldsea0001", { n: "Oldie", se: se - 1 || 0, played: 3, wins: 3, h: { "2020-01-01": { ok: 1, pts: 300, t: 1, m: 0 } } }),
+  // (only once there is an earlier season: in Season 1 there's none)
+  ...(se > 1 ? [rec("p_oldsea0001", { n: "Oldie", se: se - 1, played: 3, wins: 3, h: { "2020-01-01": { ok: 1, pts: 300, t: 1, m: 0 } } })] : []),
   // many players, so "me" lands past the top 50
   ...Array.from({ length: 60 }, (_, i) => rec("p_many" + String(i).padStart(8, "0"), { n: "Many " + i, played: 1, wins: 1, h: { [today]: { ok: 1, pts: 100 + i, t: 30000, m: 1 } } })),
   rec("p_lastone0001", { n: "Last", played: 1, wins: 1, h: { [today]: { ok: 1, pts: 1, t: 59000, m: 5 } } }),
@@ -81,19 +82,18 @@ test("Harf: today never shows the letter or answers; yesterday shows words, bonu
   assert.equal((await get("/api/board?game=harf&lg=en&tab=today")).rows.length, 0);
 });
 
-test("the hub: boards scored against their own leader, only the best across both languages gets 100", async () => {
+test("the hub: each game's boards as they are; the overall puts them on one scale", async () => {
   const h = await get("/api/board/hub?me=p_alpha000001");
-  const a = h.games.hangman.top[0];
-  // Alpha leads both Hangman boards: 100 + a 10 bonus for the second, the most anyone can have, so 100
-  assert.equal(a.n, "Alpha"); assert.equal(a.score, 100); assert.equal(a.me, 1); assert.equal(a.lg, "en"); assert.equal(a.pts, 450);
-  const bravo = h.games.hangman.top.find(x => x.n === "Bravo");
-  assert.equal(bravo.score, Math.round(10 * 100 * (100 * 250 / 450) / 110) / 10); assert.equal(bravo.lg, "en");
-  // Trivia: one board, one decimal (900 of 1200)
-  assert.equal(h.games.trivia.top[0].n, "Bravo"); assert.equal(h.games.trivia.top[0].score, 100); assert.equal(h.games.trivia.top[1].score, 75);
+  // plain boards: season points, no calculations
+  assert.deepEqual(h.games.hangman.boards.en.top.map(x => x.n + " " + x.pts), ["Alpha 450", "Bravo 250", "Many 59 159"]);
+  assert.equal(h.games.hangman.boards.en.top[0].me, 1);
+  assert.deepEqual(h.games.hangman.boards.ar.top.map(x => x.n + " " + x.pts), ["Alpha 280"]);
+  assert.deepEqual(h.games.trivia.boards.all.top.map(x => x.n + " " + x.pts), ["Bravo 1200", "Alpha 900"]);
+  assert.equal(h.games.hangman.method, "leader"); assert.equal(h.games.trivia.method, "single");
+  // overall: Alpha 100 (Hangman, leads both boards) + 75 (Trivia, 900 of 1200) + 100 (Harf) = 275
   assert.equal(h.overall[0].n, "Alpha"); assert.equal(h.overall[0].score, 275);
   assert.deepEqual(Object.keys(h.overall[0].games).sort(), ["hangman", "harf", "trivia"]);
-  // only one player has a game's 100
-  for (const g of ["hangman", "trivia", "harf"]) assert.equal(h.games[g].top.filter(x => x.score === 100).length, 1, g);
+  assert.ok(h.overall.length <= 10);
 });
 
 test("/api/me gives your own records in every game, without the run in progress", async () => {

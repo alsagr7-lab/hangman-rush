@@ -15,13 +15,14 @@ let srv, BASE;
 before(async () => { srv = await startServer({ seed: { players: {}, harf } }); BASE = srv.base; });
 after(() => srv.stop());
 
-test("both boards busy: compared by their averages, so the English leader beats the higher-scoring Arabic leader", async () => {
+test("both boards busy: the overall compares by averages; the game's own boards stay plain", async () => {
   const h = await (await fetch(BASE + "/api/board/hub")).json(), G = h.games.harf;
   assert.equal(G.method, "average");
-  assert.equal(G.top[0].n, "En0"); assert.equal(G.top[0].score, 100); assert.equal(G.top[0].lg, "en");
-  // Ar0 is 200/150 = 1.33x its average, En0 is 110/76.7 = 1.43x
-  assert.equal(G.top[1].n, "Ar0"); assert.equal(G.top[1].score, Math.round(10 * 100 * (200 / 150) / (110 / (460 / 6))) / 10);
-  assert.equal(G.top.filter(x => x.score === 100).length, 1);
+  assert.equal(G.boards.ar.top[0].n, "Ar0"); assert.equal(G.boards.ar.top[0].pts, 200);
+  assert.equal(G.boards.en.top[0].n, "En0"); assert.equal(G.boards.en.top[0].pts, 110);
+  // overall: En0 is 110 / 76.7 = 1.43x its board's average, Ar0 is 200 / 150 = 1.33x
+  const ov = Object.fromEntries(h.overall.map(x => [x.n, x.score]));
+  assert.equal(ov.En0, 100); assert.equal(ov.Ar0, Math.round(10 * 100 * (200 / 150) / (110 / (460 / 6))) / 10);
 });
 
 test("a quiet board (5 or fewer players) falls back to comparing with each board's leader", async () => {
