@@ -846,7 +846,6 @@ function renderDailyBoard(box){
   bar.append(el("span",null,t("dayOf",{d:R.seasonDay(),t:R.SEASON_LEN})),meter,el("span",null,left===1?t("resetsTonight"):left<=3?t("finalDays",{n:left}):t("daysLeftShort",{n:left})));
   box.appendChild(bar);
   const list=allPlayers.filter(p=>p.se===se);
-  const played=!!todayEntry();
   if(boardTab==="season"){
     const rows=list.filter(p=>p.played>0).sort((a,b)=>R.seasonPts(b)-R.seasonPts(a)||R.curStreak(b)-R.curStreak(a));
     if(!rows.length)box.appendChild(el("div","empty",t("seasonEmpty")));
@@ -860,13 +859,10 @@ function renderDailyBoard(box){
     const rows=list.filter(p=>p.h[k]&&("ok" in p.h[k])).sort((a,b)=>num(b.h[k].pts)-num(a.h[k].pts)||num(a.h[k].t)-num(b.h[k].t));
     if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?t("todayEmpty"):t("ydayEmpty")));
     rows.forEach((p,i)=>{const e=p.h[k];const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
-      const hide=boardTab==="today"&&!played&&p.id!==uid;
       const pp=el("div","pp");
-      if(hide)pp.appendChild(el("span",null,t("playedHidden")));
-      else{const m=String(e.s||"").split("").map(c=>c==="1"?1:0);pp.appendChild(marks(m));pp.appendChild(el("span",null,fmtS(num(e.t))))}
+      {const m=String(e.s||"").split("").map(c=>c==="1"?1:0);pp.appendChild(marks(m));pp.appendChild(el("span",null,fmtS(num(e.t))))}
       const s=R.curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
-      d.append(dot,nameCell(p,i),el("span","ps",hide?"•••":String(e.pts)),pp);box.appendChild(d)});
-    if(boardTab==="today"&&!played&&rows.length)box.appendChild(el("p","note",t("timesHidden")));
+      d.append(dot,nameCell(p,i),el("span","ps",String(e.pts)),pp);box.appendChild(d)});
   }
   if(dbErr)box.appendChild(el("p","note",t("dbErr")));
 }
