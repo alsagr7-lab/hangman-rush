@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{color-scheme:dark;background:#0B0C10;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}[hidden]{display:none!important}</style>
+<script>(function(){var t;try{t=localStorage.getItem("rush-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.setAttribute("data-theme",t)})()</script>
+<style>:root{color-scheme:dark;background:#0B0C10;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}[hidden]{display:none!important}:root[data-theme="light"]{color-scheme:light;background:#F5F3EE}:root[data-theme="light"] body{background:#F5F3EE;color:#15161B}</style>
 <title>Harf Rush</title>
 <meta name="description" content="حيوان جماد إنسان: one letter, five boxes, before the clock runs out. A daily word game in Arabic and English.">
 <meta name="theme-color" content="#0B0C10">
@@ -63,7 +64,7 @@
 .feedback.no{color:var(--hot)}
 .feedback.ok{color:var(--good)}
 .alist{display:grid;gap:6px;margin:0;padding:0;list-style:none}
-.alist li{display:grid;grid-template-columns:minmax(70px,auto) minmax(0,1fr) auto;gap:4px 10px;align-items:baseline;padding:10px 12px;border-radius:14px;background:var(--bg);border:1px solid #1E2129}
+.alist li{display:grid;grid-template-columns:minmax(70px,auto) minmax(0,1fr) auto;gap:4px 10px;align-items:baseline;padding:10px 12px;border-radius:14px;background:var(--bg);border:1px solid var(--line-soft)}
 .alist .ac{font-size:12.5px;color:var(--muted);font-weight:700}
 .alist .aw{font-weight:800;overflow-wrap:anywhere}
 .alist .aw.no{color:var(--hot);text-decoration:line-through;font-weight:600}
@@ -80,7 +81,7 @@
 .bonus{display:flex;justify-content:space-between;gap:10px;font-weight:800;padding:10px 12px;border-radius:14px;background:var(--bg)}
 .bonus.soon{color:var(--muted);font-weight:600}
 .yday{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
-.daily .yday{background:rgba(11,12,16,.9);color:var(--ink);border:0;border-radius:18px;padding:14px;margin-top:4px}
+.daily .yday{background:var(--chip-a);color:var(--ink);border:0;border-radius:18px;padding:14px;margin-top:4px}
 .daily .yday .lbl{color:var(--muted)}
 .daily .yday .note{color:var(--muted)}
 .yday .lbl{margin:0}
@@ -88,7 +89,7 @@
 .words b{color:var(--ink);font-weight:700}
 .words s{color:var(--hot)}
 .rres{display:grid;gap:8px;margin:0;padding:0;list-style:none}
-.rres>li{display:grid;gap:6px;padding:10px 12px;border-radius:14px;background:var(--bg);border:1px solid #1E2129}
+.rres>li{display:grid;gap:6px;padding:10px 12px;border-radius:14px;background:var(--bg);border:1px solid var(--line-soft)}
 .rres .rh{display:flex;align-items:center;gap:8px;font-weight:800}
 .rres .rh .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rres .rh .ps{font-family:var(--f-num)}

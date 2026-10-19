@@ -415,6 +415,30 @@
   const CLOUD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 0 1-.5-9.97A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9H7z"/><path d="M12 11v5M9.5 13.5L12 11l2.5 2.5"/></svg>';
   const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M5 12l5 5L20 7"/></svg>';
   const X_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>';
+  const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.2A8.5 8.5 0 1 1 9.8 3.5a6.8 6.8 0 0 0 10.7 10.7z"/></svg>';
+  /* ---------- light / dark ----------
+     The page's head has already set <html data-theme> (saved choice, else the device setting). The button flips it and
+     saves the choice; with no saved choice the page keeps following the device if its setting changes. */
+  const THEME_BG = { dark: "#0B0C10", light: "#F5F3EE" };
+  const themeNow = () => (document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark");
+  function setTheme(t, save) {
+    document.documentElement.setAttribute("data-theme", t);
+    if (save) { try { localStorage.setItem("rush-theme", t); } catch {} }
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute("content", THEME_BG[t]));
+    if (themeBtn) {
+      const ar = document.documentElement.lang === "ar", toLight = t === "dark";
+      themeBtn.textContent = ""; themeBtn.append(svg(toLight ? SUN : MOON));
+      const l = toLight ? (ar ? "الوضع الفاتح" : "Light mode") : (ar ? "الوضع الداكن" : "Dark mode");
+      themeBtn.setAttribute("aria-label", l); themeBtn.title = l;
+    }
+  }
+  let themeBtn = null;
+  try {
+    const mq = window.matchMedia && matchMedia("(prefers-color-scheme: light)");
+    const saved = () => { try { return localStorage.getItem("rush-theme"); } catch { return null; } };
+    if (mq && mq.addEventListener) mq.addEventListener("change", e => { if (saved() !== "light" && saved() !== "dark") setTheme(e.matches ? "light" : "dark", false); });
+  } catch {}
   const BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
   const mkEl = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
@@ -592,6 +616,8 @@
     // the page's own language button moves into the bar (its click handler comes with it)
     const lang = document.getElementById("langLobby") || document.getElementById("lang");
     if (lang) inner.append(lang);
+    themeBtn = mkEl("button", "rbar-theme"); themeBtn.type = "button"; themeBtn.onclick = () => setTheme(themeNow() === "dark" ? "light" : "dark", true);
+    inner.append(themeBtn); setTheme(themeNow(), false);
     const save = mkEl("button", "rbar-save"); save.type = "button"; save.hidden = true;
     const saveT = mkEl("span", "t1"), saveT2 = mkEl("span", "t2");
     save.append(svg(CLOUD), saveT, saveT2); barRefs.saveT2 = saveT2; barRefs.saveT = saveT; save.onclick = openSheet; barRefs.save = save;
@@ -634,7 +660,7 @@
   onBody(async () => {
     buildChrome();
     // the page's language switch changes <html lang>: redraw in the new language
-    new MutationObserver(() => { renderAcct(); renderBar(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+    new MutationObserver(() => { renderAcct(); renderBar(); setTheme(themeNow(), false); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
     renderAcct();
     await ready;
     try { authCfg = await get("/api/auth/config"); } catch { authCfg = { google: null }; }

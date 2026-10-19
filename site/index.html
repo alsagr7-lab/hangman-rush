@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{color-scheme:dark;background:#0B0C10;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}[hidden]{display:none!important}</style>
+<script>(function(){var t;try{t=localStorage.getItem("rush-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.setAttribute("data-theme",t)})()</script>
+<style>:root{color-scheme:dark;background:#0B0C10;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}[hidden]{display:none!important}:root[data-theme="light"]{color-scheme:light;background:#F5F3EE}:root[data-theme="light"] body{background:#F5F3EE;color:#15161B}</style>
 <title>Rush Games</title>
 <meta name="description" content="Three free daily games: Hangman, Trivia and Harf (حيوان جماد إنسان), in Arabic and English. Play today’s puzzles and race your friends.">
 <meta name="theme-color" content="#0B0C10">
@@ -43,7 +44,7 @@
 .today{padding:22px;gap:12px;border-radius:28px}
 .today-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:2px}
 .dayrow{display:flex;align-items:center;gap:14px;padding:12px;border-radius:18px;background:var(--raised);color:var(--ink);text-decoration:none;transition:background .15s}
-.dayrow:hover{background:#21252F}
+.dayrow:hover{background:var(--hover-bg)}
 .dayrow .gtile{width:50px;height:50px;border-radius:15px}
 .dr-t{flex:1;min-width:0;display:grid;gap:2px}
 .dr-t b{font-family:var(--f-display);font-stretch:112%;font-weight:700;font-size:17px;line-height:1.2}
@@ -60,15 +61,15 @@
 @media (max-width:900px){.games{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:620px){.games{grid-template-columns:minmax(0,1fr);gap:16px}}
 .game{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:28px;overflow:hidden;color:var(--ink);text-decoration:none;transition:transform .12s,border-color .15s}
-.game:hover{border-color:#3a3f4c;transform:translateY(-2px)}
+.game:hover{border-color:var(--hover-line);transform:translateY(-2px)}
 .game:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .band{height:150px;display:flex;align-items:center;justify-content:center;gap:8px;color:#0B0C10;direction:ltr}
-.lt{width:46px;height:58px;border-radius:10px;background:#0B0C10;color:var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:30px}
+.lt{width:46px;height:58px;border-radius:10px;background:var(--chip);color:var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:30px}
 .lt.blank{background:rgba(11,12,16,.22);box-shadow:inset 0 -4px 0 #0B0C10}
 .o4s{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:min(260px,78%)}
 .o4{height:36px;border-radius:10px;background:rgba(11,12,16,.2);display:flex;align-items:center;padding:0 12px;gap:10px;font-family:var(--f-display);font-weight:800}
 .o4 i{height:6px;flex:1;max-width:60%;border-radius:3px;background:rgba(11,12,16,.35)}
-.o4.on{background:#0B0C10;color:var(--ink)}
+.o4.on{background:var(--chip);color:var(--ink)}
 .o4.on i{background:var(--blue)}
 .hrf{font-family:var(--f-ar);font-weight:900;font-size:96px;line-height:1}
 .hrf-w{font-family:var(--f-ar);font-weight:800;font-size:17px;display:grid;gap:0;direction:rtl;line-height:1.5}
