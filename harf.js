@@ -1216,4 +1216,4 @@ async function admin(req, res, p, { send, readJson }, url) {
   return true;
 }
 
-module.exports = { handle, letterFor, check, prompt, alRoot, init: loadSettings };
+module.exports = { handle, letterFor, check, prompt, alRoot, init: loadSettings, tidy, publicRec, withLock, ensureFinal };

@@ -127,7 +127,7 @@
         <div class="tabs" id="tabs" role="tablist" hidden>
           <button role="tab" data-t="today" aria-selected="true" data-i18n="tabToday">Today</button>
           <button role="tab" data-t="yday" aria-selected="false" data-i18n="tabYday">Yesterday</button>
-          <button role="tab" data-t="streak" aria-selected="false" data-i18n="tabSeason">Season</button>
+          <button role="tab" data-t="season" aria-selected="false" data-i18n="tabSeason">Season</button>
         </div>
         <div id="players"></div>
       </aside>
@@ -360,11 +360,10 @@ me.color=safeColor(me.color);
 let room=null,roomApi=null,code=null,mode=null,host=false,connected=true;
 let hs=freshHost();
 let cur=null,score=0,lastRound=0,waitNext=false,joinedAt=0,unsubs=[],myTeam=null;
-let db=null,uid=null,allPlayers=[],dbErr=false,boardTab="today",boardLg=null,netState="connecting",netMsg=null;
+let db=null,uid=null,dbErr=false,netState="connecting",netMsg=null;
 let rec; // the English daily record (also holds the player's level); set once the date helpers below exist
 let recAr; // the Arabic daily record
 let dlg="en"; // which daily is open: "en" or "ar"
-let arPlayers=[];
 const drec=(lg=dlg)=>lg==="ar"?recAr:rec;
 
 function freshHost(){return{hr:0,hs:-1,st:"waiting",at:0,used:[],md:"f",df:"normal",ts:{A:0,B:0},tr:null,op:null}}
@@ -490,6 +489,7 @@ function hmCall(kind,arg){
       const s=kind==="start"?await hmApi.start(lg,prof):kind==="guess"?await hmApi.guess(lg,arg):kind==="hint"?await hmApi.hint(lg,arg):await hmApi.state(lg,prof);
       if(dbErr&&!saveFail.en&&!saveFail.ar&&!saveBlocked)dbErr=false;
       applyHm(lg,s);
+      if(kind!=="state"&&s&&s.entry&&("ok" in s.entry))Rush.board.refresh();
     }catch(e){
       if(e&&e.data&&e.data.state)applyHm(lg,e.data.state);
       else{dbErr=true;if(kind==="guess"&&cur)cur.g.delete(arg);render();if(kind!=="state")setTimeout(()=>hmCall("state"),3000)}
@@ -611,24 +611,19 @@ setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},30000);
   if(d&&u){try{uid=await u.id()}catch(e){uid=null}}
   renderNameHint();
   if(d&&uid){db=d;
-    db.collection("players").onSnapshot(snap=>{
-      if(dbErr&&!saveFail.en&&!saveFail.ar&&!saveBlocked)dbErr=false; // the board loaded again
-      const all=snap.docs.map(doc=>Object.assign(clean(doc.data()||{}),{id:doc.id}));
-      // "<uid>_ar" records are the Arabic daily's
-      allPlayers=all.filter(p=>!/_ar$/.test(p.id));arPlayers=all.filter(p=>/_ar$/.test(p.id));
-      const mine=allPlayers.find(p=>p.id===uid);
-      const newer=mine&&(mine.se>rec.se||(mine.se===rec.se&&mine.played>=rec.played));
-      if(newer){rec=clean(mine);const rolled=rollover(rec);try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch(e){}if(rolled)saveRec()}
-      else if(rec.played>0||rec.prev)saveRec();
-      const mineAr=arPlayers.find(p=>p.id===uid+"_ar");
-      const newerAr=mineAr&&(mineAr.se>recAr.se||(mineAr.se===recAr.se&&mineAr.played>=recAr.played));
-      if(newerAr){recAr=clean(mineAr);const rolled=rollover(recAr);try{localStorage.setItem("hr-daily-ar",JSON.stringify(recAr))}catch(e){}if(rolled)saveRec("ar")}
-      else if(recAr.played>0||recAr.prev)saveRec("ar");
-      renderLobbyDaily();render();
-    },()=>{dbErr=true;render()});
+    loadMine();
   }
 })();
 
+// this device's records as the server has them: the server-run daily writes every result, so its copy wins
+function loadMine(){
+  if(!window.Rush||!Rush.mine)return;
+  Rush.mine().then(m=>{
+    if(m.hm){rec=clean(m.hm);try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch(e){}}
+    if(m.hmAr){recAr=clean(m.hmAr);try{localStorage.setItem("hr-daily-ar",JSON.stringify(recAr))}catch(e){}}
+    renderLobbyDaily();render();
+  }).catch(()=>{});
+}
 function newCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ";let s="";for(let i=0;i<4;i++)s+=A[Math.floor(Math.random()*A.length)];return s}
 
 $("#createBtn").onclick=()=>{if(!requireName())return;netMsg=null;saveMe();mode="room";host=true;hs=freshHost();enterRoom(newCode())};
@@ -636,7 +631,7 @@ $("#duelBtn").onclick=()=>{if(!requireName())return;netMsg=null;saveMe();mode="r
 $("#joinBtn").onclick=()=>{if(!requireName())return;const c=$("#codeIn").value.trim().toUpperCase().replace(/[^A-Z]/g,"");if(c.length!==4){netMsg="codeLen";renderNet();return}netMsg=null;saveMe();mode="room";host=false;enterRoom(c)};
 $("#codeIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("#joinBtn").click()});
 $("#soloBtn").onclick=()=>{saveMe();mode="solo";host=true;hs=freshHost();showGame()};
-$("#dailyBtn").onclick=()=>{if(!requireName())return;saveMe();mode="daily";host=false;boardTab="today";boardLg=null;
+$("#dailyBtn").onclick=()=>{if(!requireName())return;saveMe();mode="daily";host=false;Rush.board.reset();
   // the page language's word first, unless it's played already or not loaded
   const free=lg=>{const e=todayEntry(drec(lg));return !(e&&("ok" in e))&&!!tdw(lg)};
   const pick=[lang==="ar"?"ar":"en",lang==="ar"?"en":"ar"].find(free)||(tdw(lang==="ar"?"ar":"en")?(lang==="ar"?"ar":"en"):"en");
@@ -645,7 +640,7 @@ $("#dailyBtn").onclick=()=>{if(!requireName())return;saveMe();mode="daily";host=
 // open one language's daily: its result if played, otherwise the start screen
 function setDailyLang(lg){
   if(cur&&!cur.done&&cur.daily)return; // not in the middle of a word
-  dlg=lg;boardLg=null;const r=drec(lg),W=tdw(lg),e=todayEntry(r);
+  dlg=lg;Rush.board.reset();const r=drec(lg),W=tdw(lg),e=todayEntry(r);
   if(!W){cur=null;if(lg==="ar")loadDailyAr();else loadDaily()}
   else if(hmApi){cur=null;hmCall("state")}
   else if(e&&!("ok" in e)){ // started earlier but never finished
@@ -678,7 +673,7 @@ function copyText(txt,btn,labelKey){
 }
 $("#copyBtn").onclick=()=>{if(code)copyText(code,$("#copyBtn"),"copy")};
 $("#hintLetterBtn").onclick=hintLetter;$("#hintClueBtn").onclick=hintClue;
-document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{boardTab=b.dataset.t;render()});
+Rush.board.init({game:"hangman",lg:()=>mode==="daily"?dlg:(lang==="ar"?"ar":"en"),active:()=>mode==="daily"||!$("#lobby").hidden});
 
 /* ---------- presence ---------- */
 function myPresence(){
@@ -960,7 +955,7 @@ function renderBoard(){
   const box=$("#players");box.textContent="";
   const lobby=$("#game").hidden;
   $("#tabs").hidden=mode!=="daily"&&!lobby;
-  if(mode==="daily"||lobby)return renderDailyBoard(box);
+  if(mode==="daily"||lobby)return Rush.board.show();
   $("#boardLbl").textContent=teamsOn()?t("teams"):duelOn()?t("boardDuel"):t("boardRace");
   const list=rowData().sort((a,b)=>num(b.s)-num(a.s));const round=roundNo();
   $("#pcount").textContent=list.length===1?t("player1"):t("players",{n:list.length});
@@ -974,53 +969,6 @@ function renderBoard(){
     return;
   }
   list.forEach((r,i)=>box.appendChild(playerRow(r,round,i===0)));
-}
-/* daily board */
-function lgSwitch(cur,onPick){const w=el("span","lgsw");[["ar","عربي"],["en","EN"]].forEach(([lg,l])=>{const b=el("button",null,l);b.type="button";b.lang=lg;b.setAttribute("aria-pressed",String(cur===lg));b.setAttribute("aria-label",lg==="ar"?"عربي":"English");b.onclick=()=>onPick(lg);w.appendChild(b)});return w}
-/* "1. Name" with the rank in its own badge (gold, silver and bronze for the top three) */
-function rankName(i,name){const nm=el("span","pn");const rk=el("span","rkn",String(i+1));rk.dataset.r=String(i+1);nm.append(rk,document.createTextNode(name));return nm}
-function nameCell(p,i){
-  const nm=rankName(i,nm16(p.n));const tg=tagOf(String(p.id).replace(/_ar$/,""));if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.isMe)nm.appendChild(el("small","me",t("you")));return nm;
-}
-function renderDailyBoard(box){
-  $("#boardLbl").textContent=t("boardDaily");
-  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===boardTab));
-  const se=curSeason();
-  // the English and Arabic words each have their own board
-  const bl=boardLg||(mode==="daily"?dlg:lang==="ar"?"ar":"en");
-  const src=bl==="ar"?arPlayers:allPlayers,myId=bl==="ar"?uid+"_ar":uid;
-  let list=(db&&!dbErr)?src.filter(p=>p.id!==myId&&p.se===se):[];
-  list.push(Object.assign({},drec(bl),{id:uid||"me",isMe:true}));
-  const pc=$("#pcount");pc.textContent="";pc.appendChild(lgSwitch(bl,v=>{boardLg=v;renderBoard()}));
-  const left=seasonDaysLeft(),bar=el("div","seasonbar"+(left<=3?" final":""));
-  const meter=el("span","meter");const fill=el("i");fill.style.width=Math.round(100*(seasonDay()-1)/SEASON_LEN)+"%";meter.appendChild(fill);
-  bar.append(el("span",null,t("seasonN",{n:se})+" · "+t("dayOf",{d:seasonDay(),t:SEASON_LEN})),meter,el("span",null,left<=3?(left===1?t("resetsTonight"):t("finalDays",{n:left})):t("daysLeft",{n:left})));
-  box.appendChild(bar);
-  const myEntry=todayEntry(drec(bl));const played=myEntry&&("ok" in myEntry);
-  let rows;
-  if(boardTab==="streak"){
-    rows=list.filter(p=>p.played>0).sort((a,b)=>seasonPts(b)-seasonPts(a)||curStreak(b)-curStreak(a)||b.best-a.best);
-    if(!rows.length)box.appendChild(el("div","empty",t("seasonEmpty")));
-    rows.forEach((p,i)=>{const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=safeColor(p.c);
-      const pp=el("div","pp");const s=curStreak(p);
-      pp.appendChild(el("span",null,t("solvedOf",{w:p.wins,p:p.played,b:p.best})));
-      if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
-      d.append(dot,nameCell(p,i),el("span","ps",String(seasonPts(p))),pp);box.appendChild(d)});
-    box.appendChild(el("p","note",t("seasonNote",{n:se+1})));
-  } else {
-    const k=boardTab==="today"?todayKey():ydayKey();
-    rows=list.filter(p=>p.h&&p.h[k]&&("ok" in p.h[k])).sort((a,b)=>{const x=a.h[k],y=b.h[k];return y.ok-x.ok||y.pts-x.pts||x.t-y.t});
-    if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?t("todayEmpty"):t("ydayEmpty")));
-    rows.forEach((p,i)=>{const e=p.h[k];const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=safeColor(p.c);
-      const hide=boardTab==="today"&&!played&&!p.isMe;
-      const pp=el("div","pp");
-      if(e.ok)pp.appendChild(el("span","ok",hide?t("solved"):t("solvedDetail",{t:fmtS(e.t),m:missTxt(e.m)})+(e.hn?" · "+hintTxt(e.hn):"")));
-      else pp.appendChild(el("span","dead",t("hanged")));
-      const s=curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
-      d.append(dot,nameCell(p,i),el("span","ps",String(e.pts)),pp);box.appendChild(d)});
-  }
-  if(!db||dbErr)box.appendChild(el("p","note",dbErr?t("dbErr"):t("dbNone")));
-  else if(boardTab==="today"&&!played&&rows.length)box.appendChild(el("p","note",t("timesHidden")));
 }
 
 let lastPanelKey="";

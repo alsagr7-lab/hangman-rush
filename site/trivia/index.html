@@ -311,7 +311,7 @@ let seen=LS.get("tr-seen",{});
 function markSeen(ids){const now=Date.now();ids.forEach(id=>seen[id]=now);LS.set("tr-seen",seen)}
 
 /* ---------- daily state (the server keeps the real record) ---------- */
-let rec=null,allPlayers=[],dbErr=false,dbReady=false,boardTab="today";
+let rec=null,dbErr=false;
 let dstate=null,dErr=false,dLoading=false,dTried=0;
 const sk=()=>R.clampSk(dstate?dstate.sk:(rec?rec.sk:0));
 function tidyRec(d){const r=Object.assign({n:"Player",c:R.COLORS[0],se:R.curSeason(),streak:0,best:0,ls:"",played:0,wins:0,h:{},sk:0},d||{});
@@ -407,12 +407,10 @@ $("#langLobby").onclick=()=>setLang(lang==="ar"?"en":"ar");
 $("#langGame").onclick=()=>setLang(lang==="ar"?"en":"ar");
 
 /* ---------- leaderboard ---------- */
-Rush.db.collection("trivia").onSnapshot(snap=>{
-  dbReady=true;dbErr=false;
-  allPlayers=snap.docs.map(d=>Object.assign(tidyRec(d.data()),{id:d.id}));
-  const mine=allPlayers.find(p=>p.id===uid);if(mine)rec=mine;
-  renderLobbyDaily();renderArchive();render();
-},()=>{dbErr=true;render()});
+// this player's own record as the server has it (the server writes every daily result); boards come from Rush.board
+function loadMine(){Rush.mine().then(m=>{dbErr=false;if(m.tri)rec=tidyRec(m.tri);renderLobbyDaily();renderArchive();render()}).catch(()=>{})}
+loadMine();
+Rush.board.init({game:"trivia",active:()=>mode==="daily"||!$("#lobby").hidden});
 
 /* ---------- modes ----------
    daily   : server-run, one question at a time, scored by the server's clock
@@ -438,7 +436,7 @@ $("#leaveBtn").onclick=backToLobby;
 
 $("#dailyBtn").onclick=async()=>{
   if(!requireName())return;saveMe();
-  mode="daily";boardTab="today";run={kind:"daily",n:R.dailyNo(),i:0,res:[],phase:"intro",q:null};
+  mode="daily";Rush.board.reset();run={kind:"daily",n:R.dailyNo(),i:0,res:[],phase:"intro",q:null};
   if(dstate){run.i=dstate.i;run.res=(dstate.res||[]).map(x=>({ok:!!x.ok,pts:x.pts}));
     if(todayEntry())run.phase="done";
     else if(dstate.open){run.resumeQ=dstate.open}}
@@ -463,7 +461,6 @@ async function enterRoom(c){
 }
 function copyText(txt,btn,key){navigator.clipboard.writeText(txt).then(()=>{btn.textContent=t("copied");setTimeout(()=>btn.textContent=t(key),1400)},()=>{btn.textContent=t("copyFail");setTimeout(()=>btn.textContent=t(key),2000)})}
 $("#copyBtn").onclick=()=>{if(code)copyText(code,$("#copyBtn"),"copy")};
-document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{boardTab=b.dataset.t;renderBoard()});
 
 /* ---------- daily and archive runs ---------- */
 // q: {i, c, q:{en,ar}, opts:[{en,ar}x4], ms, deadline, picked, correct, removed:[], pts, fiftyPct, fifty}
@@ -502,7 +499,7 @@ async function answerDaily(slot){
     dstate=Object.assign(dstate||{},r.state);
     LS.set("tr-today",{d:R.todayKey(),n:r.state.n,entry:r.state.entry||null,i:r.state.i,streak:r.state.streak||0});
     run.phase="reveal";render();
-    setTimeout(()=>{if(!run||run.kind!=="daily")return;if(r.state.done){run.phase="done";lastPanelKey="";render();Rush.db.collection("trivia").refresh()}else nextDaily()},1800);
+    setTimeout(()=>{if(!run||run.kind!=="daily")return;if(r.state.done){run.phase="done";lastPanelKey="";render();Rush.board.refresh();loadMine()}else nextDaily()},1800);
   }catch(e){
     if(e.data&&e.data.state){q.ok=false;run.phase="reveal";render();setTimeout(()=>applyDailyState(e.data.state),1500);return}
     run.phase="error";render();
@@ -818,7 +815,7 @@ function renderBoard(){
   const box=$("#players");box.textContent="";
   const lobby=$("#game").hidden;
   $("#tabs").hidden=mode!=="daily"&&!lobby;
-  if(mode==="daily"||lobby)return renderDailyBoard(box);
+  if(mode==="daily"||lobby)return Rush.board.show();
   if(mode==="archive"){$("#boardLbl").textContent=t("archMode")+" #"+run.n;$("#pcount").textContent="";box.appendChild(el("p","note",t("archNote")));return}
   boardKey=JSON.stringify(rowData().map(r=>[r.n,r.s,r.a,r.r,r.tm,r.h]))+lang+(cur&&cur.round);
   $("#boardLbl").textContent=teamsOn()?t("teams"):t("boardRace");
@@ -833,39 +830,6 @@ function renderBoard(){
     return;
   }
   list.forEach((r,i)=>box.appendChild(playerRow(r,round,i===0)));
-}
-/* daily board */
-/* "1. Name" with the rank in its own badge (gold, silver and bronze for the top three) */
-function rankName(i,name){const nm=el("span","pn");const rk=el("span","rkn",String(i+1));rk.dataset.r=String(i+1);nm.append(rk,document.createTextNode(name));return nm}
-function nameCell(p,i){const nm=rankName(i,nm16(p.n));const tg=R.tagOf(p.id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(p.id===uid)nm.appendChild(el("small","me",t("you")));return nm}
-function renderDailyBoard(box){
-  $("#boardLbl").textContent=t("boardDaily");
-  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===boardTab)));
-  const se=R.curSeason();$("#pcount").textContent=t("seasonN",{n:se});
-  const left=R.seasonDaysLeft(),bar=el("div","seasonbar"+(left<=3?" final":""));
-  const meter=el("span","meter");const fill=el("i");fill.style.width=Math.round(100*(R.seasonDay()-1)/R.SEASON_LEN)+"%";meter.appendChild(fill);
-  bar.append(el("span",null,t("dayOf",{d:R.seasonDay(),t:R.SEASON_LEN})),meter,el("span",null,left===1?t("resetsTonight"):left<=3?t("finalDays",{n:left}):t("daysLeftShort",{n:left})));
-  box.appendChild(bar);
-  const list=allPlayers.filter(p=>p.se===se);
-  if(boardTab==="season"){
-    const rows=list.filter(p=>p.played>0).sort((a,b)=>R.seasonPts(b)-R.seasonPts(a)||R.curStreak(b)-R.curStreak(a));
-    if(!rows.length)box.appendChild(el("div","empty",t("seasonEmpty")));
-    rows.forEach((p,i)=>{const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
-      const pp=el("div","pp");pp.appendChild(el("span",null,t("solvedOf",{w:p.wins,p:p.played,b:p.best})));
-      const s=R.curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
-      d.append(dot,nameCell(p,i),el("span","ps",String(R.seasonPts(p))),pp);box.appendChild(d)});
-    box.appendChild(el("p","note",t("seasonNote",{n:se+1})));
-  }else{
-    const k=boardTab==="today"?R.todayKey():R.ydayKey();
-    const rows=list.filter(p=>p.h[k]&&("ok" in p.h[k])).sort((a,b)=>num(b.h[k].pts)-num(a.h[k].pts)||num(a.h[k].t)-num(b.h[k].t));
-    if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?t("todayEmpty"):t("ydayEmpty")));
-    rows.forEach((p,i)=>{const e=p.h[k];const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
-      const pp=el("div","pp");
-      {const m=String(e.s||"").split("").map(c=>c==="1"?1:0);pp.appendChild(marks(m));pp.appendChild(el("span",null,fmtS(num(e.t))))}
-      const s=R.curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
-      d.append(dot,nameCell(p,i),el("span","ps",String(e.pts)),pp);box.appendChild(d)});
-  }
-  if(dbErr)box.appendChild(el("p","note",t("dbErr")));
 }
 
 /* overlay panels */

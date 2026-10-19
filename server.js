@@ -19,6 +19,7 @@ const mod = require("./mod");
 const auth = require("./auth");
 const limits = require("./limits");
 const ident = require("./ident");
+const boards = require("./boards");
 const R = require("./site/shared/rules");
 // pages are served as single files with the shared styles and scripts written in (see scripts/build-site.js)
 const PAGES = require("./scripts/build-site").build({ api: "", site: SITE_URL });
@@ -90,6 +91,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/shared/config.js")
       return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)},home:${JSON.stringify(require("./scripts/build-site").HOME)}};`, "text/javascript; charset=utf-8");
     const ctx = { send, readJson, ip };
+    if (await boards.handle(req, res, url, ctx, limits)) return;
     if (await trivia.handle(req, res, url, ctx)) return;
     if (await hangman.handle(req, res, url, ctx)) return;
     if (await harf.handle(req, res, url, ctx)) return;

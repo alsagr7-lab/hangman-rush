@@ -275,4 +275,4 @@ async function handle(req, res, url, { send, readJson, ip }) {
 }
 const levelCalls = new Map();
 
-module.exports = { handle, firstDaily };
+module.exports = { handle, firstDaily, tidy, publicRec, withLock };

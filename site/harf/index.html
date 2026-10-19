@@ -420,7 +420,7 @@ async function appealDaily(i,btn,ydLg){
   const yd=!!ydLg;let msg="";
   try{const r=await Rush.harf.appeal(yd?ydLg:drun.lg,null,i,null,true,yd);setDs(r.state)}
   catch(e){if(e.data&&e.data.state)setDs(e.data.state);msg=e.status===429?"appealNone":"appealDown"}
-  Rush.db.collection("harf").refresh();
+  Rush.board.refresh();
   if(yd){ydMsg=msg;renderYday();return}
   appealMsg=msg;const ent=todayEntry();if(ent)marksFor(ent.a);lastPanelKey="";render();
 }
@@ -456,12 +456,10 @@ $("#langLobby").onclick=()=>setLang(lang==="ar"?"en":"ar");
 $("#langGame").onclick=()=>setLang(lang==="ar"?"en":"ar");
 
 /* ---------- leaderboard ---------- */
-let allPlayers=[],dbErr=false,boardTab="today",boardLang=null;
+let dbErr=false;
 function tidyRec(d){const r=Object.assign({n:"Player",c:R.COLORS[0],se:R.curSeason(),streak:0,best:0,ls:"",played:0,wins:0,h:{}},d||{});
   r.n=nm16(r.n);r.c=R.safeColor(r.c);r.h=r.h&&typeof r.h==="object"?r.h:{};if(R.seasonOfRec(r)<R.curSeason())R.rollover(r);return r}
-Rush.db.collection("harf").onSnapshot(snap=>{
-  dbErr=false;allPlayers=snap.docs.map(d=>Object.assign(tidyRec(d.data()),{id:d.id}));render();
-},()=>{dbErr=true;render()});
+Rush.board.init({game:"harf",lg:()=>dl(),active:()=>mode==="daily"||!$("#lobby").hidden});
 
 /* ---------- the answer boxes ---------- */
 // built once per language; values survive a language switch
@@ -529,7 +527,7 @@ $("#leaveBtn").onclick=backToLobby;
 /* ---------- the daily ---------- */
 $("#dailyBtn").onclick=()=>{
   if(!requireName())return;saveMe();
-  mode="daily";boardTab="today";boardLang=null;
+  mode="daily";Rush.board.reset();
   // a language still in progress first, then the page language if it's not played yet, then the other one
   const pick=LGS.find(lg=>ds(lg)&&ds(lg).open)||[lang,lang==="ar"?"en":"ar"].find(lg=>!todayEntry(lg))||lang;
   drun={phase:"intro",L:"",lg:pick,deadline:0,res:null};
@@ -538,7 +536,7 @@ $("#dailyBtn").onclick=()=>{
 // switch the daily to one language: its result if played, its run if started, otherwise the start screen
 function setDailyLang(lg){
   if(!drun||drun.phase==="count"||drun.phase==="write"||drun.phase==="checking")return;
-  drun.lg=lg;appealMsg="";boardLang=null;
+  drun.lg=lg;appealMsg="";Rush.board.reset();
   const x=ds(lg),e=todayEntry(lg);
   if(e){drun.phase="done";drun.L=e.L;setInputs(e.a.map(a=>a.w),false,lg);marksFor(e.a)}
   else if(x&&x.open){openDaily(x.open);return}
@@ -568,7 +566,7 @@ async function submitDaily(){
   clearTimeout(saveTimer);
   drun.phase="checking";inputs.forEach(i=>i.disabled=true);render();
   try{const s=await Rush.harf.submit(words(),drun.lg);setDs(s);
-    const e=s.entry;if(e){marksFor(e.a)}drun.phase="done";lastPanelKey="";render();Rush.db.collection("harf").refresh()}
+    const e=s.entry;if(e){marksFor(e.a)}drun.phase="done";lastPanelKey="";render();Rush.board.refresh()}
   catch(e){if(e.data&&e.data.state){setDs(e.data.state);const x=ds();if(x.entry)marksFor(x.entry.a);drun.phase="done";lastPanelKey="";render();return}
     drun.phase="error";lastPanelKey="";render()}
 }
@@ -609,7 +607,6 @@ async function enterRoom(c){
 }
 function copyText(txt,btn,key){navigator.clipboard.writeText(txt).then(()=>{btn.textContent=t("copied");setTimeout(()=>btn.textContent=t(key),1400)},()=>{btn.textContent=t("copyFail");setTimeout(()=>btn.textContent=t(key),2000)})}
 $("#copyBtn").onclick=()=>{if(code)copyText(code,$("#copyBtn"),"copy")};
-document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{boardTab=b.dataset.t;renderBoard()});
 
 /* the round schedule (in this device's clock): countdown, then writing until the time is up or STOP_MS after
    someone pressed STOP, then everyone's answers are checked and scored */
@@ -794,7 +791,7 @@ function renderBoard(){
   const box=$("#players");box.textContent="";
   const lobby=$("#game").hidden;
   $("#tabs").hidden=mode!=="daily"&&!lobby;
-  if(mode==="daily"||lobby)return renderDailyBoard(box);
+  if(mode==="daily"||lobby)return Rush.board.show();
   const list=mode==="room"?roomRowsAll():[{me:true,id:uid,n:me.nick,c:me.color,s:score,r:cur?cur.round:0,f:0,dn:cur&&cur.locked?1:0,rp:cur&&cur.pts?cur.pts.reduce((x,y)=>x+y,0):null,h:true}];
   boardKey=JSON.stringify(list)+lang+(cur&&cur.round);
   $("#boardLbl").textContent=t("boardRace");
@@ -811,46 +808,6 @@ function renderBoard(){
 // board rows are per language ("<uid>_ar", "<uid>_en"); the tag and "you" go by the player's own id
 const baseId=id=>String(id||"").replace(/_(ar|en)$/,"");
 /* "1. Name" with the rank in its own badge (gold, silver and bronze for the top three) */
-function rankName(i,name){const nm=el("span","pn");const rk=el("span","rkn",String(i+1));rk.dataset.r=String(i+1);nm.append(rk,document.createTextNode(name));return nm}
-function nameCell(p,i){const id=baseId(p.id);const nm=rankName(i,nm16(p.n));const tg=R.tagOf(id);if(tg)nm.appendChild(el("small","tag","#"+tg));if(id===uid)nm.appendChild(el("small","me",t("you")));return nm}
-function wordsLine(e){const s=el("div","words");(e.a||[]).forEach((a,i)=>{if(i)s.appendChild(document.createTextNode(" · "));const w=a&&(a.f||a.w)?(a.f||a.w):"—";s.appendChild(a&&a.ok?el("b",null,w):el("s",null,w))});s.dir="auto";return s}
-function renderDailyBoard(box){
-  $("#boardLbl").textContent=t("boardDaily");
-  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===boardTab)));
-  const se=R.curSeason(),bl=boardLang||dl();
-  // a small switch in the header picks the Arabic or English board
-  const pc=$("#pcount");pc.textContent="";pc.appendChild(lgSwitch(bl,v=>{boardLang=v;renderBoard()}));
-  const left=R.seasonDaysLeft(),bar=el("div","seasonbar"+(left<=3?" final":""));
-  const meter=el("span","meter");const fill=el("i");fill.style.width=Math.round(100*(R.seasonDay()-1)/R.SEASON_LEN)+"%";meter.appendChild(fill);
-  bar.append(el("span",null,t("seasonN",{n:se})+" · "+t("dayOf",{d:R.seasonDay(),t:R.SEASON_LEN})),meter,el("span",null,left===1?t("resetsTonight"):left<=3?t("finalDays",{n:left}):t("daysLeftShort",{n:left})));
-  box.appendChild(bar);
-  const list=allPlayers.filter(p=>p.se===se);
-  const inLang=p=>Object.values(p.h).filter(e=>e&&e.lg===bl);
-  if(boardTab==="season"){
-    const rows=list.map(p=>{const es=inLang(p);return Object.assign({},p,{lp:es.reduce((a,e)=>a+num(e.pts),0),ln:es.length,lw:es.filter(e=>e.ok).length})})
-      .filter(p=>p.ln>0).sort((a,b)=>b.lp-a.lp||R.curStreak(b)-R.curStreak(a));
-    if(!rows.length)box.appendChild(el("div","empty",t("seasonEmpty")));
-    rows.forEach((p,i)=>{const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
-      const pp=el("div","pp");pp.appendChild(el("span",null,t("solvedOf",{w:p.lw,p:p.ln})));
-      const s=R.curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
-      d.append(dot,nameCell(p,i),el("span","ps",String(p.lp)),pp);box.appendChild(d)});
-    box.appendChild(el("p","note",t("seasonNote",{n:se+1})));
-  }else{
-    const k=boardTab==="today"?R.todayKey():R.ydayKey();
-    const rows=list.filter(p=>p.h[k]&&p.h[k].lg===bl).sort((a,b)=>num(b.h[k].pts)-num(a.h[k].pts)||num(a.h[k].t)-num(b.h[k].t));
-    if(!rows.length)box.appendChild(el("div","empty",boardTab==="today"?t("todayEmpty"):t("ydayEmpty")));
-    let pending=false;
-    rows.forEach((p,i)=>{const e=p.h[k];const d=el("div","pl"+(i?"":" first"));const dot=el("span","dot");dot.style.background=p.c;
-      const pp=el("div","pp");pp.appendChild(el("span",null,e.c+"/5"+(boardTab==="yday"&&e.L?" · "+e.L:"")));
-      if(boardTab==="yday"){if(e.rb==null)pending=true;else if(e.rb)pp.appendChild(el("span","ok",t("rareTag",{n:e.rb})))}
-      const s=R.curStreak(p);if(s)pp.appendChild(el("span","streak",t("streakN",{n:s})));
-      if(boardTab==="yday"&&e.a)pp.appendChild(wordsLine(e));
-      d.append(dot,nameCell(p,i),el("span","ps",String(num(e.pts))),pp);box.appendChild(d)});
-    if(boardTab==="today"&&rows.length)box.appendChild(el("p","note",t("todayNote")));
-    if(pending)box.appendChild(el("p","note",t("ydayPending")));
-  }
-  if(dbErr)box.appendChild(el("p","note",t("dbErr")));
-}
 
 /* overlay panels */
 let lastPanelKey="";
