@@ -280,5 +280,11 @@ const store = {
   },
 };
 for (const k of ["ping", "all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsDel", "wordsSearch", "wordsCount", "wordsRecent", "wordsPurge", "archivePut", "archiveOf", "archiveDay", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore", "acctGet", "acctByUid", "acctPut"]) store[k] = (...a) => impl[k](...a);
+// every write bumps its game's counter (the leaderboards cache their rankings until it moves)
+store.ver = { hangman: 0, trivia: 0, harf: 0 };
+for (const [k, g] of [["put", "hangman"], ["tPut", "trivia"], ["hPut", "harf"], ["hSetData", "harf"], ["hDel", "harf"]]) {
+  const f = store[k];
+  store[k] = async (...a) => { try { return await f(...a); } finally { store.ver[g]++; } };
+}
 
 module.exports = store;

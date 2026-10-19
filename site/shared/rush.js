@@ -271,35 +271,161 @@
     },
   };
 
-  /* ---------- leaderboards ----------
-     collection("players") is Hangman's (each device writes its own record); collection("trivia") and collection("harf") are
-     read-only here, because the server writes those records itself. */
-  function collection(kind) {
-    const listeners = new Set();
-    const url = kind === "trivia" ? "/api/trivia/players" : kind === "harf" ? "/api/harf/players" : "/api/players";
-    async function refresh() {
+  /* ---------- the daily leaderboards (shared by the three games) ----------
+     The server ranks everyone (/api/board) and sends the top 50 plus your own row; this draws them in the page's
+     <aside class="board"> (#boardLbl, #pcount, #tabs, #players), the same way in every game, including the small
+     menu version. A page calls Rush.board.init({game, lg, active}) once, then board.show() from its own render while
+     the daily board should be showing, and board.refresh() after a daily finishes. */
+  const BTXT = {
+    en: { today: "Today", yday: "Yesterday", season: "Season", seasonN: "Season {n}", dayOf: "Day {d}/{t}", left: "{n} days left", tonight: "Resets tonight",
+      final: "Final {n} days", yEmpty: "No results for yesterday.", you: "you", streak: "streak {n}", err: "The leaderboard didn't load. Your results are still saved on the server.",
+      loading: "Loading…", secs: "{n}s", solved: "Solved {t}", hanged: "Hanged", miss1: "1 miss", missN: "{n} misses", noMiss: "no misses", hint1: "1 hint", hintN: "{n} hints",
+      rare: "+{n} rare", pending: "Yesterday's bonuses are being added…", harfToday: "Today's answers stay hidden until tomorrow. Points here don't include rarity bonuses yet.",
+      gap: "Your place" },
+    ar: { today: "اليوم", yday: "أمس", season: "الموسم", seasonN: "الموسم {n}", dayOf: "اليوم {d} من {t}", left: "باقي {n} أيام", tonight: "يبدأ من جديد الليلة",
+      final: "آخر {n} أيام", yEmpty: "لا نتائج ليوم أمس.", you: "أنت", streak: "السلسلة {n}", err: "تعذّر تحميل لوحة الترتيب. نتائجك محفوظة على الخادم.",
+      loading: "جارٍ التحميل…", secs: "{n} ث", solved: "حلّها في {t}", hanged: "شُنق", miss1: "خطأ واحد", missN: "الأخطاء: {n}", noMiss: "بلا أخطاء", hint1: "تلميح واحد", hintN: "تلميحات: {n}",
+      rare: "+{n} ندرة", pending: "جارٍ إضافة مكافآت الأمس…", harfToday: "إجابات اليوم تبقى مخفية حتى الغد. النقاط هنا لا تشمل مكافآت الندرة بعد.",
+      gap: "ترتيبك" },
+  };
+  const BGAME = {
+    hangman: {
+      en: { label: "Daily leaderboard", tEmpty: "Nobody has played today's word yet. Be first.", sEmpty: "Season standings show up after the first daily word is played.",
+        note: "Ranked by total daily points this season. Everything resets when Season {n} starts.", of: "{w}/{p} solved · best streak {b}" },
+      ar: { label: "ترتيب كلمة اليوم", tEmpty: "لم يلعب أحد كلمة اليوم بعد. كن الأول.", sEmpty: "يظهر ترتيب الموسم بعد أول مشاركة في كلمة اليوم.",
+        note: "الترتيب حسب مجموع نقاط كلمة اليوم في هذا الموسم. كل شيء يبدأ من جديد مع الموسم {n}.", of: "حلّ {w} من {p} · أفضل سلسلة {b}" } },
+    trivia: {
+      en: { label: "Daily leaderboard", tEmpty: "Nobody has played today's questions yet. Be first.", sEmpty: "Season standings show up after the first daily is played.",
+        note: "Ranked by total daily points this season. Everything resets when Season {n} starts.", of: "{w} of {p} days with 3+ right · best streak {b}" },
+      ar: { label: "ترتيب أسئلة اليوم", tEmpty: "لم يلعب أحد أسئلة اليوم بعد. كن الأول.", sEmpty: "يظهر ترتيب الموسم بعد أول مشاركة في أسئلة اليوم.",
+        note: "الترتيب حسب مجموع نقاط أسئلة اليوم في هذا الموسم. كل شيء يبدأ من جديد مع الموسم {n}.", of: "{w} من {p} أيام بـ3 صحيحة أو أكثر · أفضل سلسلة {b}" } },
+    harf: {
+      en: { label: "Daily leaderboard", tEmpty: "Nobody has played today's letter yet. Be first.", sEmpty: "Season standings show up after the first daily is played.",
+        note: "Ranked by total daily points this season, rarity bonuses included. Everything resets when Season {n} starts.", of: "{w} perfect days of {p}" },
+      ar: { label: "ترتيب حرف اليوم", tEmpty: "لم يلعب أحد حرف اليوم بعد. كن الأول.", sEmpty: "يظهر ترتيب الموسم بعد أول مشاركة في حرف اليوم.",
+        note: "الترتيب حسب مجموع نقاط حرف اليوم في هذا الموسم، مع مكافآت الندرة. كل شيء يبدأ من جديد مع الموسم {n}.", of: "{w} أيام كاملة من {p}" } },
+  };
+  const LANGS = { hangman: ["ar", "en"], trivia: [], harf: ["ar", "en"] };
+  function makeBoard() {
+    let o = null, tab = "today", lgSel = null, timer = 0;
+    const cacheB = new Map(); // "lg|tab" -> { at, data, err }
+    const ui = () => (document.documentElement.lang === "ar" ? "ar" : "en");
+    const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (m, k) => (v && k in v ? v[k] : m));
+    const T = (k, v) => fill(BTXT[ui()][k], v), G = (k, v) => fill(BGAME[o.game][ui()][k], v);
+    const q = id => document.getElementById(id);
+    const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+    const lgNow = () => (LANGS[o.game].length ? lgSel || (o.lg && o.lg()) || "en" : "");
+    const keyNow = () => lgNow() + "|" + tab;
+    async function load(force) {
+      const key = keyNow(), c = cacheB.get(key);
+      if (!force && c && Date.now() - c.at < 15000) return;
       try {
-        const r = await fetch(http(url), { cache: "no-store" });
+        await ready;
+        const r = await fetch(http("/api/board?game=" + o.game + "&lg=" + encodeURIComponent(lgNow()) + "&tab=" + tab + "&me=" + encodeURIComponent(uid)), { cache: "no-store" });
         if (!r.ok) throw new Error(r.status);
-        const rows = await r.json();
-        const snap = { docs: rows.map(row => ({ id: row.id, exists: true, data: () => row.data })) };
-        listeners.forEach(s => { try { s.next(snap); } catch (e) { console.error(e); } });
-      } catch (e) {
-        // the server may still be waking: try again once it's up rather than giving up
-        if (serverState !== "up") { ready.then(refresh); return; }
-        // a failed load (a restart, a dropped connection) is reported but the board stays subscribed: the next
-        // 15-second tick tries again, and the next good load clears the error
-        listeners.forEach(s => { if (s.err) { try { s.err({ code: "unavailable", message: String(e) }); } catch {} } });
-      }
+        cacheB.set(key, { at: Date.now(), data: await r.json(), err: false });
+      } catch { cacheB.set(key, { at: Date.now() - 10000, data: c && c.data, err: true }); }
+      if (o.active()) draw();
     }
-    setInterval(() => { if (listeners.size && document.visibilityState === "visible") refresh(); }, 15000);
-    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && listeners.size) refresh(); });
-    return { refresh, onSnapshot(next, err) { const s = { next, err }; listeners.add(s); refresh(); return () => listeners.delete(s); } };
+    const fmtS = ms => T("secs", { n: (ms / 1000).toFixed(1) });
+    function detail(r) {
+      const pp = mk("div", "pp"), d = r.d || {}, g = o.game;
+      if (tab === "season") pp.append(mk("span", null, G("of", { w: d.w, p: d.p, b: d.b })));
+      else if (g === "hangman") {
+        if (d.ok) pp.append(mk("span", "ok", T("solved", { t: fmtS(d.t) }) + " · " + (d.m ? (d.m === 1 ? T("miss1") : T("missN", { n: d.m })) : T("noMiss")) + (d.hn ? " · " + (d.hn === 1 ? T("hint1") : T("hintN", { n: d.hn })) : "")));
+        else pp.append(mk("span", "dead", T("hanged")));
+      } else if (g === "trivia") {
+        const m = mk("span", "marks");
+        String(d.s || "").split("").slice(0, 5).forEach(ch => m.append(ch === "1" ? mk("b", null, "✓") : ch === "0" ? mk("s", null, "✗") : document.createTextNode("·")));
+        pp.append(m, mk("span", null, fmtS(d.t)));
+      } else {
+        pp.append(mk("span", null, d.c + "/5" + (tab === "yday" && d.L ? " · " + d.L : "")));
+        if (tab === "yday" && d.rb) pp.append(mk("span", "ok", T("rare", { n: d.rb })));
+      }
+      if (r.streak) pp.append(mk("span", "streak", g === "harf" ? "🔥 " + r.streak : T("streak", { n: r.streak })));
+      if (g === "harf" && tab === "yday" && Array.isArray(d.a)) {
+        const w = mk("div", "words"); w.dir = "auto";
+        d.a.forEach((a, i) => { if (i) w.append(document.createTextNode(" · ")); const t = a && a.w ? a.w : "—"; w.append(a && a.ok ? mk("b", null, t) : mk("s", null, t)); });
+        pp.append(w);
+      }
+      return pp;
+    }
+    function row(r, first) {
+      const el = mk("div", "pl" + (first ? " first" : "")), dot = mk("span", "dot"); dot.style.background = r.c;
+      const nm = mk("span", "pn"), rk = mk("span", "rkn", String(r.rank)); rk.dataset.r = String(r.rank);
+      nm.append(rk, document.createTextNode(r.n));
+      if (r.tag) nm.append(mk("small", "tag", "#" + r.tag));
+      if (r.me) nm.append(mk("small", "me", T("you")));
+      el.append(dot, nm, mk("span", "ps", String(r.pts)), detail(r));
+      return el;
+    }
+    function draw() {
+      const box = q("players"); if (!box || !o) return;
+      const g = o.game, lg = lgNow(), c = cacheB.get(keyNow()), data = c && c.data;
+      const lbl = q("boardLbl"); if (lbl) lbl.textContent = G("label");
+      const tabs = q("tabs");
+      if (tabs) { tabs.hidden = false; tabs.querySelectorAll("button").forEach(b => { b.setAttribute("aria-selected", String(b.dataset.t === tab)); b.textContent = T(b.dataset.t); }); }
+      const pc = q("pcount");
+      if (pc) {
+        pc.textContent = "";
+        if (LANGS[g].length) {
+          const sw = mk("span", "lgsw");
+          LANGS[g].forEach(L => { const b = mk("button", null, L === "ar" ? "عربي" : "EN"); b.type = "button"; b.lang = L; b.setAttribute("aria-pressed", String(L === lg)); b.setAttribute("aria-label", L === "ar" ? "عربي" : "English");
+            b.onclick = () => { lgSel = L; draw(); load(); }; sw.append(b); });
+          pc.append(sw);
+        } else if (data) pc.textContent = T("seasonN", { n: data.se });
+      }
+      box.textContent = "";
+      if (!data) { box.append(mk("p", "note", c && c.err ? T("err") : T("loading"))); return; }
+      const left = data.left, bar = mk("div", "seasonbar" + (left <= 3 ? " final" : "")), meter = mk("span", "meter"), fillEl = mk("i");
+      fillEl.style.width = Math.round(100 * (data.day - 1) / data.len) + "%"; meter.append(fillEl);
+      bar.append(mk("span", null, (LANGS[g].length ? T("seasonN", { n: data.se }) + " · " : "") + T("dayOf", { d: data.day, t: data.len })), meter,
+        mk("span", null, left === 1 ? T("tonight") : left <= 3 ? T("final", { n: left }) : T("left", { n: left })));
+      box.append(bar);
+      if (!data.rows.length) box.append(mk("div", "empty", tab === "today" ? G("tEmpty") : tab === "yday" ? T("yEmpty") : G("sEmpty")));
+      data.rows.forEach((r, i) => box.append(row(r, i === 0)));
+      if (data.me) { box.append(mk("p", "note", T("gap"))); box.append(row(data.me, false)); }
+      if (tab === "season") box.append(mk("p", "note", G("note", { n: data.se + 1 })));
+      if (g === "harf" && tab === "today" && data.rows.length) box.append(mk("p", "note", T("harfToday")));
+      if (g === "harf" && tab === "yday" && data.rows.some(r => r.d && r.d.rb == null)) box.append(mk("p", "note", T("pending")));
+      if (c.err) box.append(mk("p", "note", T("err")));
+    }
+    return {
+      init(opts) {
+        o = Object.assign({ active: () => true }, opts);
+        const tabs = q("tabs");
+        if (tabs) tabs.addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if (!b || !o.active()) return; tab = b.dataset.t; draw(); load(); });
+        // while it's showing: a fresh copy every 15 seconds, and straight away when the page comes back into view
+        clearInterval(timer);
+        timer = setInterval(() => { if (document.visibilityState === "visible" && o.active()) load(); }, 15000);
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && o.active()) load(); });
+        new MutationObserver(() => { if (o.active()) draw(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+      },
+      show() { if (!o) return; draw(); load(); },
+      refresh() { cacheB.clear(); if (o && o.active()) load(true); },
+      reset() { tab = "today"; lgSel = null; },
+    };
   }
-  const cols = {};
-  const colOf = k => (cols[k] = cols[k] || collection(k));
+  const board = makeBoard();
+
+  /* ---------- your own records, and one name and colour for every game ---------- */
+  async function mineRecs() {
+    await ready;
+    const r = await fetch(http("/api/me?uid=" + encodeURIComponent(uid)), { cache: "no-store" });
+    if (!r.ok) throw new Error("me " + r.status);
+    return r.json();
+  }
+  let profSent = "";
+  async function saveProfile() {
+    let me = null; try { me = JSON.parse(localStorage.getItem("hr-me") || "null"); } catch {}
+    if (!me) return;
+    const n = String(me.nick || "").trim(), key = n + "|" + me.color;
+    if (key === profSent || n.length < 2 || n.toLowerCase() === "player") return;
+    profSent = key;
+    try { await post("/api/profile", { n, c: me.color }); board.refresh(); } catch { profSent = ""; }
+  }
+
   const db = {
-    collection(path) { return colOf(path === "trivia" || path === "harf" ? path : "players"); },
     doc(path) {
       const id = path.split("/")[1];
       return {
@@ -309,7 +435,6 @@
             method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, data }),
           }).catch(() => { throw { code: "unavailable", status: 0, message: "Save failed (offline)" }; });
           if (!r.ok) throw { code: r.status === 403 ? "permission_denied" : "invalid_argument", status: r.status, message: "Save failed (" + r.status + ")" };
-          colOf("players").refresh();
         },
       };
     },
@@ -582,6 +707,7 @@
     barRefs.me.setAttribute("aria-expanded", "true");
   }
   function closeSheet() {
+    setTimeout(saveProfile, 0);
     if (!sheetOpen) return;
     sheetOpen = false; sheet.classList.remove("open"); sheetBg.classList.remove("open");
     barRefs.me.setAttribute("aria-expanded", "false");
@@ -620,6 +746,10 @@
 
     // the profile sheet, holding the page's name-and-colour card
     const nick = document.getElementById("nick"), card = nick && nick.closest(".card");
+    // a new name or colour goes to every game at once (the page saves it on this device first, hence the wait)
+    if (nick) nick.addEventListener("change", () => setTimeout(saveProfile, 0));
+    const sw = document.getElementById("sw"); if (sw) sw.addEventListener("click", () => setTimeout(saveProfile, 0));
+    ready.then(() => setTimeout(saveProfile, 1500));
     sheetBg = mkEl("div", "rsheet-bg"); sheetBg.hidden = true; sheetBg.onclick = closeSheet;
     sheet = mkEl("section", "rsheet"); sheet.hidden = true; sheet.setAttribute("role", "dialog"); sheet.setAttribute("aria-labelledby", "rsheet-t");
     const head = mkEl("div", "rsheet-head"), hav = avatar(), hd = mkEl("div"), ht = mkEl("h2"), htag = mkEl("span", "tagl"), x = mkEl("button", "rsheet-x");
@@ -715,7 +845,7 @@
   }
   onBody(lobbyBoard);
 
-  window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink, shareUrl, ask, openProfile: () => openSheet(),
+  window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, db, user, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };
