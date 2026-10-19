@@ -119,10 +119,11 @@
     }
     return s.replace(/\s+/g, " ").trim();
   }
-  // the word without its leading "ال" or "the", which don't count for the letter or for matching
+  // the word without its leading "ال" or "the", which don't count for the letter or for matching. An ال written with
+  // a hamza or madda (ألمانيا، إلياس، ألماس، آلاء) is part of the word, not the article, so it stays.
   function harfStem(s, lg) {
     const n = harfNorm(s, lg);
-    if (lg === "ar") return n.startsWith("ال") && n.replace(/ /g, "").length > 4 ? n.slice(2).trim() : n;
+    if (lg === "ar") return n.startsWith("ال") && n.replace(/ /g, "").length > 4 && !/^\s*[أإآ]ل/.test(String(s || "").normalize("NFC")) ? n.slice(2).trim() : n;
     return n.startsWith("the ") ? n.slice(4) : n;
   }
   const harfKey = (s, lg) => harfStem(s, lg).replace(/ /g, "");
