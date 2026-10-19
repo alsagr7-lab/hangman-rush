@@ -30,7 +30,6 @@
 <style>
 /* Harf Rush additions to the shared Rush look */
 .play{min-height:560px;align-content:start}
-@media (max-width:880px){.board{order:0}}
 .lethead{display:flex;align-items:center;gap:16px;padding:14px;border-radius:22px;background:var(--accent);color:var(--accent-ink);position:relative;overflow:hidden;isolation:isolate}
 .lethead::before{content:"";position:absolute;z-index:-1;width:170px;height:170px;inset-inline-end:-34px;top:-30px;background:rgba(11,12,16,.1);
   -webkit-mask:var(--logo-mark) center/contain no-repeat;mask:var(--logo-mark) center/contain no-repeat}
@@ -128,6 +127,8 @@
       <button class="btn primary" id="dailyBtn" disabled></button>
       <div class="yday" id="yBox" hidden></div>
     </div>
+
+    <div id="lbSlot"></div>
 
     <div class="card">
       <h2 data-i18n="playFriends">Play with friends</h2>
@@ -520,7 +521,7 @@ function backToLobby(){
   clearTimeout(saveTimer);
   roomApi=null;code=null;mode=null;host=false;cur=null;drun=null;score=0;lastRound=0;waitNext=false;hs=freshHost();
   setInputs(null,false,lang);
-  $("#game").hidden=true;$("#lobby").hidden=false;renderLobbyDaily();loadDaily(true);
+  $("#game").hidden=true;$("#lobby").hidden=false;renderLobbyDaily();loadDaily(true);render();
 }
 $("#leaveBtn").onclick=backToLobby;
 
@@ -728,7 +729,7 @@ function tick(){
 setInterval(()=>{if(!$("#game").hidden){tick();renderLive()}},200);
 
 /* ---------- render ---------- */
-function render(){if($("#game").hidden)return;renderTop();renderPlay();renderBoard();renderOverlay()}
+function render(){if($("#game").hidden){if(!$("#lobby").hidden)renderBoard();return}renderTop();renderPlay();renderBoard();renderOverlay()}
 function renderLive(){renderTimer();renderActions();renderOverlay();if(mode==="room")renderBoardLight()}
 function renderTop(){
   const r=$("#roomTxt");r.textContent="";
@@ -790,8 +791,9 @@ function roomRowsAll(){
 function renderBoardLight(){const k=JSON.stringify(roomRowsAll())+lang+(cur&&cur.round);if(k!==boardKey)renderBoard()}
 function renderBoard(){
   const box=$("#players");box.textContent="";
-  $("#tabs").hidden=mode!=="daily";
-  if(mode==="daily")return renderDailyBoard(box);
+  const lobby=$("#game").hidden;
+  $("#tabs").hidden=mode!=="daily"&&!lobby;
+  if(mode==="daily"||lobby)return renderDailyBoard(box);
   const list=mode==="room"?roomRowsAll():[{me:true,id:uid,n:me.nick,c:me.color,s:score,r:cur?cur.round:0,f:0,dn:cur&&cur.locked?1:0,rp:cur&&cur.pts?cur.pts.reduce((x,y)=>x+y,0):null,h:true}];
   boardKey=JSON.stringify(list)+lang+(cur&&cur.round);
   $("#boardLbl").textContent=t("boardRace");

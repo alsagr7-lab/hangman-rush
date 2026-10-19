@@ -245,7 +245,7 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 #langGame{display:none}
 .top .btn.ghost{min-height:44px;border-style:solid;padding:8px 14px}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
-@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}.board{order:-1}}
+@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}}
 .play{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:20px 16px;display:grid;gap:16px;min-width:0;min-height:520px}
 @media (min-width:600px){.play{padding:24px}}
 
@@ -359,6 +359,18 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .seasonbar.final{color:var(--hot)}
 .seasonbar.final .meter i{background:var(--hot)}
 #players>.note{padding:4px 2px}
+
+/* the daily board in each game's main menu: small (top three and you) until tapped, back to small once scrolled away */
+#lbSlot:empty{display:none}
+.board .lbtog{justify-self:center;border:0;background:transparent;color:var(--accent-hi);font:700 13px/1 var(--f-body);padding:6px 2px;min-height:32px;cursor:pointer}
+.board .lbtog:lang(ar){font-family:var(--f-ar);font-size:14px}
+.board:not(.inlobby) .lbtog{display:none}
+.board.mini{cursor:pointer;gap:8px}
+.board.mini .tabs,.board.mini #players>.seasonbar,.board.mini #players>p.note{display:none}
+.board.mini #players .pl~.pl~.pl~.pl:not(:has(.me)){display:none}
+.board.mini .pl{padding:8px 12px}
+.board.mini .pl>.dot{width:28px;height:28px;border-radius:9px}
+.board.mini .pp{display:none}
 
 /* a board's small language switch (the Arabic and English dailies have separate boards) */
 .lgsw{display:inline-flex;padding:3px;border-radius:11px;background:var(--bg);border:1px solid var(--line);flex:none;gap:2px}

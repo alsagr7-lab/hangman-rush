@@ -68,6 +68,8 @@
       <button class="btn primary" id="dailyBtn"></button>
     </div>
 
+    <div id="lbSlot"></div>
+
     <div class="card">
       <h2 data-i18n="playFriends">Play with friends</h2>
       <button class="btn" id="createBtn" disabled data-i18n="createRoom">Create a room</button>
@@ -668,7 +670,7 @@ $("#leaveBtn").onclick=async()=>{
   unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];
   if(roomApi){try{await roomApi.leave()}catch(e){}}
   roomApi=null;code=null;mode=null;host=false;cur=null;score=0;lastRound=0;waitNext=false;myTeam=null;
-  $("#game").hidden=true;$("#lobby").hidden=false;renderLobbyDaily();
+  $("#game").hidden=true;$("#lobby").hidden=false;renderLobbyDaily();render();
 };
 function copyText(txt,btn,labelKey){
   navigator.clipboard.writeText(txt).then(()=>{btn.textContent=t("copied");setTimeout(()=>btn.textContent=t(labelKey),1400)}).catch(()=>{btn.textContent=t("copyFail");setTimeout(()=>btn.textContent=t(labelKey),2000)});
@@ -892,7 +894,7 @@ document.addEventListener("keydown",e=>{
 });
 
 /* ---------- render ---------- */
-function render(){if($("#game").hidden)return;renderTop();renderPlay();renderBoard();renderOverlay();renderTimer()}
+function render(){if($("#game").hidden){if(!$("#lobby").hidden)renderBoard();return}renderTop();renderPlay();renderBoard();renderOverlay();renderTimer()}
 function renderTop(){
   const r=$("#roomTxt");r.textContent="";
   $("#copyBtn").hidden=mode!=="room";$("#netDot").hidden=mode!=="room";
@@ -955,8 +957,9 @@ function playerRow(r,round,first){
 }
 function renderBoard(){
   const box=$("#players");box.textContent="";
-  $("#tabs").hidden=mode!=="daily";
-  if(mode==="daily")return renderDailyBoard(box);
+  const lobby=$("#game").hidden;
+  $("#tabs").hidden=mode!=="daily"&&!lobby;
+  if(mode==="daily"||lobby)return renderDailyBoard(box);
   $("#boardLbl").textContent=teamsOn()?t("teams"):duelOn()?t("boardDuel"):t("boardRace");
   const list=rowData().sort((a,b)=>num(b.s)-num(a.s));const round=roundNo();
   $("#pcount").textContent=list.length===1?t("player1"):t("players",{n:list.length});
@@ -983,7 +986,7 @@ function renderDailyBoard(box){
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===boardTab));
   const se=curSeason();
   // the English and Arabic words each have their own board
-  const bl=boardLg||dlg;
+  const bl=boardLg||(mode==="daily"?dlg:lang==="ar"?"ar":"en");
   const src=bl==="ar"?arPlayers:allPlayers,myId=bl==="ar"?uid+"_ar":uid;
   let list=(db&&!dbErr)?src.filter(p=>p.id!==myId&&p.se===se):[];
   list.push(Object.assign({},drec(bl),{id:uid||"me",isMe:true}));

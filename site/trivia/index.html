@@ -30,8 +30,6 @@
 <style>
 /* Trivia Rush additions to the shared Rush look */
 .play{min-height:600px;align-content:start}
-/* on phones the question comes first, the board underneath */
-@media (max-width:880px){.board{order:0}}
 .qhead{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .qhead .lbl{color:var(--accent-hi)}
 .dots{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;direction:ltr;width:min(200px,48%)}
@@ -101,6 +99,8 @@
       <p class="note season" id="dSeason"></p>
       <button class="btn primary" id="dailyBtn" disabled></button>
     </div>
+
+    <div id="lbSlot"></div>
 
     <div class="card">
       <h2 data-i18n="playFriends">Play with friends</h2>
@@ -431,7 +431,7 @@ function backToLobby(){
   unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];
   if(roomApi){try{roomApi.leave()}catch(e){}}
   roomApi=null;code=null;mode=null;host=false;cur=null;run=null;score=0;lastRound=0;waitNext=false;myTeam=null;hs=freshHost();
-  $("#game").hidden=true;$("#lobby").hidden=false;renderLobbyDaily();renderArchive();loadDaily(true);
+  $("#game").hidden=true;$("#lobby").hidden=false;renderLobbyDaily();renderArchive();loadDaily(true);render();
 }
 $("#leaveBtn").onclick=backToLobby;
 
@@ -752,7 +752,7 @@ function view(){
   return{dots:[...Array(T.QUESTIONS)].map(()=>""),cat:null,q:null};
 }
 let lastQKey="";
-function render(){if($("#game").hidden)return;renderTop();renderPlay(true);renderBoard();renderOverlay()}
+function render(){if($("#game").hidden){if(!$("#lobby").hidden)renderBoard();return}renderTop();renderPlay(true);renderBoard();renderOverlay()}
 function renderLive(){renderTimer();renderPlay(false);renderOverlay();if(mode==="room"||mode==="solo")renderBoardLight()}
 function renderTop(){
   const r=$("#roomTxt");r.textContent="";
@@ -815,8 +815,9 @@ let boardKey="";
 function renderBoardLight(){const k=JSON.stringify(rowData().map(r=>[r.n,r.s,r.a,r.r,r.tm,r.h]))+lang+(cur&&cur.round);if(k!==boardKey)renderBoard()}
 function renderBoard(){
   const box=$("#players");box.textContent="";
-  $("#tabs").hidden=mode!=="daily";
-  if(mode==="daily")return renderDailyBoard(box);
+  const lobby=$("#game").hidden;
+  $("#tabs").hidden=mode!=="daily"&&!lobby;
+  if(mode==="daily"||lobby)return renderDailyBoard(box);
   if(mode==="archive"){$("#boardLbl").textContent=t("archMode")+" #"+run.n;$("#pcount").textContent="";box.appendChild(el("p","note",t("archNote")));return}
   boardKey=JSON.stringify(rowData().map(r=>[r.n,r.s,r.a,r.r,r.tm,r.h]))+lang+(cur&&cur.round);
   $("#boardLbl").textContent=teamsOn()?t("teams"):t("boardRace");
