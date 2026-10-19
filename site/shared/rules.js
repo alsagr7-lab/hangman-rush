@@ -38,6 +38,7 @@
     r.se = curSeason(); r.streak = 0; r.best = 0; r.ls = ""; r.played = 0; r.wins = 0; r.h = {};
     return true;
   }
+  const namedRec = r => { const n = r && typeof r.n === "string" ? r.n.trim() : ""; return n.length > 0 && n.toLowerCase() !== "player"; };
   function seasonPts(r) { return Object.values(r.h || {}).reduce((a, e) => a + num(e.pts), 0); }
   function curStreak(r) { return r.ls === todayKey() || r.ls === ydayKey() ? num(r.streak) : 0; }
   // count a finished daily: a solved day extends the streak, anything else breaks it
@@ -184,7 +185,7 @@
 
   return {
     num, DAY, EPOCH_DAY, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight,
-    COLORS, safeColor, nm16, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
+    COLORS, safeColor, nm16, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
     HARF, harfNorm, harfStem, harfKey, harfGroup, harfLetterOk, harfRoomPoints,
   };

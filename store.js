@@ -36,6 +36,7 @@ function jsonStore() {
   const flush = () => (writing = writing.then(() => fs.promises.writeFile(file, JSON.stringify(db))).catch(e => console.error(e)));
   return {
     kind: "json file",
+    async ping() {},
     async init() {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       try {
@@ -132,6 +133,8 @@ function pgStore(url) {
      ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data, updated_at=now()`, [id, token, data]);
   return {
     kind: "postgres",
+    // the health check: a quick question the database must answer within 5 seconds
+    ping: () => Promise.race([pool.query("SELECT 1"), new Promise((_, no) => setTimeout(() => no(new Error("timeout")), 5000))]),
     async init() {
       await pool.query(`CREATE TABLE IF NOT EXISTS players (
         id TEXT PRIMARY KEY, token TEXT NOT NULL, data JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT now())`);
@@ -261,7 +264,12 @@ const store = {
       for (let i = 0; ; i++) {
         try { await pg.init(); impl = pg; return; }
         catch (e) {
-          if (i >= waits.length) { console.warn("Postgres unavailable, using the JSON file instead:", e.message); break; }
+          if (i >= waits.length) {
+            // on Render the file is wiped at every restart, so running on it would quietly lose every result:
+            // better to fail (Render keeps the last working deploy) unless the fallback is asked for
+            if (process.env.RENDER && process.env.ALLOW_FILE_STORE !== "on") throw new Error("Postgres unavailable and the JSON-file fallback is off in production: " + e.message);
+            console.warn("Postgres unavailable, using the JSON file instead:", e.message); break;
+          }
           console.warn(`Postgres not answering (${e.message}); trying again in ${waits[i] / 1000}s`);
           await new Promise(r => setTimeout(r, waits[i]));
         }
@@ -271,6 +279,6 @@ const store = {
     await impl.init();
   },
 };
-for (const k of ["all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsDel", "wordsSearch", "wordsCount", "wordsRecent", "wordsPurge", "archivePut", "archiveOf", "archiveDay", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore", "acctGet", "acctByUid", "acctPut"]) store[k] = (...a) => impl[k](...a);
+for (const k of ["ping", "all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsDel", "wordsSearch", "wordsCount", "wordsRecent", "wordsPurge", "archivePut", "archiveOf", "archiveDay", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore", "acctGet", "acctByUid", "acctPut"]) store[k] = (...a) => impl[k](...a);
 
 module.exports = store;

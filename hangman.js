@@ -49,7 +49,8 @@ function points(run, t) {
 /* ---------- records ---------- */
 const rowId = (uid, lg) => uid + (lg === "ar" ? "_ar" : "");
 const EMPTY = () => ({ n: "Player", c: R.COLORS[0], streak: 0, best: 0, ls: "", played: 0, wins: 0, h: {}, se: R.curSeason(), sk: 0, prev: null });
-const tidy = d => { const r = Object.assign(EMPTY(), d && typeof d === "object" ? d : {}); r.h = r.h && typeof r.h === "object" && !Array.isArray(r.h) ? r.h : {}; return r; };
+// a record from an earlier season starts fresh here (the page used to do this through its own saves)
+const tidy = d => { const r = Object.assign(EMPTY(), d && typeof d === "object" ? d : {}); r.h = r.h && typeof r.h === "object" && !Array.isArray(r.h) ? r.h : {}; if (R.seasonOfRec(r) < R.curSeason()) R.rollover(r); return r; };
 // the board shows records without the run in progress
 const publicRec = r => { const o = Object.assign({}, r); delete o.run; return o; };
 
@@ -111,6 +112,8 @@ async function handle(req, res, url, { send, readJson, ip }) {
     const n = R.dailyNo(), W = wordFor(n, lg), today = R.todayKey(), now = Date.now();
     if (!W) { send(res, 503, { error: "Today's word isn't set up on this server yet" }); return true; }
     const recEn = tidy(own.recs.hm && own.recs.hm.data), rec = lg === "ar" ? tidy(own.recs.hmAr && own.recs.hmAr.data) : recEn;
+    // a first Arabic record takes the name and colour from the English one
+    if (lg === "ar" && !(own.recs.hmAr && own.recs.hmAr.data) && own.recs.hm && own.recs.hm.data) { rec.n = recEn.n; rec.c = recEn.c; }
     if (typeof body.n === "string" && body.n.trim().length >= 2) rec.n = R.nm16(body.n.trim());
     if (body.c) rec.c = R.safeColor(body.c);
     let changed = false;
@@ -169,4 +172,4 @@ async function handle(req, res, url, { send, readJson, ip }) {
   });
 }
 
-module.exports = { handle, wordFor, publicRec, withLock };
+module.exports = { handle, wordFor, publicRec, withLock, tidy };

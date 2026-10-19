@@ -16,6 +16,16 @@ after(() => srv.stop());
 
 const put = (id, body) => fetch(`${BASE}/api/players/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
+test("on Render, a database that stays down stops the server instead of falling back to the file", async () => {
+  const { spawn } = require("node:child_process"), path = require("node:path");
+  const proc = spawn(process.execPath, [path.join(__dirname, "..", "server.js")], {
+    env: { ...process.env, PORT: "0", RENDER: "true", DATABASE_URL: "postgres://x:y@127.0.0.1:1/none", PG_RETRY_MS: "20" } });
+  let out = ""; proc.stdout.on("data", d => (out += d)); proc.stderr.on("data", d => (out += d));
+  const code = await new Promise(r => { const t = setTimeout(() => { proc.kill(); r("still running"); }, 15000); proc.once("exit", c => { clearTimeout(t); r(c); }); });
+  assert.notEqual(code, 0); assert.notEqual(code, "still running");
+  assert.match(out, /fallback is off in production/);
+});
+
 test("retries Postgres before falling back to the file", () => {
   assert.match(log(), /trying again in 0.05s/);
   assert.match(log(), /using the JSON file instead/);
@@ -39,31 +49,35 @@ test("game APIs answer", async () => {
   }
 });
 
-test("Hangman saves: normal result kept, points capped, future days dropped, finished days locked", async () => {
-  const id = "p_hangman01", token = "k".repeat(20), today = R.todayKey(), future = R.dayKey(R.dayNum() + 2);
-  const h = { [today]: { ok: 1, t: 30000, m: 1, pts: 250, hn: 0, at: Date.now() } };
-  assert.equal((await put(id, { token, data: { n: "Tester", h } })).status, 200);
+test("Hangman saves from the page change only the name and colour, never results or counts", async () => {
+  const id = "p_hangman01", token = "k".repeat(20), today = R.todayKey(), yday = R.ydayKey();
+  const forged = { n: "Tester", c: "#d93c30", played: 9, wins: 9, streak: 9, best: 9, ls: today, sk: 5,
+    h: { [today]: { ok: 1, t: 1000, m: 0, pts: 340 }, [yday]: { ok: 1, pts: 340 } } };
+  assert.equal((await put(id, { token, data: forged })).status, 200);
   let me = (await (await fetch(BASE + "/api/players")).json()).find(p => p.id === id);
-  assert.equal(me.data.h[today].pts, 250);
+  assert.equal(me.data.n, "Tester"); assert.equal(me.data.c, "#d93c30");
+  assert.deepEqual(me.data.h, {});
+  for (const f of ["played", "wins", "streak", "best", "sk"]) assert.equal(me.data[f], 0, f);
 
-  // a finished day can't be raised afterwards, and days in the future are dropped
-  await put(id, { token, data: { n: "Tester", h: { [today]: { ok: 1, pts: 99999 }, [future]: { ok: 1, pts: 340 } } } });
+  // renaming keeps working, and a second forged save changes nothing else
+  await put(id, { token, data: { ...forged, n: "Renamed" } });
   me = (await (await fetch(BASE + "/api/players")).json()).find(p => p.id === id);
-  assert.equal(me.data.h[today].pts, 250);
-  assert.equal(me.data.h[future], undefined);
+  assert.equal(me.data.n, "Renamed"); assert.deepEqual(me.data.h, {}); assert.equal(me.data.played, 0);
+});
 
-  // a new player claiming a huge score gets at most 340, and a miss scores 0
-  const id2 = "p_hangman02";
-  await put(id2, { token: "z".repeat(20), data: { n: "Cheat", h: { [today]: { ok: 1, pts: 99999 }, [R.ydayKey()]: { ok: 0, pts: 300 } } } });
-  me = (await (await fetch(BASE + "/api/players")).json()).find(p => p.id === id2);
-  assert.equal(me.data.h[today].pts, 340);
-  assert.equal(me.data.h[R.ydayKey()].pts, 0);
+test("unnamed \"Player\" entries are left off every board", async () => {
+  await put("p_noname001", { token: "n".repeat(20), data: { n: "Player" } });
+  await put("p_named0001", { token: "m".repeat(20), data: { n: "Sara" } });
+  const ids = (await (await fetch(BASE + "/api/players")).json()).map(p => p.id);
+  assert.ok(!ids.includes("p_noname001")); assert.ok(ids.includes("p_named0001"));
+  assert.ok(R.namedRec({ n: "Sara" })); assert.ok(!R.namedRec({ n: " player " })); assert.ok(!R.namedRec({}));
+});
 
-  // a started (not finished) day is saved as sent
-  const id3 = "p_hangman03";
-  await put(id3, { token: "y".repeat(20), data: { n: "Starter", h: { [today]: { s: 1 } } } });
-  me = (await (await fetch(BASE + "/api/players")).json()).find(p => p.id === id3);
-  assert.deepEqual(me.data.h[today], { s: 1 });
+test("a missing page gets the 404 page; a missing file a plain 404", async () => {
+  let r = await fetch(BASE + "/no-such-game/");
+  assert.equal(r.status, 404); assert.match(await r.text(), /This page doesn't exist/);
+  r = await fetch(BASE + "/nothing.png");
+  assert.equal(r.status, 404); assert.doesNotMatch(await r.text(), /<html/i);
 });
 
 test("CF-Connecting-IP is only trusted with the proxy secret", async () => {

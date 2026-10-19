@@ -716,7 +716,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
 
   if (p === "/api/harf/players" && req.method === "GET") {
     ensureFinal();
-    const rows = (await store.hAll()).filter(r => !require("./admin").isHidden("harf", r.id));
+    const rows = (await store.hAll()).filter(r => !require("./admin").isHidden("harf", r.id) && R.namedRec(r.data));
     send(res, 200, rows.map(r => ({ id: r.id, data: publicRec(tidy(r.data)) })));
     return true;
   }

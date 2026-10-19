@@ -59,3 +59,8 @@ services:
       - path: /*
         name: Cache-Control
         value: no-cache
+      # Cloudflare keeps its own copy of the pages; this tells it to check for a new one each time, so an update
+      # shows straight away instead of after its copy expires
+      - path: /*
+        name: Cloudflare-CDN-Cache-Control
+        value: no-cache
