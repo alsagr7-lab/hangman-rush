@@ -646,6 +646,58 @@
     const pg = (location.pathname.match(/\/(hangman|trivia|harf)(\/|$)/) || [])[1] || "home", b = JSON.stringify({ p: pg, v: uid });
     if (!(navigator.sendBeacon && navigator.sendBeacon(http("/api/hit"), b))) fetch(http("/api/hit"), { method: "POST", body: b, keepalive: true }).catch(() => {});
   } catch {}
+  /* ---------- the daily board in the main menu ----------
+     Each game page has one board (<aside class="board">) and a #lbSlot in its lobby. While the lobby shows, the board
+     moves into the slot, small: the top three and your own row. Tapping it opens the whole board (tabs and all); once
+     it's scrolled out of view it goes back to small. When a game starts the board moves back beside the game. */
+  function lobbyBoard() {
+    const lobby = document.getElementById("lobby"), game = document.getElementById("game"), slot = document.getElementById("lbSlot");
+    const board = document.querySelector("aside.board"), grid = board && board.parentElement;
+    if (!lobby || !game || !slot || !board || !grid) return;
+    const ar = () => document.documentElement.lang === "ar";
+    const tog = document.createElement("button"); tog.type = "button"; tog.className = "lbtog";
+    board.appendChild(tog);
+    const label = () => {
+      const mini = board.classList.contains("mini");
+      tog.textContent = mini ? (ar() ? "عرض الكل" : "See all") : (ar() ? "تصغير" : "Show less");
+      tog.setAttribute("aria-expanded", String(!mini));
+    };
+    function setMini(on) {
+      if (board.classList.contains("mini") === on) return;
+      // shrinking a board that's above the screen would pull the page up under the player's thumb: keep their place
+      const r = board.getBoundingClientRect(), above = on && r.top < 0, h = r.height;
+      board.classList.toggle("mini", on); label();
+      if (above) window.scrollBy(0, board.getBoundingClientRect().height - h);
+    }
+    function place() {
+      const inLobby = !lobby.hidden;
+      if (inLobby && board.parentElement !== slot) { slot.appendChild(board); board.classList.add("inlobby", "mini"); label(); }
+      else if (!inLobby && board.parentElement !== grid) { grid.appendChild(board); board.classList.remove("inlobby", "mini"); }
+    }
+    // while small, any tap on the board opens it (the tabs and language switch work once it's open)
+    board.addEventListener("click", e => {
+      if (!board.classList.contains("inlobby")) return;
+      if (board.classList.contains("mini")) { e.preventDefault(); e.stopPropagation(); setMini(false); }
+      else if (e.target === tog) setMini(true);
+    }, true);
+    // "scrolled away": less than a strip of it left on screen (an open board can be taller than the rest of the menu,
+    // so it may never leave the screen completely)
+    let ticking = false;
+    window.addEventListener("scroll", () => {
+      if (ticking || !board.classList.contains("inlobby") || board.classList.contains("mini")) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        const r = board.getBoundingClientRect(), vh = window.innerHeight, seen = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+        if ((r.top < 0 && seen < Math.min(vh / 4, r.height / 3)) || r.top > vh - 60) setMini(true);
+      });
+    }, { passive: true });
+    new MutationObserver(place).observe(lobby, { attributes: true, attributeFilter: ["hidden"] });
+    new MutationObserver(label).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+    place(); label();
+  }
+  onBody(lobbyBoard);
+
   window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, db, user, daily, hangman };
