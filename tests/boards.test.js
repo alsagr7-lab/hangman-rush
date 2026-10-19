@@ -81,19 +81,19 @@ test("Harf: today never shows the letter or answers; yesterday shows words, bonu
   assert.equal((await get("/api/board?game=harf&lg=en&tab=today")).rows.length, 0);
 });
 
-test("the hub: each board scored against its own leader, the better language counts, games weigh the same", async () => {
+test("the hub: boards scored against their own leader, only the best across both languages gets 100", async () => {
   const h = await get("/api/board/hub?me=p_alpha000001");
   const a = h.games.hangman.top[0];
-  assert.equal(a.n, "Alpha"); assert.equal(a.score, 100); assert.equal(a.me, 1);
-  // Alpha leads both Hangman boards (100 each): the better one counts once, not the two added up
-  assert.ok(a.pts === 450 || a.pts === 280);
+  // Alpha leads both Hangman boards: 100 + a 10 bonus for the second, the most anyone can have, so 100
+  assert.equal(a.n, "Alpha"); assert.equal(a.score, 100); assert.equal(a.me, 1); assert.equal(a.lg, "en"); assert.equal(a.pts, 450);
   const bravo = h.games.hangman.top.find(x => x.n === "Bravo");
-  assert.equal(bravo.score, Math.round(100 * 250 / 450)); assert.equal(bravo.lg, "en");
-  assert.equal(h.games.trivia.top[0].n, "Bravo"); assert.equal(h.games.trivia.top[1].score, 75);
-  // overall: 100 (Hangman) + 75 (Trivia, 900 of 1200) + 100 (Harf Arabic leader)
+  assert.equal(bravo.score, Math.round(10 * 100 * (100 * 250 / 450) / 110) / 10); assert.equal(bravo.lg, "en");
+  // Trivia: one board, one decimal (900 of 1200)
+  assert.equal(h.games.trivia.top[0].n, "Bravo"); assert.equal(h.games.trivia.top[0].score, 100); assert.equal(h.games.trivia.top[1].score, 75);
   assert.equal(h.overall[0].n, "Alpha"); assert.equal(h.overall[0].score, 275);
   assert.deepEqual(Object.keys(h.overall[0].games).sort(), ["hangman", "harf", "trivia"]);
-  assert.ok(h.overall.length <= 10);
+  // only one player has a game's 100
+  for (const g of ["hangman", "trivia", "harf"]) assert.equal(h.games[g].top.filter(x => x.score === 100).length, 1, g);
 });
 
 test("/api/me gives your own records in every game, without the run in progress", async () => {

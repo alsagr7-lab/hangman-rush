@@ -107,8 +107,9 @@ async function board(game, lg, tab, me) {
 
 // ---------- the hub: who leads each game this season, and overall ----------
 // Each language board is scored against its own leader (the leader gets 100), so a harder or easier language
-// doesn't matter. In a game with two boards, a player's better language counts. The overall ranking adds the three
-// game scores, so every game counts the same.
+// doesn't matter. In a game with two boards, a player's better board counts in full and the other adds up to 10, so
+// only the player who's best across both languages gets the game's 100 (no ties from two board leaders). The overall
+// ranking adds the three game scores, so every game counts the same. Scores keep one decimal.
 async function hub(me) {
   const mb = me ? base(me) : "", games = {}, overall = new Map();
   for (const game of ["hangman", "trivia", "harf"]) {
@@ -117,15 +118,25 @@ async function hub(me) {
       const c = await view(game, lg, "season"), rows = c.views.get(lg + "|season");
       const top = rows.length ? rows[0].pts : 0;
       for (const r of rows) {
-        const score = top > 0 ? Math.round(100 * r.pts / top) : 0;
-        const x = per.get(r.id);
-        if (!x || score > x.score || (score === x.score && r.pts > x.pts)) per.set(r.id, { id: r.id, n: r.n, c: r.c, score, pts: r.pts, lg });
+        const share = top > 0 ? 100 * r.pts / top : 0;
+        const x = per.get(r.id) || { id: r.id, n: r.n, c: r.c, shares: [] };
+        x.shares.push({ share, pts: r.pts, lg });
+        per.set(r.id, x);
       }
     }
+    const one = d => Math.round(d * 10) / 10;
+    for (const x of per.values()) {
+      x.shares.sort((a, b) => b.share - a.share || b.pts - a.pts);
+      const [best, other] = x.shares;
+      x.raw = best.share + (other ? other.share / 10 : 0);
+      x.pts = best.pts; x.lg = best.lg; delete x.shares;
+    }
+    const topRaw = Math.max(0, ...[...per.values()].map(x => x.raw));
+    for (const x of per.values()) { x.score = topRaw > 0 ? one(100 * x.raw / topRaw) : 0; delete x.raw; }
     const list = [...per.values()].sort((a, b) => b.score - a.score || b.pts - a.pts);
     list.forEach((x, i) => {
       const o = overall.get(x.id) || { id: x.id, n: x.n, c: x.c, score: 0, games: {} };
-      o.score += x.score; o.games[game] = i + 1;
+      o.score = one(o.score + x.score); o.games[game] = i + 1;
       overall.set(x.id, o);
     });
     const mi = mb ? list.findIndex(x => x.id === mb) : -1;
