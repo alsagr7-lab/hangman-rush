@@ -96,7 +96,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
   catch (e) { console.warn("Auth: Google token refused:", e.message); send(res, 401, { error: "Google sign-in couldn't be checked. Try again." }); return true; }
 
   const uid = String(body.uid || ""), token = String(body.token || "");
-  if (!ident.ID_RE.test(uid) || /_(ar|en)$/.test(uid) || token.length < 16) { send(res, 400, { error: "Expected {credential, uid, token}" }); return true; }
+  if (!ident.isUid(uid) || token.length < 16) { send(res, 400, { error: "Expected {credential, uid, token}" }); return true; }
   const k = "g:" + g.sub, linked = await store.acctGet(k);
   const here = await ident.owner(uid, ident.hashToken(token));
   if (!here.ok) { send(res, 403, { error: "This player belongs to another device" }); return true; }

@@ -7,7 +7,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const FILE = path.join(__dirname, "..", "trivia-daily.enc");
+const FILE = process.env.TRIVIA_DAILY_FILE || path.join(__dirname, "..", "trivia-daily.enc"); // the variable is for tests
 
 function key() {
   const k = process.env.TRIVIA_KEY || "";

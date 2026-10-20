@@ -829,7 +829,15 @@
   }
   onBody(lobbyBoard);
 
-  window.Rush = { api: API, http, uid, token, store, room, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
+  /* ---------- room helpers every game uses ----------
+     roomCode: a new 4-letter room code (no I or O, which read like 1 and 0); mePeer: this tab's own entry in a room;
+     hostOf: the room's host among other players' entries (lowest peer id among those flagged h: 1), or null */
+  const ROOM_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const roomCode = () => { let s = ""; for (let i = 0; i < 4; i++) s += ROOM_LETTERS[Math.floor(Math.random() * ROOM_LETTERS.length)]; return s; };
+  const mePeer = api => (api ? api.peers().find(p => p.sameTab) : null);
+  const hostOf = list => list.filter(p => p.presence.h === 1).sort((a, b) => (a.peer < b.peer ? -1 : 1))[0] || null;
+
+  window.Rush = { api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, user, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };

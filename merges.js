@@ -5,6 +5,7 @@
 //   - runMerges(): one-time merges, run at start-up before the server takes requests.
 const store = require("./store");
 const admin = require("./admin");
+const ident = require("./ident");
 const R = require("./site/shared/rules");
 
 const num = R.num;
@@ -47,49 +48,38 @@ function mergeDays(dst, src, rule) {
   return n;
 }
 
-// -> {days: how many days moved, where: ["harf_en", ...]}; `from` is then hidden from every leaderboard
+// -> {days: how many days moved, where: ["harf_en", ...]}; `from` is then hidden from every leaderboard.
+// Each record is read and written under its game's own lock (the one the dailies use), so an answer played on the
+// account's other device at the same moment is never overwritten by the merge.
+const GAMES = [
+  { name: "hangman", sfx: ["", "_ar"], get: id => store.get(id), put: (id, tok, d) => store.put(id, tok, d), lock: (id, fn) => require("./hangman").withLock(ident.baseId(id), fn) },
+  { name: "harf", sfx: ["_ar", "_en"], get: id => store.hGet(id), put: (id, tok, d) => store.hPut(id, tok, d), lock: (id, fn) => require("./harf").withLock(id, fn) },
+  { name: "trivia", sfx: [""], get: id => store.tGet(id), put: (id, tok, d) => store.tPut(id, tok, d), lock: (id, fn) => require("./trivia").withLock(id, fn) },
+];
 async function mergePlayers(into, from, rule) {
   let days = 0;
-  const where = [];
-  for (const sfx of ["", "_ar"]) { // Hangman: English, Arabic
-    const [a, b] = await Promise.all([store.get(into + sfx), store.get(from + sfx)]);
+  const where = [], tok = await ownerToken(into);
+  for (const g of GAMES) for (const sfx of g.sfx) {
+    const b = await g.get(from + sfx);
     if (!b) continue;
-    if (!a) {
-      const tok = await ownerToken(into);
-      if (tok) { await store.put(into + sfx, tok, b.data); days += Object.keys(b.data.h || {}).length; where.push("hangman" + sfx); }
-      continue;
-    }
-    const n = mergeDays(a.data, b.data, rule);
-    if (n) { await store.put(into + sfx, a.token, a.data); days += n; where.push("hangman" + sfx); }
-  }
-  for (const sfx of ["_ar", "_en"]) { // Harf
-    const [a, b] = await Promise.all([store.hGet(into + sfx), store.hGet(from + sfx)]);
-    if (!b) continue;
-    if (!a) {
-      const tok = await ownerToken(into);
-      if (tok) { const d = Object.assign({}, b.data); delete d.run; await store.hPut(into + sfx, tok, d); days += Object.keys(d.h || {}).length; where.push("harf" + sfx); }
-      continue;
-    }
-    const n = mergeDays(a.data, b.data, rule);
-    if (n) { await store.hSetData(into + sfx, a.data); days += n; where.push("harf" + sfx); }
-  }
-  { // Trivia
-    const [a, b] = await Promise.all([store.tGet(into), store.tGet(from)]);
-    if (b && !a) {
-      const tok = await ownerToken(into);
-      if (tok) { const d = Object.assign({}, b.data); delete d.run; await store.tPut(into, tok, d); days += Object.keys(d.h || {}).length; where.push("trivia"); }
-    } else if (a && b) {
+    await g.lock(into + sfx, async () => {
+      const a = await g.get(into + sfx);
+      if (!a) {
+        if (!tok) return;
+        const d = Object.assign({}, b.data); delete d.run;
+        await g.put(into + sfx, tok, d); days += Object.keys(d.h || {}).length; where.push(g.name + sfx);
+        return;
+      }
       const n = mergeDays(a.data, b.data, rule);
-      if (n) { await store.tPut(into, a.token, a.data); days += n; where.push("trivia"); }
-    }
+      if (n) { await g.put(into + sfx, a.token, a.data); days += n; where.push(g.name + sfx); }
+    });
   }
   for (const g of ["hangman", "trivia", "harf"]) await admin.setHidden(g, from, true);
   return { days, where };
 }
 // the token hash any of this player's records carries (they all share one)
 async function ownerToken(uid) {
-  const recs = await Promise.all([store.get(uid), store.get(uid + "_ar"), store.tGet(uid), store.hGet(uid + "_ar"), store.hGet(uid + "_en")]);
-  const r = recs.find(Boolean);
+  const r = Object.values(await ident.records(uid)).find(Boolean);
   return r ? r.token : null;
 }
 

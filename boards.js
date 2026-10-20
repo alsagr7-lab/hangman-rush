@@ -19,7 +19,7 @@ const harf = require("./harf");
 
 const TOP = 50;
 const num = R.num;
-const base = id => String(id || "").replace(/_(ar|en)$/, "");
+const base = ident.baseId;
 const lgOfId = id => (/_ar$/.test(id) ? "ar" : /_en$/.test(id) ? "en" : "");
 
 // ---------- the records each game shows ----------
@@ -184,8 +184,7 @@ async function hub(me) {
 
 // ---------- the player's own records, and one name for every game ----------
 async function mine(uid) {
-  const b = base(uid);
-  const [hm, hmAr, tri, hfAr, hfEn] = await Promise.all([store.get(b), store.get(b + "_ar"), store.tGet(b), store.hGet(b + "_ar"), store.hGet(b + "_en")]);
+  const { hm, hmAr, tri, hfAr, hfEn } = await ident.records(uid);
   const pub = (S, r) => (r ? S.pub(S.tidy(r.data)) : null);
   return { hm: pub(SOURCES.hangman, hm), hmAr: pub(SOURCES.hangman, hmAr), tri: pub(SOURCES.trivia, tri), hfAr: pub(SOURCES.harf, hfAr), hfEn: pub(SOURCES.harf, hfEn) };
 }
@@ -217,14 +216,14 @@ async function handle(req, res, url, { send, readJson, ip }, limits) {
   if (p === "/api/board/hub" && req.method === "GET") { send(res, 200, await hub(url.searchParams.get("me") || "")); return true; }
   if (p === "/api/me" && req.method === "GET") {
     const uid = url.searchParams.get("uid") || "";
-    if (!ident.ID_RE.test(uid) || /_(ar|en)$/.test(uid)) { send(res, 400, { error: "Bad player id" }); return true; }
+    if (!ident.isUid(uid)) { send(res, 400, { error: "Bad player id" }); return true; }
     send(res, 200, await mine(uid));
     return true;
   }
   if (p === "/api/profile" && req.method === "POST") {
     const body = await readJson(req);
     const uid = String((body && body.uid) || "");
-    if (!body || !ident.ID_RE.test(uid) || /_(ar|en)$/.test(uid) || typeof body.token !== "string" || body.token.length < 16) { send(res, 400, { error: "Expected {uid, token, n, c}" }); return true; }
+    if (!body || !ident.isUid(uid) || typeof body.token !== "string" || body.token.length < 16) { send(res, 400, { error: "Expected {uid, token, n, c}" }); return true; }
     if (!limits.take("prof|" + ip, 20, 10)) { send(res, 429, { error: "Too many changes. Slow down a little." }); return true; }
     const [code, out] = await profile(uid, body.token, body.n, body.c);
     send(res, code, out);

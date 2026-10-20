@@ -54,14 +54,7 @@ const tidy = d => { const r = Object.assign(EMPTY(), d && typeof d === "object" 
 // the board shows records without the run in progress
 const publicRec = r => { const o = Object.assign({}, r); delete o.run; return o; };
 
-const locks = new Map();
-function withLock(key, fn) {
-  const prev = locks.get(key) || Promise.resolve();
-  const next = prev.then(fn, fn);
-  locks.set(key, next.catch(() => {}));
-  next.finally(() => { if (locks.get(key) === next) locks.delete(key); }).catch(() => {});
-  return next;
-}
+const withLock = ident.locker();
 
 // writes the finished word into the record, exactly like the page's recordDaily(), and moves the level
 function finish(rec, recEn, run, W, solved, now) {
@@ -102,7 +95,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
   const body = await readJson(req);
   if (!body) { send(res, 400, { error: "Body must be JSON" }); return true; }
   const uid = String(body.uid || ""), lg = body.lg === "ar" ? "ar" : "en";
-  if (!ident.ID_RE.test(uid) || /_(ar|en)$/.test(uid) || typeof body.token !== "string" || body.token.length < 16) { send(res, 400, { error: "Expected {uid, token}" }); return true; }
+  if (!ident.isUid(uid) || typeof body.token !== "string" || body.token.length < 16) { send(res, 400, { error: "Expected {uid, token}" }); return true; }
   if (!limits.take("hmd|" + ip, 120, 40)) { send(res, 429, { error: "Too fast" }); return true; }
 
   // one request at a time per player (both languages share the level in the English record)
