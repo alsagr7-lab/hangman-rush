@@ -112,7 +112,7 @@
     splash.className = "rush-splash"; splash.dir = ar ? "rtl" : "ltr"; splash.setAttribute("role", "status");
     const st = document.createElement("style");
     st.textContent = `
-.rush-splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px 16px;background:var(--bg,#0B0C10);color:var(--ink,#F4F1EA);transition:opacity .35s}
+.rush-splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px 16px;background:var(--bg,#0B0C10);color:var(--ink,#F4F1EA);transition:opacity .18s ease-out}
 .rush-splash.out{opacity:0;pointer-events:none}
 .rush-splash .in{width:min(420px,100%);display:grid;gap:16px;text-align:center}
 .rush-splash .gtile{justify-self:center;width:76px;height:76px;border-radius:24px}
@@ -122,7 +122,8 @@
 .rush-splash[dir="rtl"] h1{font-family:var(--f-ar,system-ui,sans-serif);font-stretch:100%;font-weight:900;line-height:1.25}
 .rush-splash p{margin:0;font:16px/1.5 var(--f-body,system-ui,sans-serif);color:var(--soft,#B4B8C3)}
 .rush-splash .track{height:8px;border-radius:99px;overflow:hidden;background:var(--key,#262A35)}
-.rush-splash .fill{height:100%;width:3%;background:var(--accent,#F2B544);border-radius:99px;transition:width .6s ease-out}
+.rush-splash .fill{height:100%;width:100%;transform:scaleX(.03);transform-origin:left;background:var(--accent,#F2B544);border-radius:99px;transition:transform .6s cubic-bezier(.23,1,.32,1)}
+.rush-splash[dir="rtl"] .fill{transform-origin:right}
 .rush-splash .ok .fill,.rush-splash .fill.ok{background:var(--good,#3DD68C)}
 .rush-splash .st{font:600 14px var(--f-body,system-ui,sans-serif);min-height:20px;font-variant-numeric:tabular-nums}
 .rush-splash .why{font-size:13px;color:var(--muted,#9EA3B0)}
@@ -156,7 +157,7 @@
     // the bar creeps towards 95% over about a minute (a typical wake-up), then waits for the real answer
     ticker = setInterval(() => {
       const t = Date.now() - started;
-      if (bar && serverState !== "up") bar.style.width = Math.min(95, 3 + 92 * (1 - Math.exp(-t / 25000))).toFixed(1) + "%";
+      if (bar && serverState !== "up") bar.style.transform = "scaleX(" + (Math.min(95, 3 + 92 * (1 - Math.exp(-t / 25000))) / 100).toFixed(3) + ")";
       if (t > SLOW_MS && slowBox && !blocked) slowBox.hidden = false;
     }, 500);
   }
@@ -165,8 +166,8 @@
     if (!splash) return;
     const el = splash; splash = null;
     if (byUser) { el.remove(); return; }
-    bar.style.width = "100%"; bar.classList.add("ok"); line.textContent = TXT[isAr() ? "ar" : "en"].ready;
-    setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 400); }, 450);
+    bar.style.transform = "none"; bar.classList.add("ok"); line.textContent = TXT[isAr() ? "ar" : "en"].ready;
+    setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 220); }, 450);
   }
 
   // the same game on the server's own address, where nothing is cross-site; carries the player's id and profile
@@ -688,6 +689,32 @@
       if (sheetRefs.plus) { sheetRefs.plusT.textContent = "Rush+ "; sheetRefs.plusT.append(mkEl("small", null, "· " + at("plusFree"))); sheetRefs.plusS.textContent = at("plusSee"); }
     }
   }
+  // phone sheet: drag the handle or header down to close; a quick flick is enough, and dragging up meets friction
+  function dragToClose() {
+    const phone = matchMedia("(max-width:759px)");
+    let y0 = 0, t0 = 0, dy = 0, id = null;
+    const set = d => { sheet.style.transform = "translateY(" + d + "px)"; sheetBg.style.opacity = String(Math.max(0, 1 - d / (sheet.offsetHeight || 400))); };
+    sheet.addEventListener("pointerdown", e => {
+      if (id !== null || !phone.matches || !sheetOpen || e.button > 0) return;
+      if (!e.target.closest || !e.target.closest(".grab,.rsheet-head") || e.target.closest("button,a,input")) return;
+      id = e.pointerId; y0 = e.clientY; t0 = performance.now(); dy = 0;
+      sheet.classList.add("drag"); sheetBg.classList.add("drag");
+      try { sheet.setPointerCapture(id); } catch {}
+    });
+    sheet.addEventListener("pointermove", e => {
+      if (e.pointerId !== id) return;
+      const d = e.clientY - y0; dy = d >= 0 ? d : -Math.sqrt(-d) * 2;
+      set(dy);
+    });
+    const end = e => {
+      if (e.pointerId !== id) return;
+      id = null; sheet.classList.remove("drag"); sheetBg.classList.remove("drag");
+      const v = Math.max(0, dy) / Math.max(1, performance.now() - t0);
+      if (dy > 120 || (dy > 10 && v > 0.11)) closeSheet();
+      else { sheet.style.transform = ""; sheetBg.style.opacity = ""; }
+    };
+    sheet.addEventListener("pointerup", end); sheet.addEventListener("pointercancel", end);
+  }
   function openSheet() {
     if (!sheet || sheetOpen) return;
     sheetOpen = true; sheet.hidden = false; sheetBg.hidden = false;
@@ -698,7 +725,8 @@
   function closeSheet() {
     setTimeout(saveProfile, 0);
     if (!sheetOpen) return;
-    sheetOpen = false; sheet.classList.remove("open"); sheetBg.classList.remove("open");
+    sheetOpen = false; sheet.classList.remove("open", "drag"); sheetBg.classList.remove("open", "drag");
+    sheet.style.transform = ""; sheetBg.style.opacity = "";
     barRefs.me.setAttribute("aria-expanded", "false");
     // let the page save the name first (it saves on "change", which fires as the box loses focus)
     if (document.activeElement && sheet.contains(document.activeElement)) document.activeElement.blur();
@@ -756,6 +784,7 @@
     sheet.append(acctBox);
     document.body.append(sheetBg, sheet);
     sheet.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); closeSheet(); } });
+    dragToClose();
     sheet.addEventListener("input", renderBar);
     sheet.addEventListener("click", e => { if (e.target.closest && e.target.closest("#sw")) setTimeout(renderBar, 0); });
     // when the page asks for a name (it marks the box and focuses it), bring the sheet up

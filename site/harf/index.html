@@ -50,7 +50,8 @@
 :root[lang="ar"] .lethelp b{font-weight:900;font-stretch:100%;font-size:20px;line-height:1.4}
 .lethead .note{color:rgba(11,12,16,.78);font-weight:600}
 .tbar{height:8px;background:var(--key);border-radius:9px;overflow:hidden}
-.tbar i{display:block;height:100%;width:100%;background:var(--accent);border-radius:9px;transition:width .15s linear}
+.tbar i{display:block;height:100%;width:100%;transform-origin:left;background:var(--accent);border-radius:9px;transition:transform .15s linear}
+:root[dir="rtl"] .tbar i{transform-origin:right}
 .tbar.low i{background:var(--hot)}
 .fields{display:grid;gap:10px}
 .field{display:grid;grid-template-columns:minmax(70px,26%) minmax(0,1fr) 30px;gap:10px;align-items:center;padding:6px 8px;padding-inline-start:14px;
@@ -760,8 +761,8 @@ function timeLeft(){
 }
 function renderTimer(){
   const v=timeLeft(),tm=$("#timer"),bar=$("#tbar");
-  if(v){const s=Math.ceil(v.left/1000),low=s<=10||v.stop;tm.textContent=t("secs",{n:s});tm.classList.toggle("low",low);bar.classList.toggle("low",low);bar.firstChild.style.width=(100*v.left/v.total)+"%"}
-  else{tm.textContent="";tm.classList.remove("low");bar.classList.remove("low");bar.firstChild.style.width="0%"}
+  if(v){const s=Math.ceil(v.left/1000),low=s<=10||v.stop;tm.textContent=t("secs",{n:s});tm.classList.toggle("low",low);bar.classList.toggle("low",low);bar.firstChild.style.transform="scaleX("+(v.left/v.total)+")"}
+  else{tm.textContent="";tm.classList.remove("low");bar.classList.remove("low");bar.firstChild.style.transform="scaleX(0)"}
 }
 function renderPlay(){
   const L=curLetter(),lg=curLang(),le=$("#letter");
@@ -827,9 +828,9 @@ const baseId=id=>String(id||"").replace(/_(ar|en)$/,"");
 /* overlay panels */
 let lastPanelKey="";
 function showCount(ov,panel,n){const key="cd"+n;ov.hidden=false;if(lastPanelKey===key)return;lastPanelKey=key;panel.hidden=true;
-  let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=String(n)}
+  let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=String(n);if(c.animate&&!matchMedia("(prefers-reduced-motion: reduce)").matches)c.animate([{opacity:0,transform:"scale(1.15)"},{opacity:1,transform:"none"}],{duration:180,easing:"cubic-bezier(.23,1,.32,1)"})}
 function setPanel(ov,panel,key,build){
-  key=lang+"|"+key;ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;
+  key=lang+"|"+key;const again=!ov.hidden&&!panel.hidden;ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;panel.classList.toggle("still",again);
   const c=ov.querySelector(".count");if(c)c.hidden=true;
   panel.hidden=false;panel.textContent="";build().forEach(n=>panel.appendChild(n));
 }

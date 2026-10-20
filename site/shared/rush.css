@@ -2,7 +2,7 @@
    game (coral Hangman, blue Trivia, palm green Harf), set by <html data-game> (rush.js). Display type is Saira (wide),
    body text Figtree, Arabic Cairo. The logo (an R with a palm tree) is drawn with CSS masks from /shared/logo-*.svg,
    which the page build inlines. */
-:root{
+:root{--ease-out:cubic-bezier(.23,1,.32,1);
   color-scheme:dark;
   --bg:#0B0C10; --surface:#14161D; --raised:#1B1E26; --key:#262A35; --line:#23262F; --line2:#2A2E3A; --line3:#343846;
   --ink:#F4F1EA; --soft:#B4B8C3; --muted:#9EA3B0; --faint:#6E7381;
@@ -92,11 +92,10 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 
 /* ---------- buttons and inputs ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;border:1px solid var(--line3);background:var(--raised);color:var(--ink);
-  border-radius:var(--r-sm);padding:10px 18px;font-weight:700;font-size:15px;text-decoration:none;line-height:1.2;transition:transform .08s,background .15s,border-color .15s}
-.btn:hover:not(:disabled){border-color:var(--hover-line)}
+  border-radius:var(--r-sm);padding:10px 18px;font-weight:700;font-size:15px;text-decoration:none;line-height:1.2;transition:transform .12s var(--ease-out),background .15s,border-color .15s}
+@media (hover:hover) and (pointer:fine){.btn:hover:not(:disabled){border-color:var(--hover-line)}.btn.primary:hover:not(:disabled){filter:brightness(1.06);border-color:var(--accent)}}
 .btn:active:not(:disabled){transform:scale(.98)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:800}
-.btn.primary:hover:not(:disabled){filter:brightness(1.06);border-color:var(--accent)}
 .btn:disabled{opacity:.42;cursor:not-allowed}
 .btn.ghost{background:transparent;border-style:dashed;border-color:var(--line3);font-weight:700}
 input[type=text]{font:inherit;font-size:16px;font-weight:600;border:1px solid var(--line2);background:var(--bg);color:var(--ink);border-radius:var(--r-sm);padding:0 14px;height:48px;width:100%;min-width:0;
@@ -160,6 +159,8 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
   transform:translateY(100%);transition:transform .24s cubic-bezier(.2,.8,.2,1)}
 .rsheet[hidden],.rsheet-bg[hidden]{display:none!important}
 .rsheet.open{transform:none}.rsheet-bg.open{opacity:1}
+.rsheet.drag,.rsheet-bg.drag{transition:none}
+@media (max-width:759px){.rsheet .grab,.rsheet-head{touch-action:none;cursor:grab}}
 .rsheet .grab{justify-self:center;width:40px;height:5px;border-radius:3px;background:var(--line3)}
 .rsheet-head{display:flex;align-items:center;gap:14px}
 .rsheet-head .av{width:56px;height:56px;border-radius:18px;font-size:22px}
@@ -173,8 +174,8 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .rsheet .sw{width:40px;height:40px}
 @media (min-width:760px){
   .rsheet{left:auto;right:24px;bottom:auto;top:84px;width:420px;max-height:calc(100dvh - 104px);border:1px solid var(--line2);border-radius:var(--r-lg);padding:22px;
-    transform:translateY(-8px);opacity:0;pointer-events:none;transition:transform .18s,opacity .18s;box-shadow:0 24px 60px var(--shadow)}
-  :root[dir="rtl"] .rsheet{right:auto;left:24px}
+    transform:scale(.96);transform-origin:top right;opacity:0;pointer-events:none;transition:transform .2s var(--ease-out),opacity .2s var(--ease-out);box-shadow:0 24px 60px var(--shadow)}
+  :root[dir="rtl"] .rsheet{right:auto;left:24px;transform-origin:top left}
   .rsheet.open{transform:none;opacity:1;pointer-events:auto}
   .rsheet .grab{display:none}
   .rsheet-bg{background:transparent}
@@ -283,6 +284,8 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 @keyframes draw{from{stroke-dashoffset:120}to{stroke-dashoffset:0}}
 .word{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;min-height:56px;direction:ltr}
 .slot{width:clamp(24px,7.6vw,40px);border-bottom:4px solid var(--line3);text-align:center;font-family:var(--f-latin-hand);font-weight:800;font-size:clamp(24px,7.4vw,36px);line-height:1.3}
+.slot.pop{animation:slotin .2s var(--ease-out)}
+@keyframes slotin{from{opacity:0;transform:translateY(6px)}}
 .slot.miss{color:var(--hot);border-bottom-color:var(--hot)}
 .misses{text-align:center;font-size:13.5px;color:var(--muted);min-height:20px;font-variant-numeric:tabular-nums}
 .cat{display:grid;gap:6px;justify-items:center;text-align:center}
@@ -310,8 +313,8 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .keys{display:grid;gap:7px;user-select:none;-webkit-user-select:none;direction:ltr}
 .krow{display:flex;justify-content:center;gap:5px}
 .key{flex:1 1 0;max-width:46px;min-width:0;height:52px;border:0;background:var(--key);color:var(--ink);border-radius:10px;font-weight:700;font-size:18px;padding:0;font-family:var(--f-display);
-  touch-action:manipulation;transition:background .12s}
-.key:active:not(:disabled){background:var(--key-press)}
+  touch-action:manipulation;transition:background .12s,transform .1s var(--ease-out)}
+.key:active:not(:disabled){background:var(--key-press);transform:scale(.94)}
 .key.hit{background:var(--accent-deep);color:var(--accent-hi);box-shadow:inset 0 -3px 0 var(--accent)}
 .key.bad{background:transparent;color:var(--key-dead);text-decoration:line-through;box-shadow:inset 0 0 0 1px var(--line)}
 .key:disabled{cursor:default}
@@ -319,7 +322,10 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 
 /* overlays and result panels */
 .overlay{position:absolute;inset:0;background:var(--shade);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:2;
-  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:ovin .18s ease-out}
+.overlay>.panel{animation:panelin .22s var(--ease-out)}
+@keyframes ovin{from{opacity:0}}
+@keyframes panelin{from{opacity:0;transform:scale(.97)}}
 .panel{background:var(--raised);border:1px solid var(--line2);border-radius:var(--r-lg);padding:20px;width:min(420px,100%);display:grid;gap:14px;max-height:100%;overflow:auto;box-shadow:0 20px 50px var(--shadow)}
 .panel h2{font-family:var(--f-hand);font-stretch:118%;font-weight:800;font-size:26px;margin:0;line-height:1.15;text-wrap:balance}
 :root[lang="ar"] .panel h2{font-weight:900;font-stretch:100%;line-height:1.35}
@@ -329,6 +335,10 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .reveal{font-family:var(--f-latin-hand);font-weight:800;font-size:28px;letter-spacing:.08em;word-break:break-all;direction:ltr;text-align:start;color:var(--accent-hi)}
 :root[lang="ar"] .reveal{text-align:end}
 .res{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+:is(.res,.rres)>li{animation:rowin .24s var(--ease-out) both;animation-delay:60ms}:is(.res,.rres)>li:nth-child(2){animation-delay:100ms}:is(.res,.rres)>li:nth-child(3){animation-delay:140ms}:is(.res,.rres)>li:nth-child(4){animation-delay:180ms}:is(.res,.rres)>li:nth-child(5){animation-delay:220ms}:is(.res,.rres)>li:nth-child(6){animation-delay:260ms}:is(.res,.rres)>li:nth-child(7){animation-delay:300ms}:is(.res,.rres)>li:nth-child(8){animation-delay:340ms}:is(.res,.rres)>li:nth-child(9){animation-delay:380ms}:is(.res,.rres)>li:nth-child(10){animation-delay:420ms}
+/* a panel that refreshes in place (a vote, another finisher) doesn't replay the cascade */
+.panel.still :is(.res,.rres)>li{animation:none}
+@keyframes rowin{from{opacity:0;transform:translateY(6px)}}
 .res li{display:grid;grid-template-columns:22px 14px minmax(0,1fr) auto;gap:8px;align-items:center;font-variant-numeric:tabular-nums;min-height:32px}
 .rk{font-family:var(--f-num);color:var(--muted);font-size:13px;font-weight:700}
 .res .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
@@ -403,18 +413,18 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .lgsw button[aria-pressed="true"]{background:var(--key);color:var(--ink)}
 .lgsw button:lang(ar){font-family:var(--f-ar);font-size:14px}
 
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-property:opacity,color,background-color,border-color,box-shadow,filter!important}}
 
 /* ---------- footer, report button and form, rules switch, next-daily chip, install tip (rush.js "extras") ---------- */
 .rfoot{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;padding:28px 16px calc(28px + env(safe-area-inset-bottom));font-size:13px;color:var(--muted)}
 .rfoot-l{background:none;border:0;padding:6px 4px;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line3)}
-.rfoot-l:hover{color:var(--ink)}
+@media (hover:hover) and (pointer:fine){.rfoot-l:hover{color:var(--ink)}}
 .rfoot-dot{color:var(--faint)}
 .rreport{position:fixed;inset-inline-end:0;top:50%;transform:translateY(-50%);z-index:25;width:34px;height:44px;display:grid;place-items:center;
   background:var(--surface);color:var(--muted);border:1px solid var(--line2);border-inline-end:0;border-radius:12px 0 0 12px;cursor:pointer;opacity:.85}
 [dir="rtl"] .rreport,:root[lang="ar"] .rreport{border-radius:0 12px 12px 0}
 .rreport svg{width:18px;height:18px}
-.rreport:hover,.rreport:focus-visible{color:var(--ink);opacity:1}
+.rreport:focus-visible{color:var(--ink);opacity:1}@media (hover:hover) and (pointer:fine){.rreport:hover{color:var(--ink);opacity:1}}
 .rdlg-form{text-align:start}
 .rdlg-form h2,.rdlg-form>p{text-align:center}
 .rinput{width:100%;box-sizing:border-box;background:var(--bg);color:var(--ink);border:1px solid var(--line2);border-radius:14px;padding:12px 14px;font:inherit;font-size:15px}
@@ -426,13 +436,13 @@ textarea.rinput{resize:vertical;min-height:84px}
 .rprivacy{display:grid;gap:10px;text-align:start}
 .rprivacy p{font-size:14px!important}
 .linkbtn{background:none;border:0;padding:8px 4px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line3);justify-self:center}
-.linkbtn:hover{color:var(--ink)}
+@media (hover:hover) and (pointer:fine){.linkbtn:hover{color:var(--ink)}}
 .rnext,.rtip{position:fixed;z-index:40;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:6px;
   background:var(--surface);border:1px solid var(--line2);border-radius:999px;padding:6px 6px 6px 16px;box-shadow:0 12px 32px var(--shadow);max-width:calc(100% - 32px);box-sizing:border-box}
 .rnext[dir="rtl"]{padding:6px 16px 6px 6px}
 .rnext-go{color:var(--ink);font-weight:700;text-decoration:none;white-space:nowrap;font-size:14px;padding:6px 0}
 .rnext-x{flex:none;width:32px;height:32px;display:grid;place-items:center;background:none;border:0;border-radius:50%;color:var(--muted);cursor:pointer}
-.rnext-x:hover{background:var(--line)}
+@media (hover:hover) and (pointer:fine){.rnext-x:hover{background:var(--line)}}
 .rnext-x svg{width:16px;height:16px}
 .rtip{border-radius:20px;padding:14px 10px 14px 16px;flex-wrap:wrap;width:min(460px,calc(100% - 32px))}
 .rtip[dir="rtl"]{padding:14px 16px 14px 10px}
