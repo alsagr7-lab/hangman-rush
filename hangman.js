@@ -112,6 +112,9 @@ async function handle(req, res, url, { send, readJson, ip }) {
     const n = R.dailyNo(), W = wordFor(n, lg), today = R.todayKey(), now = Date.now();
     if (!W) { send(res, 503, { error: "Today's word isn't set up on this server yet" }); return true; }
     const recEn = tidy(own.recs.hm && own.recs.hm.data), rec = lg === "ar" ? tidy(own.recs.hmAr && own.recs.hmAr.data) : recEn;
+    // a guess or hint mid-word changes nothing the boards show, so it leaves their cache alone; a finished word, a new
+    // name or colour, or a level change does not
+    const shown = JSON.stringify([rec.n, rec.c, rec.h[today], recEn.sk]);
     // a first Arabic record takes the name and colour from the English one
     if (lg === "ar" && !(own.recs.hmAr && own.recs.hmAr.data) && own.recs.hm && own.recs.hm.data) { rec.n = recEn.n; rec.c = recEn.c; }
     if (typeof body.n === "string" && body.n.trim().length >= 2) rec.n = R.nm16(body.n.trim());
@@ -119,8 +122,9 @@ async function handle(req, res, url, { send, readJson, ip }) {
     let changed = false;
     const save = async () => {
       if (own.isNew && !limits.allowNewId(ip, uid)) { send(res, 429, { error: "Too many new players from this network today" }); return false; }
-      await store.put(rowId(uid, lg), th, rec);
-      if (lg === "ar") await store.put(uid, th, recEn);
+      const opt = { quiet: !own.isNew && JSON.stringify([rec.n, rec.c, rec.h[today], recEn.sk]) === shown };
+      await store.put(rowId(uid, lg), th, rec, opt);
+      if (lg === "ar") await store.put(uid, th, recEn, opt);
       return true;
     };
     const reply = async () => { if (changed && !(await save())) return true; send(res, 200, stateOut(n, lg, rec, recEn, W)); return true; };

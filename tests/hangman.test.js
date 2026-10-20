@@ -1,5 +1,5 @@
 // The server-run Hangman daily (hangman.js): the word stays on the server, the score is the page's own formula,
-// results land in the same records as before, and records saved the old way come through untouched.
+// results land in the same records as before, and records saved by the old page come through untouched.
 const { test, before, after } = require("node:test");
 const assert = require("node:assert");
 const R = require("../site/shared/rules");
@@ -20,7 +20,8 @@ let srv, BASE;
 before(async () => { srv = await startServer({ seed }); BASE = srv.base; });
 after(() => srv.stop());
 
-const board = async () => Object.fromEntries((await (await fetch(BASE + "/api/players")).json()).map(r => [r.id, r.data]));
+// a record as the boards show it (/api/me: the player's own public records)
+const rec = async id => { const m = await (await fetch(`${BASE}/api/me?uid=${id.replace(/_ar$/, "")}`)).json(); return id.endsWith("_ar") ? m.hmAr : m.hm; };
 const call = async (path, uid, extra) => {
   const r = await fetch(BASE + "/api/hangman/daily/" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ uid, token: TOK(uid), ...extra }) });
   return { status: r.status, body: await r.json() };
@@ -29,8 +30,10 @@ const play = (path, uid, extra) => call(path, uid, extra).then(r => r.body);
 const waitStart = s => new Promise(r => setTimeout(r, (s.open ? s.open.wait : 0) + 50));
 
 test("old records come through the new server unchanged", async () => {
-  const b = await board();
-  for (const [id, data] of Object.entries(OLD)) assert.deepEqual(b[id], data, id);
+  for (const [id, data] of Object.entries(OLD)) {
+    const r = await rec(id);
+    for (const [k, v] of Object.entries(data)) assert.deepEqual(r[k], v, id + " " + k);
+  }
 });
 
 test("a full English daily: word hidden until the end, page's score, result in the same record", async () => {
@@ -54,7 +57,7 @@ test("a full English daily: word hidden until the end, page's score, result in t
   assert.equal(e.ok, 1); assert.equal(e.m, 1); assert.equal(e.hn, 0);
   assert.equal(e.pts, Math.max(20, 100 + R.speedBonus(e.t, 60000) - 10));
   // same record, old days kept, counts moved on like the page did
-  const r = (await board())[uid];
+  const r = (await rec(uid));
   assert.deepEqual(Object.keys(r.h).sort(), [ago(3), ago(2), yday, today]);
   assert.equal(r.h[yday].pts, 146);
   assert.equal(r.played, 4); assert.equal(r.wins, 3); assert.equal(r.streak, 2); assert.equal(r.ls, today); assert.equal(r.sk, 5);
@@ -63,11 +66,14 @@ test("a full English daily: word hidden until the end, page's score, result in t
   assert.equal((await call("start", uid, { lg: "en" })).status, 409);
 });
 
-test("a save from a page that hasn't caught up can't undo the server's result", async () => {
+const profile = (uid, n) => fetch(`${BASE}/api/profile`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ uid, token: TOK(uid), n }) });
+
+test("the old page save is gone; a rename keeps the server's result", async () => {
   const uid = "p_old0000001", stale = OLD[uid];
-  const r = await fetch(`${BASE}/api/players/${uid}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: TOK(uid), data: { ...stale, n: "Renamed" } }) });
-  assert.equal(r.status, 200);
-  const b = (await board())[uid];
+  const old = await fetch(`${BASE}/api/players/${uid}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: TOK(uid), data: { ...stale, played: 99 } }) });
+  assert.equal(old.status, 404);
+  assert.equal((await profile(uid, "Renamed")).status, 200);
+  const b = (await rec(uid));
   assert.equal(b.n, "Renamed");
   assert.equal(b.h[today].ok, 1); assert.equal(b.played, 4); assert.equal(b.streak, 2);
 });
@@ -91,10 +97,10 @@ test("Arabic daily: hints, clue, the level moves on the English record", async (
   const e = s.entry;
   assert.equal(e.ok, 1); assert.equal(e.hn, 2);
   assert.equal(e.pts, Math.round(Math.max(20, 100 + R.speedBonus(e.t, 60000) - 30) * 70 / 100));
-  const b = await board();
-  assert.equal(b[uid + "_ar"].h[today].pts, e.pts);
-  assert.equal(b[uid].sk, -3);
-  assert.deepEqual(b[uid].h, {});
+  assert.equal((await rec(uid + "_ar")).h[today].pts, e.pts);
+  const en = await rec(uid);
+  assert.equal(en.sk, -3);
+  assert.deepEqual(en.h, {});
 });
 
 test("hanged after six misses; time running out is scored as hanged", async () => {
@@ -103,7 +109,7 @@ test("hanged after six misses; time running out is scored as hanged", async () =
   await waitStart(s);
   for (const L of ["Q", "W", "X", "Y", "U", "P"]) s = await play("guess", uid, { lg: "en", L });
   assert.equal(s.entry.ok, 0); assert.equal(s.entry.pts, 0); assert.equal(s.entry.m, 6);
-  assert.equal((await board())[uid].h[ago(3)].t, 60000, "older days untouched");
+  assert.equal((await rec(uid)).h[ago(3)].t, 60000, "older days untouched");
 });
 
 test("a run left past its time is finished as hanged on the next visit", async () => {
@@ -124,7 +130,7 @@ test("only the device holding the token can play an id; the run isn't shown on t
   assert.equal(r.status, 403);
   const fresh = "p_fresh00001";
   await play("start", fresh, { lg: "en", n: "Newbie" });
-  const b = (await board())[fresh];
+  const b = (await rec(fresh));
   assert.equal(b.n, "Newbie"); assert.equal(b.run, undefined);
 });
 
@@ -136,14 +142,12 @@ test("today's word isn't handed out any more (the old /api/daily is gone)", asyn
   }
 });
 
-test("a save arriving at the same moment as the winning guess doesn't wipe the result", async () => {
+test("a rename arriving at the same moment as the winning guess doesn't wipe the result", async () => {
   const uid = "p_race000001";
   let s = await play("start", uid, { lg: "en", n: "Racer" });
-  const staleRec = s.rec; // what the page had before the result
   await waitStart(s);
   for (const L of ["I", "R", "A", "F"]) s = await play("guess", uid, { lg: "en", L });
-  const putStale = () => fetch(`${BASE}/api/players/${uid}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: TOK(uid), data: staleRec }) });
-  await Promise.all([putStale(), play("guess", uid, { lg: "en", L: "E" }), putStale()]);
-  const b = (await board())[uid];
+  await Promise.all([profile(uid, "Racer2"), play("guess", uid, { lg: "en", L: "E" }), profile(uid, "Racer3")]);
+  const b = (await rec(uid));
   assert.equal(b.h[today].ok, 1); assert.equal(b.played, 1); assert.equal(b.run, undefined);
 });

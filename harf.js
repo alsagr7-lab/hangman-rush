@@ -714,12 +714,6 @@ async function handle(req, res, url, { send, readJson, ip }) {
   await loadSettings();
   await ensureMigrated();
 
-  if (p === "/api/harf/players" && req.method === "GET") {
-    ensureFinal();
-    const rows = (await store.hAll()).filter(r => !require("./admin").isHidden("harf", r.id) && R.namedRec(r.data));
-    send(res, 200, rows.map(r => ({ id: r.id, data: publicRec(tidy(r.data)) })));
-    return true;
-  }
   if (p === "/api/harf/info" && req.method === "GET") {
     send(res, 200, { n: R.dailyNo(), cats: H.CATS, api: !!API_KEY, letters: H.LETTERS });
     return true;
@@ -800,7 +794,8 @@ async function handle(req, res, url, { send, readJson, ip }) {
       const run = rec.run;
       if (!run || run.d !== today || Date.now() > deadline(run)) { send(res, 409, { error: "No daily in progress" }); return true; }
       run.dr = H.CATS.map((_, i) => clean(Array.isArray(body.dr) ? body.dr[i] : ""));
-      await save();
+      // a draft changes nothing the boards show, so it leaves their cache alone (drafts arrive every few seconds)
+      await store.hPut(id, th, rec, { quiet: true });
       send(res, 200, { ok: true });
       return true;
     }

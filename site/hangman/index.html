@@ -167,7 +167,6 @@ const CATS=Object.keys(ROOM_WORDS);
 const WORDS=[];for(const c of CATS)for(const [w,en,ar,m] of ROOM_WORDS[c])WORDS.push({w,c,en,ar,m,i:WORDS.length});
 /* daily words, never used in rooms or practice: [category, word, English clue, Arabic clue, Arabic meaning].
    Daily #n uses entry n-1. The hosted version strips this list and asks its server for today's word only. */
-/*DAILY_START*/const DAILY_INLINE=[];/*DAILY_END*/
 /* difficulty: Easy = short words, 8 misses, 90 s; Normal = everything as before; Hard = long words, no help */
 const DIFF={
   easy:{miss:8,ms:90000,free:true,help:true,pool:w=>w.length<=7},
@@ -360,7 +359,7 @@ me.color=safeColor(me.color);
 let room=null,roomApi=null,code=null,mode=null,host=false,connected=true;
 let hs=freshHost();
 let cur=null,score=0,lastRound=0,waitNext=false,joinedAt=0,unsubs=[],myTeam=null;
-let db=null,uid=null,dbErr=false,netState="connecting",netMsg=null;
+let uid=null,dbErr=false,netState="connecting",netMsg=null;
 let rec; // the English daily record (also holds the player's level); set once the date helpers below exist
 let recAr; // the Arabic daily record
 let dlg="en"; // which daily is open: "en" or "ar"
@@ -418,22 +417,12 @@ function clean(r){const h={};const src=r.h&&typeof r.h==="object"?r.h:{};
   return{n:nm16(r.n||me.nick),c:safeColor(r.c||me.color),streak:num(r.streak),best:num(r.best),ls:typeof r.ls==="string"?r.ls:"",played:num(r.played),wins:num(r.wins),h,se:num(r.se)||curSeason(),sk:clampSk(r.sk),
     prev:r.prev&&typeof r.prev==="object"?{se:num(r.prev.se),best:num(r.prev.best),wins:num(r.prev.wins),played:num(r.prev.played),pts:num(r.prev.pts)}:null}}
 function curStreak(r){return r.ls===todayKey()||r.ls===ydayKey()?num(r.streak):0}
-// each language's record is saved on its own: "players/<uid>" for English, "players/<uid>_ar" for Arabic
-const saving={en:false,ar:false},pendingSave={en:false,ar:false},saveFail={en:0,ar:0},saveRetry={en:0,ar:0};let saveBlocked=false;
+// this device's copy of each language's record (the server writes every daily result itself, and the name and colour
+// go to every game through Rush.saveProfile)
 function saveRec(lg="en"){
   const r=drec(lg);
   r.n=me.nick||r.n;r.c=me.color;
   try{localStorage.setItem(recKey(lg),JSON.stringify(r))}catch(e){}
-  if(!db||!uid)return;
-  if(saving[lg]){pendingSave[lg]=true;return}
-  saving[lg]=true;clearTimeout(saveRetry[lg]);
-  db.doc("players/"+uid+(lg==="ar"?"_ar":"")).set(JSON.parse(JSON.stringify(r)))
-    .then(()=>{saveFail[lg]=0;if(dbErr&&!saveFail.en&&!saveFail.ar&&!saveBlocked){dbErr=false;render()}})
-    .catch(e=>{dbErr=true;render();const st=e&&e.status;
-      // a dropped connection, a restart or a busy server: try again, waiting longer each time (5s up to a minute)
-      if(st===0||st===429||st>=500){const n=++saveFail[lg];saveRetry[lg]=setTimeout(()=>saveRec(lg),Math.min(60000,5000*Math.pow(2,n-1)))}
-      else saveBlocked=true})
-    .finally(()=>{saving[lg]=false;if(pendingSave[lg]){pendingSave[lg]=false;saveRec(lg)}});
 }
 function recordDaily(){
   const lg=cur.lg==="ar"?"ar":"en";let r=drec(lg);
@@ -450,9 +439,8 @@ function recordDaily(){
 }
 function todayEntry(r){return r&&r.h?r.h[todayKey()]:null}
 function noteResult(solved){rec.sk=clampSk(rec.sk+(solved?1:-1))}
-/* today's daily word: from the inline list here, or from the server when the page is hosted */
 // today's word in each language; the Arabic one only comes from the server
-let todayDaily=null,todayAr=null,dailyApi=null,dailyErr=false,dailyErrAr=false,dailyLoading=false,dailyLoadingAr=false,dailyTried=0,dailyTriedAr=0;
+let todayDaily=null,todayAr=null,dailyErr=false,dailyErrAr=false,dailyLoading=false,dailyLoadingAr=false,dailyTried=0,dailyTriedAr=0;
 const tdw=(lg=dlg)=>lg==="ar"?todayAr:todayDaily;
 /* the hosted page plays the daily on the server (hangman.js): the word stays there, each letter is sent and the server
    answers where it appears, keeps the clock and the score, and writes the result. Without it (the single-file copy)
@@ -487,7 +475,7 @@ function hmCall(kind,arg){
     try{
       const prof={n:me.nick,c:me.color};
       const s=kind==="start"?await hmApi.start(lg,prof):kind==="guess"?await hmApi.guess(lg,arg):kind==="hint"?await hmApi.hint(lg,arg):await hmApi.state(lg,prof);
-      if(dbErr&&!saveFail.en&&!saveFail.ar&&!saveBlocked)dbErr=false;
+      if(dbErr)dbErr=false;
       applyHm(lg,s);
       if(kind!=="state"&&s&&s.entry&&("ok" in s.entry))Rush.board.refresh();
     }catch(e){
@@ -496,7 +484,6 @@ function hmCall(kind,arg){
     }finally{if(kind==="state")hmStatePending=false}
   });
 }
-function inlineDaily(n){const L=DAILY_INLINE.length;if(!L)return null;const [c,w,en,ar,m]=DAILY_INLINE[((n-1)%L+L)%L];return{w,c,en,ar,m,i:-1,n}}
 async function hmLoad(lg){
   const n=dailyNo();
   try{const d=await hmApi.info(lg),W=d&&d.ok?{w:"",c:"",en:"",ar:"",m:"",i:-1,n,lg}:null;
@@ -505,28 +492,14 @@ async function hmLoad(lg){
 }
 async function loadDaily(){
   const n=dailyNo();if(todayDaily&&todayDaily.n===n)return;
-  if(hmApi){if(dailyLoading||Date.now()-dailyTried<15000)return;dailyLoading=true;dailyTried=Date.now();await hmLoad("en");dailyLoading=false;renderLobbyDaily();return}
-  if(!dailyApi){todayDaily=inlineDaily(n);dailyErr=!todayDaily;return}
-  if(dailyLoading||Date.now()-dailyTried<15000)return;
-  dailyLoading=true;dailyTried=Date.now();
-  try{const d=await dailyApi.today();
-    if(d&&/^[A-Z]{2,20}$/.test(d.w)&&CATS.includes(d.c)){todayDaily={w:d.w,c:d.c,en:String(d.en||""),ar:String(d.ar||""),m:String(d.m||""),i:-1,n};dailyErr=false}
-    else dailyErr=true}
-  catch(e){dailyErr=true}
-  dailyLoading=false;renderLobbyDaily();
+  if(!hmApi||dailyLoading||Date.now()-dailyTried<15000)return;
+  dailyLoading=true;dailyTried=Date.now();await hmLoad("en");dailyLoading=false;renderLobbyDaily();
 }
 async function loadDailyAr(){
   const n=dailyNo();if(todayAr&&todayAr.n===n)return;
-  if(hmApi){if(dailyLoadingAr||Date.now()-dailyTriedAr<15000)return;dailyLoadingAr=true;dailyTriedAr=Date.now();await hmLoad("ar");dailyLoadingAr=false;renderLobbyDaily();if(mode==="daily")render();return}
-  if(!dailyApi||dailyLoadingAr||Date.now()-dailyTriedAr<15000)return;
-  dailyLoadingAr=true;dailyTriedAr=Date.now();
-  try{const d=await dailyApi.today("ar");
-    if(d&&d.lg==="ar"&&/^[\u0621-\u064A]{2,20}$/.test(d.w)&&CATS.includes(d.c)){todayAr={w:d.w,c:d.c,en:String(d.en||""),ar:String(d.ar||""),m:String(d.m||""),i:-1,n,lg:"ar"};dailyErrAr=false}
-    else dailyErrAr=true}
-  catch(e){dailyErrAr=true}
-  dailyLoadingAr=false;renderLobbyDaily();if(mode==="daily")render();
+  if(!hmApi||dailyLoadingAr||Date.now()-dailyTriedAr<15000)return;
+  dailyLoadingAr=true;dailyTriedAr=Date.now();await hmLoad("ar");dailyLoadingAr=false;renderLobbyDaily();if(mode==="daily")render();
 }
-todayDaily=inlineDaily(dailyNo());
 rec=loadLocalRec("en");recAr=loadLocalRec("ar");
 if(rollover(rec)){try{localStorage.setItem("hr-daily",JSON.stringify(rec))}catch(e){}}
 if(rollover(recAr)){try{localStorage.setItem("hr-daily-ar",JSON.stringify(recAr))}catch(e){}}
@@ -602,17 +575,14 @@ setInterval(()=>{if(!$("#lobby").hidden)renderLobbyDaily()},30000);
 
 (async()=>{
   const use=n=>window.claude&&window.claude.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
-  const [r,d,u,dw,hm]=await Promise.all([use("room"),use("db"),use("user"),use("daily"),use("hangman")]);
-  if(hm&&typeof hm.start==="function"){hmApi=hm;todayDaily=null;loadDaily()}
-  else if(dw&&typeof dw.today==="function"){dailyApi=dw;if(!DAILY_INLINE.length)todayDaily=null;loadDaily()}
+  const [r,u,hm]=await Promise.all([use("room"),use("user"),use("hangman")]);
+  if(hm&&typeof hm.start==="function"){hmApi=hm;loadDaily()}
   room=r;
   if(room){$("#createBtn").disabled=false;$("#joinBtn").disabled=false;$("#duelBtn").disabled=false;netState="ok"}else{netState="none";rushMissing()}
   renderNet();
-  if(d&&u){try{uid=await u.id()}catch(e){uid=null}}
+  if(u){try{uid=await u.id()}catch(e){uid=null}}
   renderNameHint();
-  if(d&&uid){db=d;
-    loadMine();
-  }
+  if(uid)loadMine();
 })();
 
 // this device's records as the server has them: the server-run daily writes every result, so its copy wins
@@ -635,7 +605,6 @@ $("#dailyBtn").onclick=()=>{if(!requireName())return;saveMe();mode="daily";host=
   // the page language's word first, unless it's played already or not loaded
   const free=lg=>{const e=todayEntry(drec(lg));return !(e&&("ok" in e))&&!!tdw(lg)};
   const pick=[lang==="ar"?"ar":"en",lang==="ar"?"en":"ar"].find(free)||(tdw(lang==="ar"?"ar":"en")?(lang==="ar"?"ar":"en"):"en");
-  if(rec.n!==me.nick||rec.c!==me.color){if(rec.played)saveRec()}
   showGame();setDailyLang(pick)};
 // open one language's daily: its result if played, otherwise the start screen
 function setDailyLang(lg){

@@ -78,14 +78,25 @@ function rank(game, recs, lg, tab) {
 }
 
 // ---------- cache: per game, until its records change or the day turns ----------
+// Requests that arrive while the records are being read share that one read instead of each starting their own.
 const cache = new Map(); // game -> { ver, day, recs, views: Map("lg|tab" -> rows) }
+const reading = new Map(); // game -> { ver, day, p: promise of the cache entry }
 async function view(game, lg, tab) {
   const ver = store.ver[game], day = R.todayKey();
   let c = cache.get(game);
   if (!c || c.ver !== ver || c.day !== day) {
-    c = { ver, day, recs: await records(game), views: new Map() };
-    // a write that landed while reading means the next request reads again
-    if (store.ver[game] === ver) cache.set(game, c);
+    let r = reading.get(game);
+    if (!r || r.ver !== ver || r.day !== day) {
+      r = { ver, day, p: records(game).then(recs => {
+        const e = { ver, day, recs, views: new Map() };
+        // a write that landed while reading means the next request reads again
+        if (store.ver[game] === ver) cache.set(game, e);
+        return e;
+      }) };
+      reading.set(game, r);
+      r.p.finally(() => { if (reading.get(game) === r) reading.delete(game); }).catch(() => {});
+    }
+    c = await r.p;
   }
   const key = lg + "|" + tab;
   if (!c.views.has(key)) c.views.set(key, rank(game, c.recs, lg, tab));
