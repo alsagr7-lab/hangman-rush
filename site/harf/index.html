@@ -275,7 +275,7 @@ ar:{
   langSwitch:"English",yourName:"اسمك",namePh:"مثلاً: يوسف",yourColour:"لونك",colourAria:"اللون {c}",
   nameHintEmpty:"اختر اسماً ليجدك أصحابك في لوحة الترتيب.",nameHintAs:"ستظهر باسم ",nameHintTag:" في لوحة الترتيب.",
   nameNeeded:"أضف اسماً (حرفان على الأقل) قبل اللعب أونلاين أو حرف اليوم.",
-  dailyTitle:"حرف اليوم #{n}",streakN:"🔥 {n}",bestN:"الأفضل {n}",
+  dailyTitle:"حرف اليوم ⁦#{n}⁩",streakN:"🔥 {n}",bestN:"الأفضل {n}",
   seasonLine:"الموسم {s} · {left} · الترتيب يبدأ من جديد كل 30 يوماً",lastDay:"اليوم الأخير",daysLeft:"باقي {n} أيام",
   dailyIntroLobby:"حرف عربي وحرف إنجليزي كل يوم: العب أحدهما أو كليهما، 90 ثانية لكل منهما. حروف جديدة بعد {t}.",playToday:"العب حرف اليوم",
   playOther:"العب الحرف الآخر",lgDone:"{c}/5 · {p} نقطة",lgOpen:"بدأت",lgWait:"لم تلعب",resume:"أكمل",seeBoard:"اعرض الترتيب",
@@ -303,7 +303,7 @@ ar:{
   curStreak:"🔥 سلسلة الكمال: {n}. الخمس كلها صحيحة اليوم تضيف +{b}.",noStreak:"الخمس كلها صحيحة اليوم تبدأ سلسلة الكمال (+1).",
   start:"ابدأ",doneTitle:"{c} من 5 صحيحة",statPoints:"النقاط",statValid:"صحيحة",statStreak:"السلسلة",statBest:"الأفضل",copyResult:"انسخ النتيجة",
   streakBonus:"مكافأة سلسلة الكمال",rareSoon:"مكافأة الإجابات النادرة",rareSoonV:"غداً",nextLetter:"الحرف التالي بعد {t}. يتغيّر عند منتصف الليل بتوقيت UTC.",
-  shareHead:"سباق الحروف · حرف اليوم #{n} · {lg}",backLobby:"العودة للبداية",
+  shareHead:"سباق الحروف · حرف اليوم ⁦#{n}⁩ · {lg}",backLobby:"العودة للبداية",
   shareStart:"شارك الرمز ثم ابدأ",roomCodeLine:"رمز الغرفة: ",readyPractise:"جاهز للتدريب؟",startRound1:"ابدأ الجولة 1",nextRound:"الجولة التالية",
   waitingFor:"بانتظار {name}",startsAtOnce:"تبدأ الجولة للجميع في نفس اللحظة.",noHost:"لا يوجد مضيف في الغرفة {c}",noHostHelp:"تأكّد من الرمز مع صديقك، أو أدِر الغرفة بنفسك.",
   takeOver:"أدِر الغرفة",hostLeft:"غادر المضيف. يستطيع أي لاعب أن يتولى الإدارة.",waitingHostNext:"بانتظار {name} ليبدأ الجولة التالية.",
@@ -366,6 +366,9 @@ R.COLORS.forEach(c=>{const b=el("button","sw");b.type="button";b.style.backgroun
 // one daily per language a day: dstates.ar and dstates.en are the server's view of each
 let dstates={ar:null,en:null},dErr=false,dLoading=false,dTried=0,apiOn=null;
 const LGN={ar:"عربي",en:"English"},LGS=["ar","en"];
+// in running text, language names follow the page language and the page's own language comes first
+const lgn=lg=>lang==="ar"?(lg==="ar"?"عربي":"إنجليزي"):(lg==="ar"?"Arabic":"English");
+const lgsShown=()=>lang==="ar"?["ar","en"]:["en","ar"];
 const dl=()=>drun?drun.lg:lang;
 const ds=lg=>dstates[lg||dl()];
 function setDs(s){if(s&&s.lg){dstates[s.lg]=s;saveToday()}}
@@ -383,7 +386,7 @@ function renderCheckNote(){$("#checkNote").textContent=apiOn==null?"":t(apiOn?"c
 function renderLobbyDaily(){
   const n=R.dailyNo();
   $("#dTitle").textContent=t("dailyTitle",{n});
-  $("#dStreak").textContent=LGS.map(lg=>{const x=dstates[lg];return x&&num(x.streak)?LGN[lg]+" "+t("streakN",{n:x.streak}):""}).filter(Boolean).join(" · ");
+  $("#dStreak").textContent=lgsShown().map(lg=>{const x=dstates[lg];return x&&num(x.streak)?lgn(lg)+" "+t("streakN",{n:x.streak}):""}).filter(Boolean).join(" · ");
   const left=R.seasonDaysLeft();
   $("#dSeason").textContent=t("seasonLine",{s:R.curSeason(),left:left===1?t("lastDay"):t("daysLeft",{n:left})});
   const st=$("#dStatus"),b=$("#dailyBtn");
@@ -391,7 +394,7 @@ function renderLobbyDaily(){
   renderYday();
   if(!dstates.ar||!dstates.en){b.disabled=true;b.textContent=t(dErr?"dailyErr":"loadingDaily");st.textContent=t("dailyIntroLobby",{t:untilNext()});loadDaily();return}
   b.disabled=false;
-  const line=LGS.map(lg=>{const e=todayEntry(lg);return LGN[lg]+": "+(e?t("lgDone",{c:e.c,p:e.pts}):dstates[lg].open?t("lgOpen"):t("lgWait"))}).join(" · ");
+  const line=lgsShown().map(lg=>{const e=todayEntry(lg);return lgn(lg)+": "+(e?t("lgDone",{c:e.c,p:e.pts}):dstates[lg].open?t("lgOpen"):t("lgWait"))}).join(" · ");
   st.textContent=line+". "+t("dailyIntroLobby",{t:untilNext()});
   const done=LGS.filter(lg=>todayEntry(lg)).length;
   b.textContent=done===2?t("seeBoard"):LGS.some(lg=>dstates[lg].open)?t("resume"):done?t("playOther"):t("playToday");
@@ -437,7 +440,7 @@ function renderYday(){
   const box=$("#yBox");box.textContent="";
   const ys=LGS.map(lg=>dstates[lg]&&dstates[lg].yday).filter(Boolean);box.hidden=!ys.length;
   ys.forEach(y=>{
-    box.append(el("p","lbl",LGN[y.lg]+" · "+t("ydayTitle",{L:y.L,p:y.pts})));
+    box.append(el("p","lbl",lgn(y.lg)+" · "+t("ydayTitle",{L:y.L,p:y.pts})));
     const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,y.a[i],y.L,y.lg,num(y.np),{base:true,rare:true,appeal:apiOn!==false,yd:true},i)));box.append(ul);
     box.append(el("p","note",num(y.np)<2?t("ydayAlone"):(y.rb?t("ydayRare",{n:y.rb}):t("ydayNoRare"))));
     // yesterday's turned-down answers can be appealed until the letters change at midnight UTC
@@ -751,7 +754,7 @@ function renderTop(){
   if(mode==="solo")r.textContent=t("soloPractice");
   else if(mode==="daily")r.textContent=t("dailyMode");
   else if(mode==="room"){r.append(el("span",null,t("roomLbl")),ltr(code,"code"));$("#netDot").classList.toggle("off",!connected)}
-  $("#roundLbl").textContent=mode==="daily"?"#"+R.dailyNo():cur?t("roundN",{n:cur.round}):"";
+  $("#roundLbl").textContent=mode==="daily"?"\u2066#"+R.dailyNo()+"\u2069":cur?t("roundN",{n:cur.round}):"";
 }
 function timeLeft(){
   const now=Date.now();
@@ -838,7 +841,7 @@ function hideOverlay(ov){if(!ov.hidden){ov.hidden=true;lastPanelKey=""}}
 function stats(items){const st=el("div","stats");items.forEach(([v,k])=>{const d=el("div");d.append(el("b",null,String(v)),el("span",null,t(k)));st.appendChild(d)});return st}
 function lgSwitch(cur,onPick){const w=el("span","lgsw");[["ar","عربي"],["en","EN"]].forEach(([lg,l])=>{const b=el("button",null,l);b.type="button";b.lang=lg;b.setAttribute("aria-pressed",String(cur===lg));b.setAttribute("aria-label",lg==="ar"?"عربي":"English");b.onclick=()=>onPick(lg);w.appendChild(b)});return w}
 // the daily's language switch, with a tick on a language already played today
-function langSeg(){return seg(LGS.map(lg=>[lg,LGN[lg]+(todayEntry(lg)?" ✓":"")]),drun.lg,setDailyLang)}
+function langSeg(){return seg(lgsShown().map(lg=>[lg,LGN[lg]+(todayEntry(lg)?" ✓":"")]),drun.lg,setDailyLang)}
 function seg(opts,cur,onPick){const s=el("div","seg");opts.forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(cur===v));b.onclick=()=>onPick(v);s.appendChild(b)});return s}
 function renderOverlay(){
   const ov=$("#overlay"),panel=$("#panel"),now=Date.now();
@@ -854,7 +857,7 @@ function renderOverlay(){
     if(drun.phase==="done"&&todayEntry())return setPanel(ov,panel,"done"+drun.lg+JSON.stringify(todayEntry())+appealMsg,()=>{
       const e=todayEntry(),s=ds()?num(ds().streak):0,best=ds()?num(ds().best):0;
       const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,e.a[i],e.L,e.lg,0,{base:true,rare:false,appeal:apiOn!==false},i)));
-      const out=[langSeg(),el("h2",null,LGN[drun.lg]+" · "+t("doneTitle",{c:e.c})),ul];
+      const out=[langSeg(),el("h2",null,lgn(drun.lg)+" · "+t("doneTitle",{c:e.c})),ul];
       const canAppeal=e.a.some(a=>a.w&&!a.ok&&!a.l&&!a.ap&&!a.u);
       if(appealMsg)out.push(el("p","note warn",t(appealMsg)));
       else if(canAppeal&&apiOn!==false)out.push(el("p","note",t("appealHelp")+" "+t("appealsLeft",{n:num(ds().appealsLeft)})));
@@ -862,7 +865,7 @@ function renderOverlay(){
       const soon=el("div","bonus soon");soon.append(el("span",null,t("rareSoon")),el("span",null,t("rareSoonV")));out.push(soon);
       out.push(stats([[e.pts,"statPoints"],[e.c+"/5","statValid"],[s,"statStreak"],[best,"statBest"]]));
       const grid=e.a.map(a=>a.ok?"🟩":"⬛").join("");
-      const share=t("shareHead",{n:R.dailyNo(),lg:LGN[drun.lg]}) /* never the letter: it would spoil the day */+"\n"+grid+" "+t("pts",{n:e.pts})+(s?" 🔥"+s:"")+"\n"+Rush.shareUrl();
+      const share=t("shareHead",{n:R.dailyNo(),lg:lgn(drun.lg)}) /* never the letter: it would spoil the day */+"\n"+grid+" "+t("pts",{n:e.pts})+(s?" 🔥"+s:"")+"\n"+Rush.shareUrl();
       const cb=el("button","btn primary",t("copyResult"));cb.onclick=()=>copyText(share,cb,"copyResult");
       out.push(cb,el("p","note",t("nextLetter",{t:untilNext()})));return out});
     return hideOverlay(ov);
