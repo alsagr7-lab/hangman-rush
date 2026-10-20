@@ -246,7 +246,7 @@ ar:{
   nameHintEmpty:"اختر اسماً ليجدك أصحابك في لوحة الترتيب.",nameHintAs:"ستظهر باسم ",nameHintTag:" في لوحة الترتيب.",
   nameNeeded:"أضف اسماً (حرفان على الأقل) قبل اللعب أونلاين أو أسئلة اليوم.",
   skillNote:"تكلفة 50/50 عليك {p}% من نقاط السؤال. ترتفع 5 مع كل إجابة صحيحة في أسئلة اليوم أو الغرف، وتنخفض مع كل خطأ.",skillBonus:" أول 50/50 كل يوم مجانية لك حالياً.",
-  dailyTitle:"أسئلة اليوم #{n}",streakN:"السلسلة {n}",bestN:"الأفضل {n}",
+  dailyTitle:"أسئلة اليوم ⁦#{n}⁩",streakN:"السلسلة {n}",bestN:"الأفضل {n}",
   seasonLine:"الموسم {s} · {left} · الترتيب يبدأ من جديد كل 30 يوماً",lastDay:"اليوم الأخير",daysLeft:"باقي {n} أيام",lastSeason:". الموسم الماضي: {w} أيام بـ3 إجابات صحيحة أو أكثر، أفضل سلسلة {b}، {p} نقطة",
   dailyIntroLobby:"خمسة أسئلة للجميع، ومحاولة واحدة. مجموعة جديدة بعد {t}.",playToday:"العب أسئلة اليوم",resume:"أكمل ({i} من 5)",seeBoard:"اعرض الترتيب",
   doneLine:"{c} من 5 صحيحة · {p} نقطة",loadingDaily:"جارٍ تحميل أسئلة اليوم…",dailyErr:"تعذّر تحميل أسئلة اليوم. سنحاول مجدداً بعد قليل.",dailyNone:"لا توجد أسئلة يومية مُعدّة لهذا اليوم.",
@@ -280,8 +280,8 @@ ar:{
   dailyIntro:"الكل يحصل على هذه الأسئلة الخمسة اليوم. محاولة واحدة، و15 ثانية لكل سؤال. أجب 3 إجابات صحيحة أو أكثر لتحافظ على سلسلتك.",
   curStreak1:"سلسلتك الحالية: يوم واحد. أجب 3 صحيحة أو أكثر لتحافظ عليها.",curStreakN:"سلسلتك الحالية: {n} أيام. أجب 3 صحيحة أو أكثر لتحافظ عليها.",
   doneTitle:"{c} من 5 صحيحة",statPoints:"النقاط",statRight:"صحيحة",statStreak:"السلسلة",statBest:"الأفضل",copyResult:"انسخ النتيجة",
-  nextSetUtc:"المجموعة التالية بعد {t}. تتغيّر عند منتصف الليل بتوقيت UTC.",shareHead:"سباق المعلومات · الموسم {s} · أسئلة اليوم #{n}",
-  archDone:"اليوم السابق #{n}: {c} من 5",archNote:"الإعادة لا تُحتسب في الترتيب.",backLobby:"العودة للبداية",
+  nextSetUtc:"المجموعة التالية بعد {t}. تتغيّر عند منتصف الليل بتوقيت UTC.",shareHead:"سباق المعلومات · الموسم {s} · أسئلة اليوم ⁦#{n}⁩",
+  archDone:"اليوم السابق ⁦#{n}⁩: {c} من 5",archNote:"الإعادة لا تُحتسب في الترتيب.",backLobby:"العودة للبداية",
   players:"اللاعبون: {n}",player1:"لاعب واحد",you:"أنت",hostTag:"المضيف",thinking:"يفكّر…",waitingNext:"ينضم في الجولة التالية",
   skipAll:"أجاب الجميع",skipSolo:"تمت الإجابة",resumed:"خرجت أثناء سؤال، فاحتُسب انتهاء الوقت.",pts:"{n} نقطة",hm:"{h}س {m}د",
   cat_geography:"جغرافيا",cat_history:"تاريخ",cat_science:"علوم",cat_space:"فضاء",cat_animals:"حيوانات",cat_sports:"رياضة",
@@ -392,7 +392,7 @@ function renderArchive(){
   let shown=0;
   for(let k=to;k>=from&&shown<archShown;k--,shown++){
     const row=el("div","arow"),e=mine[R.keyOfDaily(k)],l=local[k];
-    row.append(el("span","an","#"+k));
+    row.append(el("span","an","\u2066#"+k+"\u2069"));
     const d=el("span","ad",e&&("ok" in e)?t("archPlayed",{c:e.c,p:e.pts}):l?t("archReplayed",{c:l.c,p:l.pts}):t("archMissed"));
     const b=el("button","btn",e||l?t("archAgain"):t("archPlay"));b.type="button";b.onclick=()=>startArchive(k);
     row.append(d,b);box.appendChild(row);
@@ -770,7 +770,7 @@ function renderTop(){
   else if(mode==="archive")r.textContent=t("archMode");
   else if(mode==="room"){r.append(el("span",null,t("roomLbl")),ltr(code,"code"));$("#netDot").classList.toggle("off",!connected)}
   const h=hostInfo();
-  $("#roundLbl").textContent=mode==="daily"?"#"+R.dailyNo():mode==="archive"?"#"+run.n:(cur?t("roundN",{n:cur.round})+" · "+diffName(cur.df):(h?diffName(h.df):""));
+  $("#roundLbl").textContent=mode==="daily"?"\u2066#"+R.dailyNo()+"\u2069":mode==="archive"?"\u2066#"+run.n+"\u2069":(cur?t("roundN",{n:cur.round})+" · "+diffName(cur.df):(h?diffName(h.df):""));
 }
 function renderTimer(){
   const v=view(),tm=$("#timer"),bar=$("#tbar");
