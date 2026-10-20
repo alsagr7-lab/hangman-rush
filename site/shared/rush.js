@@ -314,7 +314,7 @@
   };
   const LANGS = { hangman: ["ar", "en"], trivia: [], harf: ["ar", "en"] };
   function makeBoard() {
-    let o = null, tab = "today", lgSel = null, timer = 0;
+    let o = null, tab = "today", lgSel = null;
     const cacheB = new Map(); // "lg|tab" -> { at, data, err }
     const ui = () => (document.documentElement.lang === "ar" ? "ar" : "en");
     const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (m, k) => (v && k in v ? v[k] : m));
@@ -402,9 +402,7 @@
         o = Object.assign({ active: () => true }, opts);
         const tabs = q("tabs");
         if (tabs) tabs.addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if (!b || !o.active()) return; tab = b.dataset.t; draw(); load(); });
-        // while it's showing: a fresh copy every 15 seconds, and straight away when the page comes back into view
-        clearInterval(timer);
-        timer = setInterval(() => { if (document.visibilityState === "visible" && o.active()) load(); }, 15000);
+        // no timer: a fresh copy when the board opens, after you finish a daily (refresh), and when the page comes back into view
         document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && o.active()) load(); });
         new MutationObserver(() => { if (o.active()) draw(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
       },
