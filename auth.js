@@ -5,7 +5,7 @@
 // The token is stored encrypted (AES-256-GCM, key from ACCOUNT_KEY or DAILY_KEY), because a new device needs the
 // token itself, not only its hash. Only Google's account number ("sub") is kept: no email address, no name.
 //
-//   GET  /api/auth/config  -> {google: client id or null}
+//   GET  /api/auth/config?uid=  -> {google: client id or null, linked: whether uid is linked to a Google account}
 //   POST /api/auth/google  {credential, uid, token, confirm?}
 //        -> {uid, token, email, switched}   (email is only echoed back for this device to show; never stored)
 //        -> 409 {need: "switch"}            when the Google account already has progress on another id and this
@@ -75,7 +75,8 @@ const signedIn = new Map(); // uid -> true/false, so rooms don't look it up on e
 async function isSignedIn(uid) {
   if (!CLIENT_ID || !uid) return false;
   if (signedIn.has(uid)) return signedIn.get(uid);
-  const v = !!(await store.acctByUid(uid).catch(() => null));
+  let v;
+  try { v = !!(await store.acctByUid(uid)); } catch { return false; } // a database error isn't remembered as "no"
   if (signedIn.size > 20000) signedIn.clear();
   signedIn.set(uid, v);
   return v;
@@ -84,7 +85,16 @@ async function isSignedIn(uid) {
 async function handle(req, res, url, { send, readJson, ip }) {
   const p = url.pathname;
   if (!p.startsWith("/api/auth/")) return false;
-  if (p === "/api/auth/config" && req.method === "GET") { send(res, 200, { google: CLIENT_ID && KEY ? CLIENT_ID : null }); return true; }
+  if (p === "/api/auth/config" && req.method === "GET") {
+    const out = { google: CLIENT_ID && KEY ? CLIENT_ID : null }, uid = url.searchParams.get("uid") || "";
+    // whether this player id is the one linked to a Google account, so a page that thinks it's signed in can tell when
+    // its player was swapped (ids are shown on the boards anyway; this says nothing about which account)
+    if (out.google && ident.isUid(uid)) {
+      try { out.linked = signedIn.has(uid) ? signedIn.get(uid) : !!(await store.acctByUid(uid)); } catch { /* unknown: say nothing */ }
+    }
+    send(res, 200, out);
+    return true;
+  }
   if (p !== "/api/auth/google" || req.method !== "POST") return false;
   if (!CLIENT_ID || !KEY) { send(res, 404, { error: "Sign-in isn't set up on this server" }); return true; }
   if (!limits.take("auth|" + ip, 10, 10)) { send(res, 429, { error: "Too many tries. Wait a minute." }); return true; }
