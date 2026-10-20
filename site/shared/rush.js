@@ -18,27 +18,34 @@
 
   /* ---------- identity ----------
      Moving to the static site: the old address links here with #move=<id>.<token>.<profile>, so the player keeps
-     their leaderboard entry. The fragment never reaches any server. */
+     their leaderboard entry. The fragment never reaches any server. A player signed in with Google here is never
+     replaced by one coming from an old address (an old bookmark used to swap a signed-in player for a guest). */
   const MOVED = ["hr-me", "hr-lang", "hr-daily", "hr-daily-ar", "hr-cv", "tr-cv", "hr-acct"];
   (function adopt() {
     const m = location.hash.match(/^#move=([A-Za-z0-9_-]{8,64})\.([0-9a-f]{16,128})(?:\.(.*))?$/);
     if (!m) return;
+    const here = store.get("hr-uid");
+    if (here && here !== m[1] && store.get("hr-acct")) { history.replaceState(null, "", location.pathname + location.search); return; }
     store.set("hr-uid", m[1]); store.set("hr-token", m[2]);
     if (m[3]) { try { const extra = JSON.parse(decodeURIComponent(m[3])); for (const k of MOVED) if (typeof extra[k] === "string") store.set(k, extra[k]); } catch {} }
     history.replaceState(null, "", location.pathname + location.search);
   })();
-  let uid = store.get("hr-uid"); if (!uid) { uid = "p_" + rand(10); store.set("hr-uid", uid); }
-  let token = store.get("hr-token"); if (!token) { token = rand(24); store.set("hr-token", token); }
+  // an old onrender.com address only forwards (leaveOld below): it carries a player it really had, and never saves a
+  // new one, which a later visit would otherwise carry over in place of the player at the public address
+  const oldAddress = !!HOME && /\.onrender\.com$/i.test(location.hostname) && (() => { try { return new URL(HOME).origin !== location.origin; } catch { return false; } })();
+  const hadPlayer = !!store.get("hr-uid");
+  let uid = store.get("hr-uid"); if (!uid) { uid = "p_" + rand(10); if (!oldAddress) store.set("hr-uid", uid); }
+  let token = store.get("hr-token"); if (!token) { token = rand(24); if (!oldAddress) store.set("hr-token", token); }
   function moveLink(target) {
     const extra = {};
     for (const k of MOVED) { const v = store.get(k); if (v) extra[k] = v; }
     return target.replace(/\/+$/, "") + location.pathname + "#move=" + uid + "." + token + "." + encodeURIComponent(JSON.stringify(extra));
   }
-  // an old onrender.com address: carry the player (id, profile, sign-in) over to the public address
+  // an old onrender.com address: carry the player (id, profile, sign-in) over to the public address. One that never
+  // had a player in this browser just sends the visitor on, so a made-up guest can't replace the player there.
   (function leaveOld() {
-    if (!HOME || !/\.onrender\.com$/i.test(location.hostname)) return;
-    try { if (new URL(HOME).origin === location.origin) return; } catch { return; }
-    location.replace(moveLink(HOME));
+    if (!oldAddress) return;
+    location.replace(hadPlayer ? moveLink(HOME) : HOME.replace(/\/+$/, "") + location.pathname + location.search);
   })();
   // the link put in shared results
   function shareUrl() { return (HOME || location.origin) + location.pathname; }
@@ -487,7 +494,7 @@
           out: "Sign out", outQ: "Sign out on this device? It starts again as a new guest; your progress stays in your Google account.",
           switchQ: "This Google account already has progress from another device. Switch to it? Your results from this device will be added to it (if both played the same day, the first result counts).",
           merged: "Added {e} day(s) from your other device.", mergedNone: "Nothing new to add from your other device.", mergeSkipped: "Results from another device were already added this season, so this device's weren't added.",
-          fail: "Sign-in didn't work. Try again in a moment.", taken: "This progress is already linked to a different Google account.",
+          fail: "Sign-in didn't work. Try again in a moment.", relink: "This browser lost track of your Google account. Sign in again to get your progress back.", taken: "This progress is already linked to a different Google account.",
           guest: "Playing as a guest", saved: "Progress saved to Google", priv: "We don't keep your email or name, only your Google account number, so your progress can follow you.",
           save: "Save progress", saveShort: "Save", profile: "Your profile", close: "Close", allGames: "All games", home: "Rush Games home",
           switchT: "Switch to this account?", switchOk: "Switch account", outT: "Sign out?", cancel: "Cancel",
@@ -496,7 +503,7 @@
           out: "تسجيل الخروج", outQ: "تسجيل الخروج من هذا الجهاز؟ سيبدأ كضيف جديد، ويبقى تقدّمك محفوظاً في حساب Google.",
           switchQ: "لهذا الحساب تقدّم من جهاز آخر. هل تنتقل إليه؟ ستُضاف نتائجك من هذا الجهاز إليه (إذا لعب الجهازان نفس اليوم تُحتسب النتيجة الأولى).",
           merged: "أُضيفت {e} يوماً من جهازك الآخر.", mergedNone: "لا جديد لإضافته من جهازك الآخر.", mergeSkipped: "سبق أن أُضيفت نتائج جهاز آخر هذا الموسم، فلم تُضف نتائج هذا الجهاز.",
-          fail: "تعذّر تسجيل الدخول. حاول بعد لحظات.", taken: "هذا التقدّم مرتبط بحساب Google آخر.",
+          fail: "تعذّر تسجيل الدخول. حاول بعد لحظات.", relink: "فقد هذا المتصفح ربطه بحسابك في Google. سجّل الدخول من جديد لتستعيد تقدّمك.", taken: "هذا التقدّم مرتبط بحساب Google آخر.",
           guest: "تلعب كضيف", saved: "تقدّمك محفوظ في Google", priv: "لا نحتفظ ببريدك أو اسمك، بل برقم حسابك في Google فقط، ليتبعك تقدّمك.",
           save: "احفظ تقدّمك", saveShort: "احفظ", profile: "ملفك", close: "إغلاق", allGames: "كل الألعاب", home: "الصفحة الرئيسية",
           switchT: "الانتقال إلى هذا الحساب؟", switchOk: "انتقل للحساب", outT: "تسجيل الخروج؟", cancel: "إلغاء",
@@ -768,7 +775,13 @@
     new MutationObserver(() => { renderAcct(); renderBar(); setTheme(themeNow(), false); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
     renderAcct();
     await ready;
-    try { authCfg = await get("/api/auth/config"); } catch { authCfg = { google: null }; }
+    try { authCfg = await get("/api/auth/config?uid=" + encodeURIComponent(uid)); } catch { authCfg = { google: null }; }
+    // this browser says "saved in Google", but its player isn't the one linked to an account (an old address could
+    // swap it, see adopt()): drop the label and ask for a sign-in, which brings the account's player back
+    if (acct && authCfg && authCfg.google && authCfg.linked === false) {
+      acct = null; acctMsg = "relink";
+      try { localStorage.removeItem("hr-acct"); } catch {}
+    }
     renderAcct(); renderBar();
   });
 
