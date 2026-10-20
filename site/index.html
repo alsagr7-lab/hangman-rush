@@ -71,13 +71,26 @@
 .o4 i{height:6px;flex:1;max-width:60%;border-radius:3px;background:rgba(11,12,16,.35)}
 .o4.on{background:var(--chip);color:var(--ink)}
 .o4.on i{background:var(--blue)}
-.hrf{font-family:var(--f-ar);font-weight:900;font-size:96px;line-height:1}
-.hrf-w{font-family:var(--f-ar);font-weight:800;font-size:17px;display:grid;gap:0;direction:rtl;line-height:1.5}
+.band.ar{direction:rtl}
+:root[lang="ar"] .band.en,:root:not([lang="ar"]) .band.ar{display:none}
+.band.ar .o4,.lt.ar{font-family:var(--f-ar);font-weight:900}
+.hrf{font-family:var(--f-display);font-weight:900;font-size:96px;line-height:1;width:84px;text-align:center}
+.band.ar .hrf{font-family:var(--f-ar)}
+.hbs{display:grid;gap:7px;width:min(190px,58%);margin-inline-start:10px}
+.hb{height:30px;border-radius:9px;background:rgba(11,12,16,.2);display:flex;align-items:center;gap:8px;padding:0 10px;overflow:hidden;white-space:nowrap}
+.hb b{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.62;width:46px;flex:none}
+.hb em{font-style:normal;font-family:var(--f-display);font-weight:800;font-size:15px}
+.band.ar .hb b{font-family:var(--f-ar);font-size:12px;letter-spacing:0;width:38px}
+.band.ar .hb em{font-family:var(--f-ar);font-size:15px}
+.hb.on{background:var(--chip);color:var(--ink);box-shadow:inset 0 0 0 2px #0B0C10}
+.hb s{width:2px;height:16px;background:var(--green);margin-inline-start:-6px;animation:hcar 1s steps(1) infinite}
+@keyframes hcar{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.hb s{animation:none}}
 @media (max-width:620px){
   .band{height:104px;justify-content:flex-start;padding-inline:20px;gap:6px}
   .lt{width:36px;height:46px;font-size:23px;border-radius:8px}
   .o4s{width:100%;gap:8px}.o4{height:28px;font-size:13px}
-  .hrf{font-size:64px}.hrf-w{display:block;margin-inline-start:12px;font-size:16px}
+  .hrf{font-size:66px;width:60px}.hbs{gap:4px;width:auto;flex:1;max-width:220px}.hb{height:24px;border-radius:7px}.hb em,.band.ar .hb em{font-size:13.5px}.hb b{font-size:9.5px}.band.ar .hb b{font-size:11px}.hb s{height:13px}
 }
 .gb{padding:20px 22px 22px;display:flex;flex-direction:column;gap:10px;flex:1}
 .gb h2{font-family:var(--f-display);font-stretch:118%;font-weight:800;font-size:24px;margin:0;line-height:1.15}
@@ -150,15 +163,15 @@
 
     <div class="games">
       <a class="game hangman" href="/hangman/" id="gHangman">
-        <div class="band" aria-hidden="true"><span class="lt">R</span><span class="lt blank"></span><span class="lt">S</span><span class="lt">H</span></div>
+        <div class="band en" aria-hidden="true"><span class="lt">R</span><span class="lt blank"></span><span class="lt">S</span><span class="lt">H</span></div><div class="band ar" aria-hidden="true"><span class="lt ar">ك</span><span class="lt ar">ل</span><span class="lt blank"></span><span class="lt ar">ة</span></div>
         <div class="gb"><h2 data-i18n="hangman">Hangman Rush</h2><p data-i18n="hangmanDesc">Same word, same moment. Solve it fastest with the fewest wrong letters.</p><span class="btn go" data-i18n="playDaily">Play daily</span></div>
       </a>
       <a class="game trivia" href="/trivia/" id="gTrivia">
-        <div class="band" aria-hidden="true"><div class="o4s"><span class="o4">A<i></i></span><span class="o4 on">B<i></i></span><span class="o4">C<i></i></span><span class="o4">D<i></i></span></div></div>
+        <div class="band en" aria-hidden="true"><div class="o4s"><span class="o4">A<i></i></span><span class="o4 on">B<i></i></span><span class="o4">C<i></i></span><span class="o4">D<i></i></span></div></div><div class="band ar" aria-hidden="true"><div class="o4s"><span class="o4">أ<i></i></span><span class="o4 on">ب<i></i></span><span class="o4">ج<i></i></span><span class="o4">د<i></i></span></div></div>
         <div class="gb"><h2 data-i18n="trivia">Trivia Rush</h2><p data-i18n="triviaDesc">Five questions, fifteen seconds each, in English or Arabic. Fast and right wins.</p><span class="btn go" data-i18n="playDaily">Play daily</span></div>
       </a>
       <a class="game harf" href="/harf/" id="gHarf">
-        <div class="band" aria-hidden="true"><span class="hrf">ح</span><span class="hrf-w"><span>حيوان</span> <span>جماد</span> <span>إنسان</span></span></div>
+        <div class="band en" aria-hidden="true"><span class="hrf">B</span><span class="hbs"><span class="hb"><b>Name</b><em>Bella</em></span><span class="hb"><b>Animal</b><em>Bear</em></span><span class="hb on"><b>Plant</b><em>Ba</em><s></s></span></span></div><div class="band ar" aria-hidden="true"><span class="hrf">ب</span><span class="hbs"><span class="hb"><b>إنسان</b><em>بدر</em></span><span class="hb"><b>حيوان</b><em>بطة</em></span><span class="hb on"><b>نبات</b><em>بر</em><s></s></span></span></div>
         <div class="gb"><h2 data-i18n="harf">Harf Rush</h2><p data-i18n="harfDesc">One letter: a name, an animal, a plant, an object and a place, in 90 seconds.</p><span class="btn go" data-i18n="playDaily">Play daily</span></div>
       </a>
     </div>
