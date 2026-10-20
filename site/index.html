@@ -347,7 +347,8 @@ function apply(){
 }
 $("#lang").onclick=()=>{lang=lang==="ar"?"en":"ar";try{localStorage.setItem("hr-lang",lang)}catch(e){}apply()};
 apply();
-loadLeaders();setInterval(()=>{if(document.visibilityState==="visible")loadLeaders()},60000);
+// leaders load when the hub opens and when you come back to the tab, no timer
+loadLeaders();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")loadLeaders()});
 setInterval(renderStatus,30000);
 // the countdown to the next dailies (they change at midnight UTC)
 const nextIn=$("#nextIn");
