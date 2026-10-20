@@ -82,6 +82,15 @@ function jsonStore() {
       for (const [k, v] of Object.entries(db.words)) if (v && typeof v === "object" && Number(v.ok) === 1 && !v.fix && (!v.src || v.src === "ai") && (v.at || 0) >= sinceMs) { out.push(k); delete db.words[k]; }
       await flush(); return out;
     },
+    // clears every verdict the AI (or an appeal) saved as valid in these categories; the team's stay -> their keys
+    async wordsPurgeValid(cats) {
+      const out = [];
+      for (const [k, v] of Object.entries(db.words)) {
+        const ok = typeof v === "object" && v ? Number(v.ok) : Number(v), src = (v && typeof v === "object" && v.src) || "ai";
+        if (ok === 1 && src !== "mod" && cats.includes(k.split("|")[1])) { out.push(k); delete db.words[k]; }
+      }
+      await flush(); return out;
+    },
     async ipUids(ip, month) { return ((db.ip[month] || {})[ip]) || []; },
     async ipAdd(ip, month, uid) {
       for (const m of Object.keys(db.ip)) if (m < month) delete db.ip[m]; // only this month matters
@@ -219,6 +228,10 @@ function pgStore(url) {
       const r = await pool.query("DELETE FROM harf_words WHERE ok = 1 AND fix IS NULL AND (src IS NULL OR src = 'ai') AND at >= $1 RETURNING k", [new Date(sinceMs)]);
       return r.rows.map(x => x.k);
     },
+    async wordsPurgeValid(cats) {
+      const r = await pool.query("DELETE FROM harf_words WHERE ok = 1 AND (src IS NULL OR src <> 'mod') AND split_part(k, '|', 2) = ANY($1) RETURNING k", [cats]);
+      return r.rows.map(x => x.k);
+    },
     async ipUids(ip, month) { return (await pool.query("SELECT uid FROM harf_ip WHERE ip=$1 AND month=$2", [ip, month])).rows.map(x => x.uid); },
     async ipAdd(ip, month, uid) {
       await pool.query("INSERT INTO harf_ip (ip, month, uid) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", [ip, month, uid]);
@@ -281,7 +294,7 @@ const store = {
     await impl.init();
   },
 };
-for (const k of ["ping", "all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsDel", "wordsSearch", "wordsCount", "wordsRecent", "wordsPurge", "archivePut", "archiveOf", "archiveDay", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore", "acctGet", "acctByUid", "acctPut"]) store[k] = (...a) => impl[k](...a);
+for (const k of ["ping", "all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsDel", "wordsSearch", "wordsCount", "wordsRecent", "wordsPurge", "wordsPurgeValid", "archivePut", "archiveOf", "archiveDay", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore", "acctGet", "acctByUid", "acctPut"]) store[k] = (...a) => impl[k](...a);
 // every write bumps its game's counter (the leaderboards cache their rankings until it moves), except one passed
 // {quiet: true} as its last argument: a write that changes nothing a board shows (a Harf draft, a word in progress)
 store.ver = { hangman: 0, trivia: 0, harf: 0 };
