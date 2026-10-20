@@ -440,3 +440,21 @@ textarea.rinput{resize:vertical;min-height:84px}
 .rtip-acts{display:flex;gap:8px}
 .rtip-acts .btn{min-height:40px;padding:0 16px}
 .rtip .rnext-x{align-self:flex-start}
+
+/* ---------- the top bar fits narrow phones ----------
+   The page itself no longer pads for the status bar (the sticky bar does), so an installed app has no gap above it.
+   Up to 520px: the short "Save" label, a smaller logo and tighter gaps; up to 400px the save button is just its icon.
+   Nothing may push the page sideways. */
+html,body{overflow-x:clip}
+.rbar-in>*{min-width:0}
+@media (max-width:520px){
+  .rbar-save .t1{display:none}.rbar-save .t2{display:inline}.rbar-save{padding:0 12px}
+  .rbar-in{gap:8px;padding-inline:12px}
+  .rbar-home .rwordmark{width:96px;height:27px}:root[lang="ar"] .rbar-home .rwordmark{width:106px;height:25px}
+}
+@media (max-width:400px){
+  .rbar-save{width:44px;padding:0;justify-content:center}.rbar-save .t1,.rbar-save .t2{display:none}
+  .rbar-home .rwordmark{width:84px;height:24px}:root[lang="ar"] .rbar-home .rwordmark{width:92px;height:22px}
+  .rbar-theme,.rbar-back{width:40px;height:40px}.rbar-me .av{width:40px;height:40px}
+}
+@media (max-width:359px){.rbar-in{gap:6px;padding-inline:10px}.rbar-in>.langbtn{padding:0 8px}:root[lang="ar"] .rbar-home .rwordmark{width:80px;height:20px}.rbar-theme,.rbar-back,.rbar-save{width:38px;height:38px}.rbar-me .av{width:38px;height:38px}}
