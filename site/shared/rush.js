@@ -848,7 +848,269 @@
   const mePeer = api => (api ? api.peers().find(p => p.sameTab) : null);
   const hostOf = list => list.filter(p => p.presence.h === 1).sort((a, b) => (a.peer < b.peer ? -1 : 1))[0] || null;
 
-  window.Rush = { api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
+  /* ---------- extras ----------
+     The back button steps back one level (a game -> its menu -> all games), and the phone's own back does the same;
+     a footer on every page (Report a problem, Privacy); a small Report button beside a game; the "Don't tell me how
+     to play again" switch for each daily's rules; a short first-time tour of each game; after a daily, a small
+     "next daily" chip; hub cards that open the daily straight away (#daily); room invite links (#room=CODE) that put
+     you straight into the room; and an "add to Home Screen" tip on the hub. */
+  const uiAr = () => document.documentElement.lang === "ar";
+  const L2 = (en, ar) => (uiAr() ? ar : en);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const gameShown = () => { const g = document.getElementById("game"); return !!(g && !g.hidden); };
+  const leaveGame = () => { const b = document.getElementById("leaveBtn"); if (!b) return false; b.click(); return true; };
+  const arPrefix = () => (/^\/ar(\/|$)/.test(location.pathname) ? "/ar" : "");
+  const onLang = f => new MutationObserver(f).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+
+  // ---- back: one level at a time ----
+  function backSteps() {
+    const back = document.querySelector(".rbar-back");
+    if (back) back.addEventListener("click", e => { if (gameShown() && leaveGame()) { e.preventDefault(); window.scrollTo(0, 0); } });
+    const g = document.getElementById("game");
+    if (!g) return;
+    let skipPop = false;
+    // entering a game adds a step to the browser's history, so the phone's back gesture returns to the menu
+    new MutationObserver(() => {
+      const st = history.state || {};
+      if (!g.hidden && !st.rg) { try { history.pushState(Object.assign({}, st, { rg: 1 }), ""); } catch {} }
+      else if (g.hidden && st.rg) { skipPop = true; history.back(); }
+    }).observe(g, { attributes: true, attributeFilter: ["hidden"] });
+    window.addEventListener("popstate", () => { if (skipPop) { skipPop = false; return; } if (gameShown()) leaveGame(); });
+  }
+
+  // ---- reports ----
+  let reportCtx = null;
+  const KINDS = [["wrong", "Wrong answer", "الإجابة خاطئة"], ["question", "Bad question or word", "سؤال أو كلمة غير مناسبة"], ["offensive", "Offensive", "محتوى مسيء"],
+    ["bug", "Something broke", "خلل في الموقع"], ["other", "Something else", "شيء آخر"]];
+  function modal(build) {
+    const bg = mkEl("div", "rdlg-bg"), box = mkEl("div", "rdlg rdlg-form");
+    box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.dir = uiAr() ? "rtl" : "ltr";
+    const prev = document.activeElement;
+    const close = () => { document.removeEventListener("keydown", key, true); bg.remove(); try { prev && prev.focus && prev.focus(); } catch {} };
+    const key = e => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } };
+    document.addEventListener("keydown", key, true);
+    bg.addEventListener("click", e => { if (e.target === bg) close(); });
+    build(box, close); bg.append(box); document.body.append(bg);
+    const f = box.querySelector("select, textarea, button"); if (f) f.focus();
+    return close;
+  }
+  function openReport(kind) {
+    let ctx = {}; try { ctx = (reportCtx && reportCtx()) || {}; } catch {}
+    modal((box, close) => {
+      const h = mkEl("h2", null, L2("Report a problem", "أبلغ عن مشكلة"));
+      const p = mkEl("p", null, L2("Tell us what's wrong. We read every report and fix what we can.", "أخبرنا ما المشكلة. نقرأ كل بلاغ ونصلح ما نستطيع."));
+      const sel = mkEl("select", "rinput"); sel.setAttribute("aria-label", L2("What kind of problem?", "نوع المشكلة"));
+      KINDS.forEach(([v, en, ar]) => { const o = mkEl("option", null, uiAr() ? ar : en); o.value = v; sel.append(o); });
+      sel.value = kind || (ctx.q || ctx.word || ctx.answers ? "wrong" : "bug");
+      const ta = mkEl("textarea", "rinput"); ta.rows = 3; ta.maxLength = 600; ta.dir = "auto";
+      ta.placeholder = L2("What's wrong? (optional if it's clear from the question)", "ما المشكلة؟ (اختياري إن كانت واضحة من السؤال)");
+      ta.setAttribute("aria-label", L2("Details", "التفاصيل"));
+      const info = mkEl("div", "rctx");
+      const shown = Object.entries(ctx).filter(([k, v]) => v !== "" && v != null && k !== "game" && k !== "lg" && k !== "mode");
+      if (shown.length) {
+        info.append(mkEl("small", null, L2("We'll include what was on screen:", "سنرفق ما كان على الشاشة:")));
+        shown.slice(0, 5).forEach(([k, v]) => { const d = mkEl("div"); d.dir = "auto"; d.textContent = (Array.isArray(v) ? v.join(", ") : String(v)).slice(0, 160); info.append(d); });
+      }
+      const msg = mkEl("p", "rmsg"); msg.hidden = true;
+      const acts = mkEl("div", "acts"), send = mkEl("button", "btn primary", L2("Send report", "أرسل البلاغ")), cancel = mkEl("button", "btn", at("cancel"));
+      send.type = cancel.type = "button"; cancel.onclick = close;
+      send.onclick = async () => {
+        send.disabled = true; msg.hidden = true;
+        try {
+          const lgNow = ctx.lg || (uiAr() ? "ar" : "en");
+          const r = await fetch(http("/api/report"), { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uid, game: gameKey === "hub" ? "site" : gameKey, lg: lgNow, kind: sel.value, text: ta.value, ctx: Object.assign({ page: location.pathname }, ctx) }) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(j.error || "");
+          box.textContent = "";
+          const ok = mkEl("button", "btn primary", L2("Close", "إغلاق")); ok.type = "button"; ok.onclick = close;
+          box.append(mkEl("h2", null, L2("Thanks!", "شكراً!")), mkEl("p", null, L2("Your report is in. We'll take a look.", "وصل بلاغك، وسنطّلع عليه.")), ok); ok.focus();
+        } catch (e) {
+          msg.textContent = e.message || L2("Couldn't send it. Try again in a moment.", "تعذّر الإرسال. حاول بعد لحظات."); msg.hidden = false; send.disabled = false;
+        }
+      };
+      acts.append(send, cancel);
+      box.append(h, p, sel, ta, info, msg, acts);
+    });
+  }
+  function openPrivacy() {
+    modal((box, close) => {
+      const ok = mkEl("button", "btn primary", L2("Close", "إغلاق")); ok.type = "button"; ok.onclick = close;
+      const rep = mkEl("button", "btn", L2("Contact us", "تواصل معنا")); rep.type = "button"; rep.onclick = () => { close(); openReport("other"); };
+      const ps = uiAr()
+        ? ["نحتفظ فقط بما تحتاجه الألعاب: رقم لاعب عشوائي على جهازك، والاسم واللون اللذين تختارهما، ونتائجك.",
+           "عند تسجيل الدخول بحساب Google نحفظ رقم حسابك فقط، لا بريدك ولا اسمك.",
+           "نعدّ زيارات الصفحات دون حفظ عناوين IP. وتُرسل إجابات «الحروف» إلى خدمة ذكاء اصطناعي (Claude من Anthropic) للتحقق منها، والإجابات فقط.",
+           "لا نبيع بياناتك ولا نشاركها للإعلانات. لحذف بياناتك أو لأي سؤال، راسلنا من زر «تواصل معنا» واذكر رمز لاعبك (#" + tagOf(uid) + ")."]
+        : ["We keep only what the games need: a random player id on your device, the name and colour you pick, and your results.",
+           "If you sign in with Google we keep your Google account number only, not your email or name.",
+           "Page visits are counted without storing IP addresses. Harf answers are checked by an AI service (Anthropic's Claude); only the answers are sent.",
+           "Nothing is sold or shared for ads. To have your data removed, or for anything else, use Contact us and mention your player tag (#" + tagOf(uid) + ")."];
+      box.append(mkEl("h2", null, L2("Privacy", "الخصوصية")));
+      const body = mkEl("div", "rprivacy"); ps.forEach(t => body.append(mkEl("p", null, t))); box.append(body);
+      const acts = mkEl("div", "acts"); acts.append(ok, rep); box.append(acts);
+    });
+  }
+  function footerAndReport() {
+    const f = mkEl("footer", "rfoot");
+    const rep = mkEl("button", "rfoot-l"), priv = mkEl("button", "rfoot-l");
+    rep.type = priv.type = "button"; rep.onclick = () => openReport(); priv.onclick = openPrivacy;
+    f.append(rep, mkEl("span", "rfoot-dot", "·"), priv);
+    document.body.append(f);
+    let side = null;
+    if (gameKey !== "hub") {
+      side = mkEl("button", "rreport"); side.type = "button"; side.onclick = () => openReport();
+      side.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
+      document.body.append(side);
+      const g = document.getElementById("game");
+      const vis = () => { side.hidden = !gameShown(); };
+      if (g) new MutationObserver(vis).observe(g, { attributes: true, attributeFilter: ["hidden"] });
+      vis();
+    }
+    const draw = () => {
+      f.dir = uiAr() ? "rtl" : "ltr";
+      rep.textContent = L2("Report a problem", "أبلغ عن مشكلة"); priv.textContent = L2("Privacy", "الخصوصية");
+      if (side) { const l = L2("Report this question or answer", "أبلغ عن هذا السؤال أو الإجابة"); side.setAttribute("aria-label", l); side.title = l; }
+    };
+    draw(); onLang(draw);
+  }
+
+  // ---- the daily's rules: shown until the player says not to ----
+  const introKey = g => "rush-nointro-" + g;
+  function introText(nodes, redraw) {
+    const g = gameKey, hid = store.get(introKey(g)) === "1";
+    const b = mkEl("button", "linkbtn rintro"); b.type = "button";
+    if (hid) { b.textContent = L2("How do I play?", "كيف ألعب؟"); b.onclick = () => { store.set(introKey(g), ""); redraw && redraw(); }; return [b]; }
+    b.textContent = L2("Don't tell me how to play again 🙄", "خلاص فهمت، لا تشرح لي مرة ثانية 🙄");
+    b.onclick = () => { store.set(introKey(g), "1"); redraw && redraw(); };
+    return [...nodes, b];
+  }
+
+  // ---- first-time tour ----
+  const TOUR = {
+    hangman: { en: ["Hangman Rush", ["Guess the hidden word one letter at a time. Each wrong letter adds to the hangman; too many and you're out.",
+      "The daily word is the same for everyone. Solve it fast with few misses to climb today's board. Hints help, but cost points.",
+      "Rooms are for friends: make one, share the 4-letter code or link, and race on the same word."]],
+      ar: ["سباق المشنقة", ["خمّن الكلمة المخفية حرفاً حرفاً. كل حرف خاطئ يضيف جزءاً للمشنقة، وإذا كثرت الأخطاء تخسر.",
+      "كلمة اليوم واحدة للجميع. حلّها بسرعة وبأخطاء قليلة لتتصدر لوحة اليوم. التلميحات تساعد لكنها تخصم نقاطاً.",
+      "الغرف للأصحاب: أنشئ غرفة، شارك الرمز أو الرابط، وتسابقوا على نفس الكلمة."]] },
+    trivia: { en: ["Trivia Rush", ["Five questions, a few seconds each. Pick the right answer before the bar runs out.",
+      "Right answers score, and faster ones score more. 50/50 removes two wrong answers for part of the points.",
+      "The daily set is the same for everyone. Get 3 or more right to keep your streak going."]],
+      ar: ["سباق المعلومات", ["خمسة أسئلة، ثوانٍ قليلة لكل سؤال. اختر الإجابة الصحيحة قبل أن ينتهي الشريط.",
+      "الإجابة الصحيحة تكسب نقاطاً، والأسرع تكسب أكثر. ميزة 50/50 تحذف إجابتين خاطئتين مقابل جزء من النقاط.",
+      "أسئلة اليوم واحدة للجميع. أجب 3 إجابات صحيحة أو أكثر لتحافظ على سلسلتك."]] },
+    harf: { en: ["Harf Rush", ["You get one letter. Fill in a name, an animal, a plant, an object and a place that start with it.",
+      "You have 90 seconds. Every valid answer scores straight away; tomorrow, rare answers earn a bonus.",
+      "Animals, plants and objects must be words of the language you play in. Think an answer was wrongly rejected? Appeal it."]],
+      ar: ["سباق الحروف", ["لك حرف واحد. اكتب إنساناً وحيواناً ونباتاً وجماداً وبلاداً تبدأ به.",
+      "أمامك 90 ثانية. كل إجابة صحيحة تُحتسب فوراً، وفي اليوم التالي تكسب الإجابات النادرة مكافأة.",
+      "الحيوان والنبات والجماد يجب أن تكون كلمات من لغة اللعب. ترى أن إجابتك رُفضت خطأً؟ قدّم اعتراضاً."]] },
+  };
+  async function maybeTour() {
+    const g = gameKey, k = "rush-tour-" + g;
+    if (!TOUR[g] || store.get(k)) return;
+    store.set(k, "1");
+    // someone who has played before (they have a name saved on this device) doesn't need it
+    if (store.get("hr-me")) return;
+    const [name, steps] = TOUR[g][uiAr() ? "ar" : "en"];
+    const go = await ask({ title: L2("New to " + name + "?", "أول مرة في " + name + "؟"), body: L2("Want a quick tour? Three short tips.", "تبي جولة سريعة؟ ثلاث نصائح قصيرة."), ok: L2("Show me", "أرني"), cancel: L2("No thanks", "لا، شكراً") });
+    if (!go) return;
+    for (let i = 0; i < steps.length; i++) {
+      const last = i === steps.length - 1;
+      const more = await ask({ title: (i + 1) + "/" + steps.length, body: steps[i], ok: last ? L2("Let's play", "يلا نلعب") : L2("Next", "التالي"), cancel: L2("Skip", "تخطَّ") });
+      if (!more) break;
+    }
+  }
+
+  // ---- after a daily: a small chip to the next one not played today ----
+  const ORDER = ["hangman", "trivia", "harf"];
+  const NAMES = { hangman: ["Hangman", "المشنقة"], trivia: ["Trivia", "المعلومات"], harf: ["Harf", "الحروف"] };
+  let chip = null;
+  async function dailyDone() {
+    if (gameKey === "hub" || chip) return;
+    await sleep(1600);
+    let m; try { m = await mineRecs(); } catch { return; }
+    const R = window.RushRules, today = R && R.todayKey();
+    if (!today) return;
+    const played = { hangman: [m.hm, m.hmAr], trivia: [m.tri], harf: [m.hfAr, m.hfEn] };
+    const start = ORDER.indexOf(gameKey);
+    const next = [1, 2].map(i => ORDER[(start + i) % 3]).find(g => !played[g].some(r => r && r.h && r.h[today]));
+    if (!next || !gameShown()) return;
+    chip = mkEl("div", "rnext"); chip.dir = uiAr() ? "rtl" : "ltr";
+    const a = mkEl("a", "rnext-go"); a.href = arPrefix() + "/" + next + "/#daily";
+    a.textContent = L2("Next daily: " + NAMES[next][0] + " →", "التحدي التالي: " + NAMES[next][1] + " ←");
+    const x = mkEl("button", "rnext-x"); x.type = "button"; x.setAttribute("aria-label", L2("Close", "إغلاق")); x.append(svg(X_ICON));
+    const drop = () => { if (chip) { chip.remove(); chip = null; } };
+    x.onclick = drop; chip.append(a, x); document.body.append(chip);
+    const g = document.getElementById("game"); if (g) new MutationObserver(() => { if (g.hidden) drop(); }).observe(g, { attributes: true, attributeFilter: ["hidden"] });
+  }
+
+  // ---- links that do something on arrival: #daily and #room=CODE ----
+  const clearHash = () => { try { history.replaceState(history.state, "", location.pathname + location.search); } catch {} };
+  async function waitFor(ok, ms = 15000) { for (let t = 0; t < ms; t += 150) { const v = ok(); if (v) return v; await sleep(150); } return null; }
+  async function autoDaily() {
+    if (location.hash !== "#daily") return;
+    clearHash();
+    const b = await waitFor(() => { const x = document.getElementById("dailyBtn"), l = document.getElementById("lobby"); return x && !x.disabled && x.textContent.trim() && l && !l.hidden ? x : null; });
+    if (b) b.click();
+  }
+  const goodName = v => { v = String(v || "").trim(); return v.length >= 2 && !(window.RushRules && window.RushRules.badName(v)); };
+  async function autoRoom() {
+    const m = location.hash.match(/^#room=([A-Za-z]{4})$/);
+    if (!m) return;
+    clearHash();
+    const code = m[1].toUpperCase();
+    const ready2 = await waitFor(() => { const c = document.getElementById("codeIn"), j = document.getElementById("joinBtn"), l = document.getElementById("lobby"); return c && j && l && !l.hidden ? { c, j } : null; });
+    if (!ready2) return;
+    ready2.c.value = code;
+    const nick = document.getElementById("nick");
+    if (!nick || goodName(nick.value)) { ready2.j.click(); return; }
+    // a name first: the profile sheet opens on the name box, and the room opens once it's closed with a name
+    const hint = document.getElementById("nameHint");
+    openSheet(); setTimeout(() => { try { nick.focus(); } catch {} if (hint) { hint.textContent = L2("Pick a name to join room " + code, "اختر اسماً لتدخل الغرفة " + code); hint.classList.add("warn"); } }, 300);
+    await waitFor(() => !sheetOpen, 10 * 60000);
+    if (goodName(nick.value)) setTimeout(() => ready2.j.click(), 120);
+  }
+  const roomLink = c => shareUrl() + "#room=" + String(c || "").toUpperCase();
+
+  // ---- installable app: a tip on the hub, once the player has a name ----
+  let installEvt = null;
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; setTimeout(installTip, 300); });
+  const standalone = () => { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch { return false; } };
+  let tipShown = false;
+  function installTip() {
+    if (tipShown || gameKey !== "hub" || standalone() || store.get("rush-install-x") === "1" || !store.get("hr-me")) return;
+    const ua = navigator.userAgent || "", ios = /iphone|ipad|ipod/i.test(ua) && /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
+    if (!installEvt && !ios) return;
+    tipShown = true;
+    const tip = mkEl("div", "rtip"); tip.dir = uiAr() ? "rtl" : "ltr"; tip.setAttribute("role", "status");
+    const txt = mkEl("p");
+    const signFirst = !acct && authCfg && authCfg.google;
+    if (ios) txt.textContent = L2("Add Rush Games to your Home Screen: tap Share, then “Add to Home Screen”.", "أضف ألعاب رش إلى شاشتك الرئيسية: اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية».")
+      + (signFirst ? " " + L2("Sign in first: Home Screen apps don't share Safari's storage, so your progress comes along only if it's saved.", "سجّل الدخول أولاً: تطبيقات الشاشة الرئيسية لا تشارك بيانات Safari، فلا ينتقل تقدّمك إلا إذا كان محفوظاً.") : "");
+    else txt.textContent = L2("Install Rush Games as an app for one-tap dailies.", "ثبّت ألعاب رش كتطبيق لتلعب تحديات اليوم بلمسة.");
+    const acts = mkEl("div", "rtip-acts");
+    if (!ios) { const go = mkEl("button", "btn primary", L2("Install", "تثبيت")); go.type = "button"; go.onclick = async () => { try { installEvt.prompt(); await installEvt.userChoice; } catch {} tip.remove(); }; acts.append(go); }
+    if (signFirst) { const s = mkEl("button", "btn", at("save")); s.type = "button"; s.onclick = () => openSheet(); acts.append(s); }
+    const x = mkEl("button", "rnext-x"); x.type = "button"; x.setAttribute("aria-label", L2("Close", "إغلاق")); x.append(svg(X_ICON));
+    x.onclick = () => { store.set("rush-install-x", "1"); tip.remove(); };
+    tip.append(txt, acts, x); document.body.append(tip);
+  }
+
+  onBody(async () => {
+    backSteps();
+    footerAndReport();
+    await sleep(300);
+    await maybeTour();
+    await autoDaily();
+    await autoRoom();
+    setTimeout(installTip, 2500);
+  });
+
+  // the message shown when a name is turned down by the shared name filter (rules.js badName)
+  const badNameMsg = () => (document.documentElement.lang === "ar" ? "اختر اسماً آخر، هذا الاسم غير مسموح." : "Please pick another name. That one isn't allowed.");
+  window.Rush = { badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, user, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };

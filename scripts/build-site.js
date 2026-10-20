@@ -43,6 +43,9 @@ function arabic(html, page, home) {
   meta(/(<meta property="og:url" content=")[^"]*"/, `${home}/ar${p}`);
   meta(/(<meta property="og:image" content=")[^"]*"/, `${home}/og-ar.png`);
   html = html.replace(/(<meta property="og:type"[^>]*>)/, m => m + '\n<meta property="og:locale" content="ar_SA">');
+  // installed from an Arabic page, the app is named in Arabic and opens in Arabic
+  html = html.replace('<link rel="manifest" href="/manifest.webmanifest">', '<link rel="manifest" href="/manifest-ar.webmanifest">');
+  html = html.replace('<meta name="apple-mobile-web-app-title" content="Rush Games">', '<meta name="apple-mobile-web-app-title" content="ألعاب رش">');
   // links between the pages stay on the Arabic side
   html = html.replace(/href="\/((?:hangman|trivia|harf)\/)?"/g, (_, g) => `href="/ar/${g || ""}"`);
   return html;

@@ -20,6 +20,11 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rush Games">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>/* record script load failures, so the page can say what went wrong */window.__rushErrs=[];window.addEventListener("error",function(e){var t=e.target;if(t&&t!==window&&t.src)window.__rushErrs.push("couldn't load "+t.src.split("/").pop());else if(e.message)window.__rushErrs.push(e.message)},true)</script>
 <script src="/shared/config.js"></script>
 <script src="/shared/rules.js"></script>
@@ -263,6 +268,7 @@ R.COLORS.forEach(c=>{const b=el("button","sw");b.type="button";b.style.backgroun
   b.onclick=()=>{me.color=c;saveMe();[...sw.children].forEach(x=>x.setAttribute("aria-pressed",String(x===b)))};sw.appendChild(b)});
 function renderHint(){const h=$("#nameHint"),v=nick.value.trim();h.textContent="";
   if(v.length<2){h.textContent=t("nameHintEmpty");return}
+  if(R.badName(v)){h.textContent=Rush.badNameMsg();return}
   const b=el("b");b.textContent=v.slice(0,16)+" #"+R.tagOf(Rush.uid);h.append(document.createTextNode(t("nameHintAs")),b,document.createTextNode(t("nameHintTag")))}
 
 let triviaLive=null,harfLive=null;
@@ -313,7 +319,7 @@ function renderLeaders(){
   LD_GAMES.forEach(g=>{
     const G=lead.games[g]||{boards:{}},lgs=Object.keys(G.boards).filter(k=>k!=="all"),card=document.querySelector(".game."+g);
     const lg=lgs.length?(ldLg[g]&&lgs.includes(ldLg[g])?ldLg[g]:(lgs.includes(lang)?lang:lgs[0])):"all",B=G.boards[lg]||{players:0,top:[]};
-    const a=el("div","ldg "+g),link=el("a");link.href=card?card.getAttribute("href"):"/"+g+"/";
+    const a=el("div","ldg "+g),link=el("a");link.href=card?card.getAttribute("href").replace(/#.*$/,""):"/"+g+"/";
     const h=el("div","ldg-h"),tile=el("span","gtile "+g);tile.setAttribute("aria-hidden","true");tile.append(el("span","rmark"));
     link.append(tile,el("b",null,t(g)));
     const q=el("button","ldq","?");q.type="button";q.dataset.help="hPlain";q.setAttribute("aria-label",t("ldQ"));q.title=t("ldQ");q.setAttribute("aria-expanded","false");
@@ -347,6 +353,8 @@ function apply(){
 }
 $("#lang").onclick=()=>{lang=lang==="ar"?"en":"ar";try{localStorage.setItem("hr-lang",lang)}catch(e){}apply()};
 apply();
+// the game cards and "Your day" rows open today's daily straight away (the game's menu is one back-step away)
+document.querySelectorAll("a.game, a.dayrow").forEach(a=>{a.href=a.getAttribute("href").replace(/#.*$/,"")+"#daily"});
 // leaders load when the hub opens and when you come back to the tab, no timer
 loadLeaders();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")loadLeaders()});
 setInterval(renderStatus,30000);

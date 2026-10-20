@@ -19,6 +19,10 @@ const mod = require("./mod");
 const auth = require("./auth");
 const limits = require("./limits");
 const boards = require("./boards");
+const move = require("./move");
+const reports = require("./reports");
+// while moving servers (MOVE_MODE=readonly) every database write does nothing; see move.js
+move.guard(store, ["put", "tPut", "hPut", "hSetData", "hDel", "seenMark", "seenPrune", "wordsPut", "wordsDel", "wordsPurge", "wordsPurgeValid", "archivePut", "ipAdd", "metaPut", "metaPruneBefore", "acctPut"]);
 // pages are served as single files with the shared styles and scripts written in (see scripts/build-site.js)
 const PAGES = require("./scripts/build-site").build({ api: "", site: SITE_URL });
 const NOT_FOUND = (() => { try { return fs.readFileSync(path.join(__dirname, "site", "404.html")); } catch { return null; } })();
@@ -54,6 +58,8 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://x");
     if (req.method === "OPTIONS") { res.writeHead(204, CORS); return res.end(); }
+    // moving servers: read-only refuses writes, redirect-only forwards the API to the new server (move.js)
+    if (await move.handle(req, res, url, { send, readJson }, mod.auth)) return;
     // Render restarts the server when this fails: it checks the database answers, not just that the process is up
     if (url.pathname === "/healthz") {
       try { await store.ping(); return send(res, 200, "ok", "text/plain"); }
@@ -83,6 +89,7 @@ const server = http.createServer(async (req, res) => {
     if (await trivia.handle(req, res, url, ctx)) return;
     if (await hangman.handle(req, res, url, ctx)) return;
     if (await harf.handle(req, res, url, ctx)) return;
+    if (await reports.handle(req, res, url, ctx)) return;
     if (await admin.handle(req, res, url, ctx)) return;
     // the moderation API (team, audit log, changes, agents): a limited number a minute per address, like the admin API
     if (url.pathname.startsWith("/api/mod/")) {
@@ -216,6 +223,8 @@ setInterval(() => {
   }
 }, 30000);
 
-store.init().then(() => admin.loadHidden()).then(() => mod.load()).then(() => harf.init()).then(() => require("./merges").runMerges().catch(e => console.error("Merge failed", e))).then(() => {
+// redirect-only: the old database may be gone, so start with none; every API call is forwarded (move.js)
+if (move.redirecting()) server.listen(PORT, () => console.log(`Rush Games listening on ${PORT} (redirect-only to the new server)`));
+else store.init().then(() => admin.loadHidden()).then(() => mod.load()).then(() => harf.init()).then(() => require("./merges").runMerges().catch(e => console.error("Merge failed", e))).then(() => {
   server.listen(PORT, () => console.log(`Rush Games listening on ${PORT} (storage: ${store.kind})`));
 }).catch(e => { console.error("Storage failed to start", e); process.exit(1); });

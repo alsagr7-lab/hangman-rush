@@ -37,6 +37,8 @@ async function records(game) {
   for (const r of rows) {
     if (admin.isHidden(game, r.id) || !R.namedRec(r.data)) continue;
     const d = S.pub(S.tidy(r.data));
+    d.n = R.nm16(d.n); // names saved before a filter was added show as "Player" too, and drop off like unnamed ones
+    if (!R.namedRec(d)) continue;
     if (R.seasonOfRec(d) !== se) continue; // a record from an earlier season shows once its owner plays again
     out.push({ id: r.id, b: base(r.id), lg: S.lgOf(r.id), d });
   }

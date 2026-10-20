@@ -20,6 +20,11 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rush Games">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>/* record script load failures, so the page can say what went wrong */window.__rushErrs=[];window.addEventListener("error",function(e){var t=e.target;if(t&&t!==window&&t.src)window.__rushErrs.push("couldn't load "+t.src.split("/").pop());else if(e.message)window.__rushErrs.push(e.message)},true)</script>
 <script src="/shared/config.js"></script>
 <script src="/shared/rules.js"></script>
@@ -130,7 +135,7 @@
 
   <section id="game" hidden>
     <div class="top">
-      <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button type="button" id="copyBtn" data-i18n="copy">Copy</button></div>
+      <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button type="button" id="copyBtn" data-i18n="copy">Copy</button><button type="button" id="linkBtn" data-i18n="copyLink">Link</button></div>
       <span class="roundlbl" id="roundLbl"></span>
       <span class="spacer"></span>
       <span class="timer ltr" id="timer"></span>
@@ -201,7 +206,7 @@ en:{
   archTitle:"Past dailies",archHelp:"Replay a day you missed, or have another go. Replays don't count on the leaderboard.",archEmpty:"Past dailies show up here from the second day.",
   archPlayed:"Played: {c}/5 · {p} pts",archReplayed:"Replayed: {c}/5 · {p} pts",archMissed:"Not played",archPlay:"Play",archAgain:"Replay",showMore:"Show more",
   r1b:"15 seconds",r1:"per question, five questions a round.",r2b:"Up to 340 pts",r2:"per question: 100 for a right answer, up to +240 for speed.",r3b:"50/50",r3:"removes two wrong answers, for a share of that question's points.",
-  copy:"Copy",copied:"Copied",copyFail:"Copy failed — select the text",leave:"Leave",roomLbl:"Room ",soloPractice:"Solo practice",dailyMode:"Daily trivia",archMode:"Past daily",
+  copy:"Copy",copyLink:"Link",copied:"Copied",copyFail:"Copy failed — select the text",leave:"Leave",roomLbl:"Room ",soloPractice:"Solo practice",dailyMode:"Daily trivia",archMode:"Past daily",
   roundN:"Round {n}",qOf:"Question {i} of {n}",secs:"{n}s",category:"Category",
   fifty:"50/50",fiftyFree:"free",right:"Right! +{p}",wrong:"Not this time",timeUp:"Time's up",answerWas:"The answer: {a}",getReady:"Get ready…",
   start:"Start",nextRound:"Next round",startRound1:"Start round 1",readyPractise:"Ready to practise?",shareStart:"Share the code, then start",roomCodeLine:"Room code: ",
@@ -248,7 +253,7 @@ ar:{
   archTitle:"أسئلة الأيام السابقة",archHelp:"أعد لعب يوم فاتك، أو جرّب مرة أخرى. الإعادة لا تُحتسب في الترتيب.",archEmpty:"تظهر الأيام السابقة هنا ابتداءً من اليوم الثاني.",
   archPlayed:"لعبتها: {c}/5 · {p} نقطة",archReplayed:"أعدتها: {c}/5 · {p} نقطة",archMissed:"لم تلعبها",archPlay:"العب",archAgain:"أعد",showMore:"المزيد",
   r1b:"15 ثانية",r1:"لكل سؤال، وخمسة أسئلة في الجولة.",r2b:"حتى 340 نقطة",r2:"لكل سؤال: 100 للإجابة الصحيحة، وحتى +240 للسرعة.",r3b:"50/50",r3:"تحذف إجابتين خاطئتين، مقابل جزء من نقاط السؤال.",
-  copy:"نسخ",copied:"تم النسخ",copyFail:"تعذّر النسخ، حدّد النص",leave:"خروج",roomLbl:"غرفة ",soloPractice:"تدريب فردي",dailyMode:"أسئلة اليوم",archMode:"يوم سابق",
+  copy:"نسخ",copyLink:"رابط",copied:"تم النسخ",copyFail:"تعذّر النسخ، حدّد النص",leave:"خروج",roomLbl:"غرفة ",soloPractice:"تدريب فردي",dailyMode:"أسئلة اليوم",archMode:"يوم سابق",
   roundN:"الجولة {n}",qOf:"السؤال {i} من {n}",secs:"{n} ث",category:"الفئة",
   fifty:"50/50",fiftyFree:"مجاناً",right:"صحيح! +{p}",wrong:"ليست هذه",timeUp:"انتهى الوقت",answerWas:"الإجابة: {a}",getReady:"استعد…",
   start:"ابدأ",nextRound:"الجولة التالية",startRound1:"ابدأ الجولة 1",readyPractise:"جاهز للتدريب؟",shareStart:"شارك الرمز ثم ابدأ",roomCodeLine:"رمز الغرفة: ",
@@ -336,8 +341,9 @@ function renderNameHint(){
   hint.append(document.createTextNode(t("nameHintAs")),b,document.createTextNode(t("nameHintTag")));
 }
 function requireName(){
-  if(nickIn.value.trim().length>=2){nickIn.classList.remove("need");return true}
-  const hint=$("#nameHint");hint.textContent=t("nameNeeded");hint.classList.add("warn");
+  const v=nickIn.value.trim(),bad=v.length>=2&&R.badName(v);
+  if(v.length>=2&&!bad){nickIn.classList.remove("need");return true}
+  const hint=$("#nameHint");hint.textContent=bad?Rush.badNameMsg():t("nameNeeded");hint.classList.add("warn");
   nickIn.classList.add("need");nickIn.focus();nickIn.scrollIntoView({block:"center",behavior:"smooth"});return false;
 }
 nickIn.addEventListener("input",()=>{nickIn.classList.remove("need");renderNameHint()});
@@ -461,6 +467,7 @@ async function enterRoom(c){
 }
 function copyText(txt,btn,key){navigator.clipboard.writeText(txt).then(()=>{btn.textContent=t("copied");setTimeout(()=>btn.textContent=t(key),1400)},()=>{btn.textContent=t("copyFail");setTimeout(()=>btn.textContent=t(key),2000)})}
 $("#copyBtn").onclick=()=>{if(code)copyText(code,$("#copyBtn"),"copy")};
+$("#linkBtn").onclick=()=>{if(code)copyText(Rush.roomLink(code),$("#linkBtn"),"copyLink")};
 
 /* ---------- daily and archive runs ---------- */
 // q: {i, c, q:{en,ar}, opts:[{en,ar}x4], ms, deadline, picked, correct, removed:[], pts, fiftyPct, fifty}
@@ -499,7 +506,7 @@ async function answerDaily(slot){
     dstate=Object.assign(dstate||{},r.state);
     LS.set("tr-today",{d:R.todayKey(),n:r.state.n,entry:r.state.entry||null,i:r.state.i,streak:r.state.streak||0});
     run.phase="reveal";render();
-    setTimeout(()=>{if(!run||run.kind!=="daily")return;if(r.state.done){run.phase="done";lastPanelKey="";render();Rush.board.refresh();loadMine()}else nextDaily()},1800);
+    setTimeout(()=>{if(!run||run.kind!=="daily")return;if(r.state.done){run.phase="done";lastPanelKey="";render();Rush.board.refresh();loadMine();Rush.dailyDone()}else nextDaily()},1800);
   }catch(e){
     if(e.data&&e.data.state){q.ok=false;run.phase="reveal";render();setTimeout(()=>applyDailyState(e.data.state),1500);return}
     run.phase="error";render();
@@ -754,7 +761,7 @@ function render(){if($("#game").hidden){if(!$("#lobby").hidden)renderBoard();ret
 function renderLive(){renderTimer();renderPlay(false);renderOverlay();if(mode==="room"||mode==="solo")renderBoardLight()}
 function renderTop(){
   const r=$("#roomTxt");r.textContent="";
-  $("#copyBtn").hidden=mode!=="room";$("#netDot").hidden=mode!=="room";
+  $("#copyBtn").hidden=mode!=="room";$("#linkBtn").hidden=mode!=="room";$("#netDot").hidden=mode!=="room";
   if(mode==="solo")r.textContent=t("soloPractice");
   else if(mode==="daily")r.textContent=t("dailyMode");
   else if(mode==="archive")r.textContent=t("archMode");
@@ -767,10 +774,14 @@ function renderTimer(){
   if(v.live){const s=Math.ceil(v.left/1000);tm.textContent=t("secs",{n:s});tm.classList.toggle("low",s<=5);bar.classList.toggle("low",s<=5);bar.firstChild.style.width=(100*v.left/v.ms)+"%"}
   else{tm.textContent="";tm.classList.remove("low");bar.classList.remove("low");bar.firstChild.style.width=v.reveal?"0%":"100%"}
 }
+// the last question shown, for the Report button
+let lastShown=null;
+Rush.setReportCtx(()=>{const o={mode:mode||"menu",lg:lang};if(lastShown){o.cat=lastShown.cat;o.q=lastShown.q;o.options=lastShown.opts;if(lastShown.right)o.right=lastShown.right}return o});
 function renderPlay(force){
   const v=view();
   const key=[lang,v.cat,v.q&&v.q.en,v.picked,v.correct,v.removed&&v.removed.join(),v.fifty,v.live,v.reveal,v.dots.join(),v.free,v.fast].join("|");
   if(!force&&key===lastQKey)return;lastQKey=key;
+  if(v.q)try{lastShown={cat:v.cat?catName(v.cat):"",q:tx(v.q),opts:(v.opts||[]).map(o=>tx(o)),right:v.correct!=null&&v.opts&&v.opts[v.correct]?tx(v.opts[v.correct]):""}}catch(e){}
   const d=$("#dots");d.textContent="";v.dots.forEach(c=>d.appendChild(el("i",c)));
   $("#cat").textContent=v.cat?catName(v.cat)+(v.num?" · "+t("qOf",{i:v.num,n:T.QUESTIONS}):""):t("category");
   const qt=$("#qText");qt.classList.toggle("qwait",!v.q);qt.textContent=v.q?tx(v.q):t("getReady");
@@ -848,7 +859,7 @@ function renderOverlay(){
   if(run){
     if(run.phase==="count")return showCount(ov,panel,Math.max(1,Math.ceil((run.countEnd-now)/1000)));
     if(run.kind==="daily"&&run.phase==="intro")return setPanel(ov,panel,"dintro"+(dstate?dstate.streak:0)+run.i,()=>{
-      const out=[el("h2",null,t("dailyTitle",{n:run.n})),el("p",null,t("dailyIntro"))];
+      const out=[el("h2",null,t("dailyTitle",{n:run.n})),...Rush.introText([el("p",null,t("dailyIntro"))],()=>{lastPanelKey="";render()})];
       const s=dstate?num(dstate.streak):0;if(s)out.push(el("p","streak",s===1?t("curStreak1"):t("curStreakN",{n:s})));
       const b=el("button","btn primary",run.i>0?t("resume",{i:run.i}):t("start"));b.onclick=startDaily;out.push(b);return out});
     if(run.phase==="error")return setPanel(ov,panel,"err",()=>{const b=el("button","btn primary",t("backLobby"));b.onclick=backToLobby;return[el("h2",null,t("dailyErr")),b]});

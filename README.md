@@ -168,6 +168,32 @@ DAILY_KEY=... node scripts/daily-words.js decrypt > words.json   # edit, keeping
 DAILY_KEY=... node scripts/daily-words.js encrypt words.json
 ```
 
+## Moving the game server (e.g. to the paid Frankfurt instance)
+
+Three tools, all in this repo (`move.js`, `scripts/copy-db.js`):
+
+1. **Read-only switch** on the old server, so nothing changes while the database is copied. Either set
+   `MOVE_MODE=readonly` (restarts the service) or, without a restart:
+   `curl -X POST https://api.rushgames.cc/api/move -H "x-admin-key: $ADMIN_KEY" -H "Content-Type: application/json" -d '{"mode":"readonly"}'`
+   (`{"mode":""}` switches it off; `GET /api/move` shows the mode). Pages, boards and rooms keep working; every save
+   gets "Rush Games is moving to a faster server…".
+2. **Copy the database**: `FROM_URL=<old External URL> TO_URL=<new External URL> node scripts/copy-db.js`. It refuses
+   to touch a database that already has game data, creates the tables with the server's own code, copies every table
+   and checks each row count matches (exits with an error if any differs).
+3. **Redirect-only** on the old server once the new one is live: set `MOVE_MODE=redirect` (and `MOVE_TO`, default
+   `https://api.rushgames.cc`). It starts without any database, still serves the pages (so an old onrender.com bookmark
+   forwards the player to rushgames.cc with their progress), and forwards every API call to `MOVE_TO` with a 308.
+
+The copy has its own test, which needs two empty Postgres databases:
+`PGSSL=off TEST_PG_FROM=postgres://… TEST_PG_TO=postgres://… node --test tests/copy-db.test.js`
+
+## Player reports
+
+Every page has a footer (Report a problem · Privacy), and each game has a small flag button at the side while a game
+is on screen. A report carries what was on screen (the question and options, the revealed word, or the Harf letter and
+answers) and lands in the admin page's **Reports** tab, where the team marks it done (through the audit log, so it can
+be undone). A few reports an hour per address and per player.
+
 ## Tests
 
 ```bash
@@ -192,5 +218,6 @@ dropping the separate files, which left pages unstyled or offline.
 - `trivia.js`: the Trivia daily, past dailies, leaderboard, question picks and levels (`/api/trivia/...`).
 - `harf.js`: the Harf daily, answer checks, the overnight rarity pass and its leaderboard (`/api/harf/...`).
 - `store.js`: Postgres when `DATABASE_URL` is set, otherwise a JSON file.
+- `move.js`: read-only and redirect-only modes for moving servers. `reports.js`: player reports and the admin Reports tab.
 
 Each device gets a random player id and a secret token in browser storage. Only that device can update its own records.
