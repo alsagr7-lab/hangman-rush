@@ -654,8 +654,7 @@
   function fillAvatar(av) {
     const p = profile();
     av.style.background = p.color;
-    av.firstChild.textContent = p.nick ? [...p.nick][0].toUpperCase() : "";
-    av.classList.toggle("anon", !p.nick);
+    av.firstChild.textContent = p.nick ? [...p.nick][0].toUpperCase() : "?";
     av.querySelector(".gbadge") && av.querySelector(".gbadge").remove();
     if (acct) { const g = mkEl("span", "gbadge"); g.append(svg(G_LOGO)); av.append(g); }
   }
@@ -679,7 +678,7 @@
     barRefs.save.setAttribute("aria-label", at("save"));
     barRefs.me.setAttribute("aria-label", at("me"));
     fillAvatar(barRefs.av);
-    barRefs.who.textContent = p.nick || L2("Set your name", "اختر اسمك");
+    barRefs.who.textContent = p.nick || "—";
     barRefs.who.append(mkEl("small", "ltr", "#" + tag));
     if (sheet) {
       sheet.dir = ar ? "rtl" : "ltr";
@@ -1037,18 +1036,20 @@
       "أمامك 90 ثانية. كل إجابة صحيحة تُحتسب فوراً، وفي اليوم التالي تكسب الإجابات النادرة مكافأة.",
       "الحيوان والنبات والجماد يجب أن تكون كلمات من لغة اللعب. ترى أن إجابتك رُفضت خطأً؟ قدّم اعتراضاً."]] },
   };
-  // shown as a card in the lobby (never a popup), until it's dismissed or the player has saved a name
-  function maybeTour() {
-    const g = gameKey, k = "rush-tour-" + g, lobby = document.getElementById("lobby");
-    if (!TOUR[g] || !lobby || store.get(k) || store.get("hr-me")) return;
-    const steps = TOUR[g][uiAr() ? "ar" : "en"][1];
-    const box = mkEl("section", "rtour"), head = mkEl("div", "rtour-h"), x = mkEl("button", "rtour-x", L2("Got it", "فهمت"));
-    const h = mkEl("h2", null, L2("How to play", "طريقة اللعب")); h.id = "rtour-t"; box.setAttribute("aria-labelledby", "rtour-t");
-    x.type = "button"; x.onclick = () => { store.set(k, "1"); box.remove(); };
-    const ol = mkEl("ol"); steps.forEach(s => ol.append(mkEl("li", null, s)));
-    head.append(h, x); box.append(head, ol);
-    const brand = [...lobby.children].find(c => c.querySelector && c.querySelector(":scope>.brand"));
-    if (brand) brand.after(box); else lobby.prepend(box);
+  async function maybeTour() {
+    const g = gameKey, k = "rush-tour-" + g;
+    if (!TOUR[g] || store.get(k)) return;
+    store.set(k, "1");
+    // someone who has played before (they have a name saved on this device) doesn't need it
+    if (store.get("hr-me")) return;
+    const [name, steps] = TOUR[g][uiAr() ? "ar" : "en"];
+    const go = await ask({ title: L2("New to " + name + "?", "أول مرة في " + name + "؟"), body: L2("Want a quick tour? Three short tips.", "تبي جولة سريعة؟ ثلاث نصائح قصيرة."), ok: L2("Show me", "أرني"), cancel: L2("No thanks", "لا، شكراً") });
+    if (!go) return;
+    for (let i = 0; i < steps.length; i++) {
+      const last = i === steps.length - 1;
+      const more = await ask({ title: (i + 1) + "/" + steps.length, body: steps[i], ok: last ? L2("Let's play", "يلا نلعب") : L2("Next", "التالي"), cancel: L2("Skip", "تخطَّ") });
+      if (!more) break;
+    }
   }
 
   // ---- after a daily: a small chip to the next one not played today ----
@@ -1130,7 +1131,7 @@
     backSteps();
     footerAndReport();
     await sleep(300);
-    maybeTour();
+    await maybeTour();
     await autoDaily();
     await autoRoom();
     setTimeout(installTip, 2500);

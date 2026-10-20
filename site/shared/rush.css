@@ -101,7 +101,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 input[type=text]{font:inherit;font-size:16px;font-weight:600;border:1px solid var(--line2);background:var(--bg);color:var(--ink);border-radius:var(--r-sm);padding:0 14px;height:48px;width:100%;min-width:0;
   transition:border-color .15s,box-shadow .15s}
 input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(242,181,68,.18)}
-input[type=text]::placeholder{color:var(--muted);font-weight:500}
+input[type=text]::placeholder{color:var(--faint);font-weight:500}
 input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .langbtn{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:44px;padding:0 12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);
   border-radius:12px;font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap;flex:none}
@@ -112,7 +112,7 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .rbar{position:sticky;top:0;z-index:30;background:var(--bar);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line-soft);
   padding-top:env(safe-area-inset-top,0px)}
 .rbar-in{max-width:1180px;margin:0 auto;height:64px;padding-inline:16px;display:flex;align-items:center;gap:10px}
-.rbar-home{display:flex;align-items:center;min-height:44px;color:var(--ink);text-decoration:none;flex:none}
+.rbar-home{display:flex;align-items:center;color:var(--ink);text-decoration:none;flex:none}
 .rbar-home .rwordmark{width:112px;height:31px}
 :root[lang="ar"] .rbar-home .rwordmark{width:126px;height:30px}
 .rbar-back{flex:none;width:44px;height:44px;border-radius:12px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;color:var(--ink);text-decoration:none}
@@ -122,7 +122,6 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .rbar-game .gtile{width:38px;height:38px;border-radius:11px}
 .rbar-name{font-family:var(--f-display);font-stretch:118%;font-weight:800;font-size:17px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
 .rbar-name b{color:var(--accent);font-weight:800}
-:root[data-theme="light"] .rbar-name b{color:var(--accent-hi)}
 :root[lang="ar"] .rbar-name{font-family:var(--f-ar);font-stretch:100%;text-transform:none;letter-spacing:0;font-weight:900}
 .rbar-sep{display:none;width:1px;height:28px;background:var(--line2);flex:none}
 .rbar-sp{flex:1 1 auto;min-width:0}
@@ -135,8 +134,6 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .rbar-me .who{display:none;font-weight:700;font-size:15px;white-space:nowrap}
 .rbar-me .who small{font-family:var(--f-num);font-size:13px;color:var(--muted);font-weight:500;margin:0 6px}
 .av{position:relative;flex:none;display:grid;place-items:center;border-radius:12px;background:#8a3ffc;color:#fff;font-weight:800;font-family:var(--f-body);line-height:1}
-/* no name yet: a person shape instead of a "?" (which read as Help) */
-.av.anon::after{content:"";width:56%;height:56%;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='8' r='4.2'/%3E%3Cpath d='M3.5 21c.9-4.6 4.3-7 8.5-7s7.6 2.4 8.5 7z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='8' r='4.2'/%3E%3Cpath d='M3.5 21c.9-4.6 4.3-7 8.5-7s7.6 2.4 8.5 7z'/%3E%3C/svg%3E") center/contain no-repeat}
 .av .gbadge{position:absolute;inset-inline-end:-4px;bottom:-4px;width:20px;height:20px;border-radius:999px;background:#131314;border:2px solid var(--bg);display:grid;place-items:center}
 .av .gbadge svg{width:11px;height:11px}
 @media (min-width:760px){
@@ -323,41 +320,6 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .key:disabled{cursor:default}
 .devkb .btn{min-height:40px;font-size:13px;padding:6px 14px}
 
-/* end of a round: the result leads, then Next round; settings fold away under "Change settings" */
-.result{display:grid;gap:2px}
-.bigpts{display:flex;align-items:baseline;gap:8px;margin:6px 0 0}
-.bigpts b{font-family:var(--f-num);font-weight:800;font-size:46px;line-height:1;color:var(--accent-hi);font-variant-numeric:tabular-nums}
-.result.lost .bigpts b{color:var(--muted)}
-.bigpts span{color:var(--soft);font-weight:700}
-.result .reveal{margin-top:8px}
-details.setup{border-top:1px solid var(--line2);padding-top:4px}
-details.setup>*:not(summary){margin-top:10px}
-details.setup>summary{cursor:pointer;font-weight:700;color:var(--soft);list-style:none;display:flex;align-items:center;gap:8px;min-height:44px}
-details.setup>summary::-webkit-details-marker{display:none}
-details.setup>summary::after{content:"";width:7px;height:7px;border:solid currentColor;border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg);transition:transform .2s var(--ease-out);margin-inline-start:auto}
-details.setup[open]>summary::after{transform:translateY(2px) rotate(-135deg)}
-details.setup>summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
-/* after a word the overlay sits low and clear, so the finished drawing stays in view */
-.overlay.after{background:linear-gradient(to bottom,transparent 0,var(--shade) 55%);-webkit-backdrop-filter:none;backdrop-filter:none;align-items:flex-end}
-
-/* play with friends: Create is the card's main action; practice is a quiet way out of the card */
-.card>#createBtn{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-.card>#soloBtn{width:auto;justify-self:center;border:0;background:none;min-height:44px;padding:8px 12px;color:var(--soft);font-weight:700;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--line3)}
-@media (hover:hover) and (pointer:fine){.card>#soloBtn:hover{color:var(--ink);text-decoration-color:currentColor}}
-
-/* first visit: a short "How to play" card in the lobby instead of a popup */
-.rtour{background:var(--surface);border:1px solid var(--line2);border-radius:var(--r-lg);padding:16px 18px;display:grid;gap:10px}
-.rtour-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.rtour h2{margin:0;font-family:var(--f-hand);font-stretch:112%;font-weight:800;font-size:19px;line-height:1.2}
-:root[lang="ar"] .rtour h2{font-weight:900;font-stretch:100%}
-.rtour ol{margin:0;padding-inline-start:20px;display:grid;gap:6px;color:var(--soft);font-size:14.5px;line-height:1.5;max-width:68ch}
-.rtour-x{flex:none;border:1px solid var(--line3);background:var(--raised);color:var(--ink);border-radius:999px;min-height:44px;padding:0 16px;font:700 14px var(--f-body);cursor:pointer}
-.rtour-x:lang(ar){font-family:var(--f-ar)}
-@media (min-width:980px){#lobby>.rtour{grid-column:1/-1}}
-
-/* phones in a game: the report tab would sit beside the keyboard, and the footer already has "Report a problem" */
-@media (max-width:759px){body:has(#game:not([hidden])) .rreport{display:none}}
-
 /* overlays and result panels */
 .overlay{position:absolute;inset:0;background:var(--shade);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:2;
   -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:ovin .18s ease-out}
@@ -372,7 +334,6 @@ details.setup>summary:focus-visible{outline:3px solid var(--accent);outline-offs
 .count{font-family:var(--f-latin-hand);font-weight:800;font-size:128px;line-height:1;color:var(--accent);text-shadow:0 6px 30px rgba(0,0,0,.5)}
 .reveal{font-family:var(--f-latin-hand);font-weight:800;font-size:28px;letter-spacing:.08em;word-break:break-all;direction:ltr;text-align:start;color:var(--accent-hi)}
 :root[lang="ar"] .reveal{text-align:end}
-.reveal.ar{direction:rtl;font-family:var(--f-ar);letter-spacing:0;word-break:normal;text-align:center}
 .res{display:grid;gap:6px;margin:0;padding:0;list-style:none}
 :is(.res,.rres)>li{animation:rowin .24s var(--ease-out) both;animation-delay:60ms}:is(.res,.rres)>li:nth-child(2){animation-delay:100ms}:is(.res,.rres)>li:nth-child(3){animation-delay:140ms}:is(.res,.rres)>li:nth-child(4){animation-delay:180ms}:is(.res,.rres)>li:nth-child(5){animation-delay:220ms}:is(.res,.rres)>li:nth-child(6){animation-delay:260ms}:is(.res,.rres)>li:nth-child(7){animation-delay:300ms}:is(.res,.rres)>li:nth-child(8){animation-delay:340ms}:is(.res,.rres)>li:nth-child(9){animation-delay:380ms}:is(.res,.rres)>li:nth-child(10){animation-delay:420ms}
 /* a panel that refreshes in place (a vote, another finisher) doesn't replay the cascade */
@@ -436,7 +397,7 @@ details.setup>summary:focus-visible{outline:3px solid var(--accent);outline-offs
 
 /* the daily board in each game's main menu: small (top three and you) until tapped, back to small once scrolled away */
 #lbSlot:empty{display:none}
-.board .lbtog{justify-self:center;border:0;background:transparent;color:var(--accent-hi);font:700 13px/1 var(--f-body);padding:6px 10px;min-height:44px;cursor:pointer}
+.board .lbtog{justify-self:center;border:0;background:transparent;color:var(--accent-hi);font:700 13px/1 var(--f-body);padding:6px 2px;min-height:32px;cursor:pointer}
 .board .lbtog:lang(ar){font-family:var(--f-ar);font-size:14px}
 .board:not(.inlobby) .lbtog{display:none}
 .board.mini{cursor:pointer;gap:8px}
@@ -448,7 +409,7 @@ details.setup>summary:focus-visible{outline:3px solid var(--accent);outline-offs
 
 /* a board's small language switch (the Arabic and English dailies have separate boards) */
 .lgsw{display:inline-flex;padding:3px;border-radius:11px;background:var(--bg);border:1px solid var(--line);flex:none;gap:2px}
-.lgsw button{border:0;background:transparent;border-radius:8px;padding:0 12px;min-height:38px;font:700 13px/1 var(--f-body);color:var(--muted)}
+.lgsw button{border:0;background:transparent;border-radius:8px;padding:0 12px;min-height:32px;font:700 13px/1 var(--f-body);color:var(--muted)}
 .lgsw button[aria-pressed="true"]{background:var(--key);color:var(--ink)}
 .lgsw button:lang(ar){font-family:var(--f-ar);font-size:14px}
 
@@ -456,9 +417,9 @@ details.setup>summary:focus-visible{outline:3px solid var(--accent);outline-offs
 
 /* ---------- footer, report button and form, rules switch, next-daily chip, install tip (rush.js "extras") ---------- */
 .rfoot{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;padding:28px 16px calc(28px + env(safe-area-inset-bottom));font-size:13px;color:var(--muted)}
-.rfoot-l{background:none;border:0;padding:12px 6px;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line3)}
+.rfoot-l{background:none;border:0;padding:6px 4px;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line3)}
 @media (hover:hover) and (pointer:fine){.rfoot-l:hover{color:var(--ink)}}
-.rfoot-dot{color:var(--muted)}
+.rfoot-dot{color:var(--faint)}
 .rreport{position:fixed;inset-inline-end:0;top:50%;transform:translateY(-50%);z-index:25;width:34px;height:44px;display:grid;place-items:center;
   background:var(--surface);color:var(--muted);border:1px solid var(--line2);border-inline-end:0;border-radius:12px 0 0 12px;cursor:pointer;opacity:.85}
 [dir="rtl"] .rreport,:root[lang="ar"] .rreport{border-radius:0 12px 12px 0}
