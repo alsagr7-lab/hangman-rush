@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Android draws an installed app behind its navigation bar when the page covers the whole screen; only iPhones need that (for the notch) -->
+<script>if(/Android/i.test(navigator.userAgent)){var vp=document.querySelector('meta[name="viewport"]');if(vp)vp.setAttribute("content","width=device-width,initial-scale=1")}</script>
 <script>(function(){var t;try{t=localStorage.getItem("rush-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.setAttribute("data-theme",t)})()</script>
 <style>:root{color-scheme:dark;background:#0B0C10;padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}[hidden]{display:none!important}:root[data-theme="light"]{color-scheme:light;background:#F5F3EE}:root[data-theme="light"] body{background:#F5F3EE;color:#15161B}</style>
 <title>Trivia Rush</title>
