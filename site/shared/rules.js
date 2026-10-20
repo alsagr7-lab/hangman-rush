@@ -29,7 +29,35 @@
   // names that would pass for the site's staff show as "Player"
   const RESERVED = /^(admin|administrator|moderator|mod|system|staff|support|owner|official|rushgames|مشرف|المشرف|الاداره|اداره|ادمن|الادمن|الدعم|دعم)$/;
   const nameKey = s => String(s).toLowerCase().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/[^a-z0-9ء-ي]+/g, "");
-  const nm16 = v => { const s = String(v || "Player").slice(0, 16); return RESERVED.test(nameKey(s)) ? "Player" : s; };
+  /* Names with insults or slurs (English and Arabic) also show as "Player" on every board, and the pages ask for
+     another name. Checked on a folded copy of the name: lower case, look-alike digits and symbols as letters (f4ck,
+     $hit), Arabic letter forms joined (أ إ آ -> ا, ة -> ه, ى -> ي, no tashkeel or tatweel), and repeated letters
+     squeezed (fuuuck). PART words are caught anywhere in the name; WORD words only on their own, so names like
+     Dickson, Essex, Grape or كسرى stay fine. */
+  const PART = ["fuck", "fuk", "fck", "shit", "cunt", "bitch", "whore", "porn", "pussy", "asshole", "motherf", "wank", "twat", "retard", "hitler", "nazi", "faggot", "dildo", "blowjob",
+    "شرموط", "قحبه", "منيوك", "متناك", "منيك", "معرص", "ديوث", "عاهره", "نيكني", "انيكك", "يلعن", "لعنه", "زبي", "كسمك", "كسختك", "كس امك", "طيزك"];
+  const RAW = ["nigger", "nigga"]; // not squeezed: "niger" would catch Niger and Nigeria
+  const WORD = ["dick", "cock", "slut", "rape", "rapist", "fag", "ass", "sex", "sexy", "penis", "vagina", "boobs", "tits", "cum", "kys", "anal", "nude", "nudes", "horny",
+    "كس", "زب", "نيك", "خول", "لوطي", "زاني", "زانيه", "كلب", "حمار", "حيوان", "خرا", "طيز", "عرص", "بزاز", "سكس", "حقير", "تافه", "غبي"];
+  const LEET = { "0": "o", "1": "i", "!": "i", "3": "e", "4": "a", "@": "a", "5": "s", "$": "s", "7": "t", "8": "b" };
+  const fold = s => String(s).toLowerCase().normalize("NFKC").replace(/[\u064B-\u065F\u0670\u0640]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي")
+    .replace(/[0134578!@$]/g, c => LEET[c]);
+  const squeeze = s => s.replace(/(.)\1+/gu, "$1");
+  const letters = s => s.replace(/[^a-zء-ي]+/g, "");
+  const PART_K = PART.map(w => squeeze(letters(fold(w)))), WORD_K = new Set(WORD.map(w => letters(fold(w))));
+  function badName(v) {
+    const f = fold(v), all = letters(f), sq = squeeze(all);
+    if (RAW.some(w => all.includes(w))) return true;
+    if (PART_K.some(w => sq.includes(w))) return true;
+    // whole words, as typed and squeezed (asss), and the name run together when it's one short word spaced out (d i c k)
+    const words = f.split(/[^a-zء-ي]+/).filter(Boolean);
+    // Arabic words also without a leading ال or يا (الكلب, ياكلب)
+    const forms = w => [w, squeeze(w), w.replace(/^(ال|يا|وال)(?=..)/, "")];
+    if (words.some(w => forms(w).some(x => WORD_K.has(x)))) return true;
+    if (words.length > 1 && words.every(w => w.length === 1) && (WORD_K.has(all) || WORD_K.has(sq))) return true;
+    return false;
+  }
+  const nm16 = v => { const s = String(v || "Player").slice(0, 16); return RESERVED.test(nameKey(s)) || badName(s) ? "Player" : s; };
   const seasonOfRec = r => num(r.se) || curSeason();
   function rollover(r) {
     // a record from an earlier season starts fresh, keeping a summary of the old one
@@ -185,7 +213,7 @@
 
   return {
     num, DAY, EPOCH_DAY, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight,
-    COLORS, safeColor, nm16, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
+    COLORS, safeColor, nm16, badName, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
     HARF, harfNorm, harfStem, harfKey, harfGroup, harfLetterOk, harfRoomPoints,
   };

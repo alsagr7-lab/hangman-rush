@@ -20,6 +20,11 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rush Games">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>/* record script load failures, so the page can say what went wrong */window.__rushErrs=[];window.addEventListener("error",function(e){var t=e.target;if(t&&t!==window&&t.src)window.__rushErrs.push("couldn't load "+t.src.split("/").pop());else if(e.message)window.__rushErrs.push(e.message)},true)</script>
 <script src="/shared/config.js"></script>
 <script src="/shared/rules.js"></script>
@@ -152,7 +157,7 @@
 
   <section id="game" hidden>
     <div class="top">
-      <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button type="button" id="copyBtn" data-i18n="copy">Copy</button></div>
+      <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button type="button" id="copyBtn" data-i18n="copy">Copy</button><button type="button" id="linkBtn" data-i18n="copyLink">Link</button></div>
       <span class="roundlbl" id="roundLbl"></span>
       <span class="spacer"></span>
       <span class="timer ltr" id="timer"></span>
@@ -225,7 +230,7 @@ en:{
   r3b:"Rare answers",r3:"Next day: +5 if nobody else wrote it, +2 if under 20% of players did.",
   checkAi:"Answers are checked for the right first letter and the right category. \"ال\" and \"the\" at the start don't count, and spellings like ة/ه or أ/ا count as the same answer.",
   checkLetter:"Answers are checked for the right first letter for now. \"ال\" and \"the\" at the start don't count.",
-  copy:"Copy",copied:"Copied",copyFail:"Copy failed — select the text",leave:"Leave",roomLbl:"Room ",soloPractice:"Solo practice",dailyMode:"Daily letter",
+  copy:"Copy",copyLink:"Link",copied:"Copied",copyFail:"Copy failed — select the text",leave:"Leave",roomLbl:"Room ",soloPractice:"Solo practice",dailyMode:"Daily letter",
   roundN:"Round {n}",secs:"{n}s",
   cat_name:"Name",cat_animal:"Animal",cat_plant:"Plant",cat_object:"Object",cat_place:"Place",
   catSub_name:"a person",catSub_animal:"any creature",catSub_plant:"fruit, veg, tree…",catSub_object:"a thing",catSub_place:"country or city",
@@ -281,7 +286,7 @@ ar:{
   r3b:"إجابات نادرة",r3:"في اليوم التالي: +5 إذا لم يكتبها أحد غيرك، و+2 إذا كتبها أقل من 20% من اللاعبين.",
   checkAi:"نتحقق من أن الإجابة تبدأ بالحرف الصحيح وتناسب الفئة. «ال» في البداية لا تُحتسب، وكتابات مثل ة/ه أو أ/ا تُعد نفس الإجابة.",
   checkLetter:"نتحقق حالياً من أن الإجابة تبدأ بالحرف الصحيح فقط. «ال» في البداية لا تُحتسب.",
-  copy:"نسخ",copied:"تم النسخ",copyFail:"تعذّر النسخ، حدّد النص",leave:"خروج",roomLbl:"غرفة ",soloPractice:"تدريب فردي",dailyMode:"حرف اليوم",
+  copy:"نسخ",copyLink:"رابط",copied:"تم النسخ",copyFail:"تعذّر النسخ، حدّد النص",leave:"خروج",roomLbl:"غرفة ",soloPractice:"تدريب فردي",dailyMode:"حرف اليوم",
   roundN:"الجولة {n}",secs:"{n} ث",
   cat_name:"إنسان",cat_animal:"حيوان",cat_plant:"نبات",cat_object:"جماد",cat_place:"بلاد",
   catSub_name:"اسم شخص",catSub_animal:"أي كائن",catSub_plant:"فاكهة، خضار، شجر…",catSub_object:"شيء",catSub_place:"دولة أو مدينة",
@@ -343,8 +348,9 @@ function renderNameHint(){
   hint.append(document.createTextNode(t("nameHintAs")),b,document.createTextNode(t("nameHintTag")));
 }
 function requireName(){
-  if(nickIn.value.trim().length>=2){nickIn.classList.remove("need");return true}
-  const hint=$("#nameHint");hint.textContent=t("nameNeeded");hint.classList.add("warn");
+  const v=nickIn.value.trim(),bad=v.length>=2&&R.badName(v);
+  if(v.length>=2&&!bad){nickIn.classList.remove("need");return true}
+  const hint=$("#nameHint");hint.textContent=bad?Rush.badNameMsg():t("nameNeeded");hint.classList.add("warn");
   nickIn.classList.add("need");nickIn.focus();nickIn.scrollIntoView({block:"center",behavior:"smooth"});return false;
 }
 nickIn.addEventListener("input",()=>{nickIn.classList.remove("need");renderNameHint()});
@@ -510,6 +516,12 @@ let mode=null,drun=null;
 let roomApi=null,code=null,host=false,connected=true,unsubs=[],joinedAt=0;
 let hs=freshHost(),cur=null,score=0,lastRound=0,waitNext=false,closing=false;
 function freshHost(){return{hr:0,st:"waiting",at:0,L:"",lg:lang,ms:H.ROOM_MS[1],sa:0,sn:"",used:[]}}
+// what the Report button sends along: the letter and the answers on screen, with the referee's marks once checked
+Rush.setReportCtx(()=>{const o={mode:mode||"menu",lg:mode==="daily"&&drun?drun.lg:lang},L=curLetter();if(L)o.letter=L;
+  const e=mode==="daily"&&drun&&drun.phase==="done"?todayEntry(drun.lg):null;
+  if(e&&Array.isArray(e.a))o.answers=e.a.map((a,i)=>H.CATS[i]+": "+((a&&(a.f||a.w))||"—")+(a&&a.w?(a.ok?" ✓":" ✗"):""));
+  else if(mode){const w=words();if(w.some(Boolean))o.answers=w.map((x,i)=>H.CATS[i]+": "+(x||"—"))}
+  return o});
 const curLetter=()=>mode==="daily"?(drun&&drun.L)||"":cur?cur.L:"";
 const curLang=()=>mode==="daily"?(drun&&drun.lg)||lang:cur?cur.lg:lang;
 
@@ -566,7 +578,7 @@ async function submitDaily(){
   clearTimeout(saveTimer);
   drun.phase="checking";inputs.forEach(i=>i.disabled=true);render();
   try{const s=await Rush.harf.submit(words(),drun.lg);setDs(s);
-    const e=s.entry;if(e){marksFor(e.a)}drun.phase="done";lastPanelKey="";render();Rush.board.refresh()}
+    const e=s.entry;if(e){marksFor(e.a)}drun.phase="done";lastPanelKey="";render();Rush.board.refresh();Rush.dailyDone()}
   catch(e){if(e.data&&e.data.state){setDs(e.data.state);const x=ds();if(x.entry)marksFor(x.entry.a);drun.phase="done";lastPanelKey="";render();return}
     drun.phase="error";lastPanelKey="";render()}
 }
@@ -607,6 +619,7 @@ async function enterRoom(c){
 }
 function copyText(txt,btn,key){navigator.clipboard.writeText(txt).then(()=>{btn.textContent=t("copied");setTimeout(()=>btn.textContent=t(key),1400)},()=>{btn.textContent=t("copyFail");setTimeout(()=>btn.textContent=t(key),2000)})}
 $("#copyBtn").onclick=()=>{if(code)copyText(code,$("#copyBtn"),"copy")};
+$("#linkBtn").onclick=()=>{if(code)copyText(Rush.roomLink(code),$("#linkBtn"),"copyLink")};
 
 /* the round schedule (in this device's clock): countdown, then writing until the time is up or STOP_MS after
    someone pressed STOP, then everyone's answers are checked and scored */
@@ -731,7 +744,7 @@ function render(){if($("#game").hidden){if(!$("#lobby").hidden)renderBoard();ret
 function renderLive(){renderTimer();renderActions();renderOverlay();if(mode==="room")renderBoardLight()}
 function renderTop(){
   const r=$("#roomTxt");r.textContent="";
-  $("#copyBtn").hidden=mode!=="room";$("#netDot").hidden=mode!=="room";
+  $("#copyBtn").hidden=mode!=="room";$("#linkBtn").hidden=mode!=="room";$("#netDot").hidden=mode!=="room";
   if(mode==="solo")r.textContent=t("soloPractice");
   else if(mode==="daily")r.textContent=t("dailyMode");
   else if(mode==="room"){r.append(el("span",null,t("roomLbl")),ltr(code,"code"));$("#netDot").classList.toggle("off",!connected)}
@@ -830,9 +843,8 @@ function renderOverlay(){
     if(drun.phase==="count")return showCount(ov,panel,Math.max(1,Math.ceil((drun.countEnd-now)/1000)));
     if(drun.phase==="intro")return setPanel(ov,panel,"dintro"+(ds()?ds().streak:0)+drun.lg,()=>{
       const s=ds()?num(ds().streak):0;
-      const out=[el("h2",null,t("dailyTitle",{n:R.dailyNo()})),el("p",null,t("dailyIntro")),
+      const out=[el("h2",null,t("dailyTitle",{n:R.dailyNo()})),...Rush.introText([el("p",null,t("dailyIntro")),el("p","diffhelp",t("playInHelp"))],()=>{lastPanelKey="";render()}),
         el("p","lbl",t("playIn")),langSeg(),
-        el("p","diffhelp",t("playInHelp")),
         el("p","streak",s?t("curStreak",{n:s,b:Math.min(H.STREAK_MAX,s+1)}):t("noStreak"))];
       const b=el("button","btn primary",t("start"));b.onclick=startDaily;out.push(b);return out});
     if(drun.phase==="error")return setPanel(ov,panel,"err",()=>{const b=el("button","btn primary",t("backLobby"));b.onclick=backToLobby;return[el("h2",null,t("dailyErr")),b]});

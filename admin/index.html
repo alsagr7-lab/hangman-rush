@@ -183,6 +183,7 @@ $("#out").onclick=()=>{try{sessionStorage.removeItem("harf-admin");localStorage.
 /* ---------- tabs ---------- */
 const TABS=[
   ["review","Review",()=>true,review],
+  ["reports","Reports",()=>true,reportsTab],
   ["answers","Answers",()=>true,answers],
   ["players","Players",()=>true,players],
   ["words","Words",()=>true,words],
@@ -522,6 +523,26 @@ async function logTab(){
       e.why?h("div",{class:"note",dir:"auto"},"Why: "+e.why):null,
       e.undo&&!e.undone&&Date.now()-e.t<2*864e5?h("div",null,h("button",{class:"sm",onclick:async ev=>{ev.target.disabled=true;try{await api("/api/mod/undo",{id:e.id});toast("Undone");refresh()}catch(x){toast(x.message);ev.target.disabled=false}}},"Undo")):null))
     :h("p",{class:"note"},"No changes yet."))];
+}
+
+/* ---------- Reports: what players flagged with the Report button ---------- */
+const rp={status:"open"};
+const KIND={wrong:"Wrong answer",question:"Bad question",offensive:"Offensive",bug:"Something broke",other:"Other"};
+async function reportsTab(){
+  const r=await api("/api/admin/reports?status="+rp.status);badge(r.open,"reports");
+  const ctxRow=c=>Object.entries(c||{}).map(([k,v])=>h("div",{class:"note",dir:"auto"},h("b",null,k+": "),Array.isArray(v)?v.join(", "):String(v)));
+  return [h("div",{class:"card"},h("div",{class:"ph"},h("h2",null,"Reports"),h("span",{class:"note"},r.open+" open")),
+    h("p",{class:"note"},"Questions, answers and words players flagged with the Report button or the footer link. Fix the content, then mark the report done."),
+    h("div",{class:"row"},h("select",{onchange:e=>{rp.status=e.target.value;refresh()}},[["open","Open"],["done","Done"],["all","All"]].map(([v,l])=>h("option",{value:v,selected:rp.status===v},l)))),
+    r.list.length?r.list.map(x=>h("div",{class:"prow"},
+      h("div",{class:"ph"},h("b",null,(x.game==="site"?"Site":x.game[0].toUpperCase()+x.game.slice(1))+(x.lg?" · "+x.lg.toUpperCase():"")+" · "+(KIND[x.kind]||x.kind)),h("span",{class:"note"},dateOf(x.at))),
+      x.text?h("div",{dir:"auto"},x.text):null,
+      ctxRow(x.ctx),
+      h("div",{class:"meta note"},x.uid?h("span",{class:"badge"},"player "+x.uid):null,x.status==="done"?h("span",{class:"badge b-good"},"done"+(x.by?" · "+x.by:"")):null),
+      h("div",null,x.status==="done"
+        ?h("button",{class:"sm",onclick:async e=>{await act("reports.close",{id:x.id,done:false},"Reopened",e.target);refresh()}},"Reopen")
+        :h("button",{class:"sm",onclick:async e=>{await act("reports.close",{id:x.id,done:true},"Marked done",e.target);refresh()}},"Done"))))
+    :h("p",{class:"note"},rp.status==="open"?"No open reports.":"Nothing here."))];
 }
 
 if(key)signIn();

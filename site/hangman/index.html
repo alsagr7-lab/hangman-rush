@@ -7,6 +7,7 @@
 <style>:root{color-scheme:dark;background:#0B0C10;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}img{max-width:100%}[hidden]{display:none!important}:root[data-theme="light"]{color-scheme:light;background:#F5F3EE}:root[data-theme="light"] body{background:#F5F3EE;color:#15161B}</style>
 <script>/* record script load failures, so the page can say what went wrong */window.__rushErrs=[];window.addEventListener("error",function(e){var t=e.target;if(t&&t!==window&&t.src)window.__rushErrs.push("couldn't load "+t.src.split("/").pop());else if(e.message)window.__rushErrs.push(e.message)},true)</script>
 <script src="/shared/config.js"></script>
+<script src="/shared/rules.js"></script>
 <script src="/shared/rush.js"></script>
 <title>Hangman Rush</title>
 <meta name="description" content="Same word, same moment. Solve today’s word fastest with the fewest wrong letters, in English or Arabic.">
@@ -23,6 +24,11 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rush Games">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@100..125,400..800&family=Figtree:wght@400..800&family=Cairo:wght@400..900&display=swap">
@@ -92,7 +98,7 @@
 
   <section id="game" hidden>
     <div class="top">
-      <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button id="copyBtn" data-i18n="copy">Copy</button></div>
+      <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button id="copyBtn" data-i18n="copy">Copy</button><button type="button" id="linkBtn" data-i18n="copyLink">Link</button></div>
       <span class="roundlbl" id="roundLbl"></span>
       <span class="spacer"></span>
       <span class="timer ltr" id="timer">60s</span>
@@ -203,7 +209,7 @@ en:{
   codeLen:"Room codes are 4 letters.",roomFail:"Couldn't open that room. Try again in a moment.",solo:"Practise solo",
   r1b:"60 seconds",r1:"per word, after a 3-second countdown.",r2b:"6 misses",r2:"and you're hanged. Zero points.",
   r3b:"Up to 340 pts",r3:"100 for solving, up to +240 for speed, −10 per miss, −30 per revealed letter. A clue costs 25–90% of your score, depending on how you've been playing.",
-  copy:"Copy",copied:"Copied",copyFail:"Copy failed — select the text",leave:"Leave",gallows:"Gallows",category:"Category",
+  copy:"Copy",copyLink:"Link",copied:"Copied",copyFail:"Copy failed — select the text",leave:"Leave",gallows:"Gallows",category:"Category",
   boardRace:"Race board",teams:"Teams",boardDaily:"Daily leaderboard",tabToday:"Today",tabYday:"Yesterday",tabSeason:"Season",
   soloPractice:"Solo practice",dailyWord:"Daily word",roomLbl:"Room ",roundN:"Round {n}",secs:"{n}s",
   missesOf:"{n} of {m} misses",noMisses:"No misses yet",you:"you",hostTag:"host",waitingNext:"Waiting for next round",
@@ -271,7 +277,7 @@ ar:{
   codeLen:"رمز الغرفة يتكوّن من 4 أحرف.",roomFail:"تعذّر فتح الغرفة. حاول مرة أخرى بعد قليل.",solo:"تدرّب وحدك",
   r1b:"60 ثانية",r1:"لكل كلمة، بعد عدّ تنازلي من 3 ثوانٍ.",r2b:"6 أخطاء",r2:"وتُشنق. صفر نقاط.",
   r3b:"حتى 340 نقطة",r3:"100 للحل، وحتى +240 للسرعة، و−10 لكل خطأ، و−30 لكل حرف مكشوف. الوصف يخصم من 25% إلى 90% من نقاطك حسب مستواك.",
-  copy:"نسخ",copied:"تم النسخ",copyFail:"تعذّر النسخ، حدّد النص يدوياً",leave:"خروج",gallows:"المشنقة",category:"الفئة",
+  copy:"نسخ",copyLink:"رابط",copied:"تم النسخ",copyFail:"تعذّر النسخ، حدّد النص يدوياً",leave:"خروج",gallows:"المشنقة",category:"الفئة",
   boardRace:"لوحة السباق",teams:"الفرق",boardDaily:"ترتيب كلمة اليوم",tabToday:"اليوم",tabYday:"أمس",tabSeason:"الموسم",
   soloPractice:"تدريب فردي",dailyWord:"كلمة اليوم",roomLbl:"غرفة ",roundN:"الجولة {n}",secs:"{n} ث",
   missesOf:"الأخطاء: {n} من {m}",noMisses:"لا أخطاء حتى الآن",you:"أنت",hostTag:"المضيف",waitingNext:"بانتظار الجولة التالية",
@@ -438,6 +444,11 @@ function recordDaily(){
   saveRec(lg);if(lg==="ar")saveRec("en");renderLobbyDaily();
 }
 function todayEntry(r){return r&&r.h?r.h[todayKey()]:null}
+// what the Report button sends along: the word only once it's been revealed (solved, hanged, or today's daily done)
+Rush.setReportCtx(()=>{const o={mode:mode||"menu",lg:mode==="daily"?dlg:lang};
+  if(mode==="daily"){const W=tdw(),e=todayEntry(drec());if(e&&("ok" in e)&&W&&W.w)o.word=W.w}
+  else if(cur&&cur.done&&cur.word)o.word=cur.word;
+  return o});
 function noteResult(solved){rec.sk=clampSk(rec.sk+(solved?1:-1))}
 // today's word in each language; the Arabic one only comes from the server
 let todayDaily=null,todayAr=null,dailyErr=false,dailyErrAr=false,dailyLoading=false,dailyLoadingAr=false,dailyTried=0,dailyTriedAr=0;
@@ -477,7 +488,7 @@ function hmCall(kind,arg){
       const s=kind==="start"?await hmApi.start(lg,prof):kind==="guess"?await hmApi.guess(lg,arg):kind==="hint"?await hmApi.hint(lg,arg):await hmApi.state(lg,prof);
       if(dbErr)dbErr=false;
       applyHm(lg,s);
-      if(kind!=="state"&&s&&s.entry&&("ok" in s.entry))Rush.board.refresh();
+      if(kind!=="state"&&s&&s.entry&&("ok" in s.entry)){Rush.board.refresh();Rush.dailyDone()}
     }catch(e){
       if(e&&e.data&&e.data.state)applyHm(lg,e.data.state);
       else{dbErr=true;if(kind==="guess"&&cur)cur.g.delete(arg);render();if(kind!=="state")setTimeout(()=>hmCall("state"),3000)}
@@ -536,8 +547,9 @@ function renderNameHint(){
   if(tg)hint.append(document.createTextNode(t("nameHintTag")));
 }
 function requireName(){
-  if(nickIn.value.trim().length>=2){nickIn.classList.remove("need");return true}
-  const hint=$("#nameHint");hint.textContent=t("nameNeeded");hint.classList.add("warn");
+  const v=nickIn.value.trim(),bad=v.length>=2&&RushRules.badName(v);
+  if(v.length>=2&&!bad){nickIn.classList.remove("need");return true}
+  const hint=$("#nameHint");hint.textContent=bad?Rush.badNameMsg():t("nameNeeded");hint.classList.add("warn");
   nickIn.classList.add("need");nickIn.focus();nickIn.scrollIntoView({block:"center",behavior:"smooth"});return false;
 }
 nickIn.addEventListener("input",()=>{nickIn.classList.remove("need");renderNameHint()});
@@ -641,6 +653,7 @@ function copyText(txt,btn,labelKey){
   navigator.clipboard.writeText(txt).then(()=>{btn.textContent=t("copied");setTimeout(()=>btn.textContent=t(labelKey),1400)}).catch(()=>{btn.textContent=t("copyFail");setTimeout(()=>btn.textContent=t(labelKey),2000)});
 }
 $("#copyBtn").onclick=()=>{if(code)copyText(code,$("#copyBtn"),"copy")};
+$("#linkBtn").onclick=()=>{if(code)copyText(Rush.roomLink(code),$("#linkBtn"),"copyLink")};
 $("#hintLetterBtn").onclick=hintLetter;$("#hintClueBtn").onclick=hintClue;
 Rush.board.init({game:"hangman",lg:()=>mode==="daily"?dlg:(lang==="ar"?"ar":"en"),active:()=>mode==="daily"||!$("#lobby").hidden});
 
@@ -862,7 +875,7 @@ document.addEventListener("keydown",e=>{
 function render(){if($("#game").hidden){if(!$("#lobby").hidden)renderBoard();return}renderTop();renderPlay();renderBoard();renderOverlay();renderTimer()}
 function renderTop(){
   const r=$("#roomTxt");r.textContent="";
-  $("#copyBtn").hidden=mode!=="room";$("#netDot").hidden=mode!=="room";
+  $("#copyBtn").hidden=mode!=="room";$("#linkBtn").hidden=mode!=="room";$("#netDot").hidden=mode!=="room";
   if(mode==="solo")r.textContent=t("soloPractice");
   else if(mode==="daily")r.textContent=t("dailyWord");
   else{r.append(el("span",null,t("roomLbl")),ltr(code,"code"));$("#netDot").classList.toggle("off",!connected)}
@@ -1036,7 +1049,7 @@ function dailyOverlay(ov,panel){
     out.push(el("p","lbl",t("playIn")),sw);
     if(!tdw()){out.push(el("p","note",t(dlg==="ar"&&dailyErrAr?"dailyErr":"loadingDaily")));return out}
     if(!done){
-      out.push(el("h2",null,t("dailyTitle",{n:dailyNo()})+" · "+LGN[dlg]),el("p",null,t("dailyIntro")),el("p","note",t("dailyHelp")),el("p","diffhelp",t("playInHelp")));
+      out.push(el("h2",null,t("dailyTitle",{n:dailyNo()})+" · "+LGN[dlg]),...Rush.introText([el("p",null,t("dailyIntro")),el("p","note",t("dailyHelp")),el("p","diffhelp",t("playInHelp"))],()=>{lastPanelKey="";render()}));
       if(s)out.push(el("p","streak",s===1?t("curStreak1"):t("curStreakN",{n:s})));
       const b=el("button","btn primary",t("start"));b.onclick=startDaily;out.push(b);
       return out;
