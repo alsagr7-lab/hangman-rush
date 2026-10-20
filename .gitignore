@@ -6,3 +6,7 @@ words.json
 trivia-daily.json
 dist/
 words-ar.json
+
+# Impeccable live-preview scratch files
+.impeccable/live/
+.impeccable/config.local.json
