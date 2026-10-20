@@ -8,7 +8,7 @@ const mod = require("./mod");
 
 const PAGES = ["home", "hangman", "trivia", "harf"];
 const GAMES = ["hangman", "trivia", "harf"];
-const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
+const { ID_RE, baseId } = require("./ident");
 const DAY = R.DAY;
 const dayKey = t => new Date(t).toISOString().slice(0, 10);
 
@@ -95,7 +95,6 @@ async function visitSummary() {
 /* ---------- hidden players ----------
    {game: [base uid]} — hidden from that game's leaderboards (both languages). Their scores are kept; unhide any time. */
 let hidden = { hangman: new Set(), trivia: new Set(), harf: new Set() };
-const baseId = id => String(id).replace(/_(ar|en)$/, "");
 async function loadHidden() {
   const v = await store.metaGet("hidden_players").catch(() => null);
   for (const g of GAMES) hidden[g] = new Set((v && v[g]) || []);
@@ -113,7 +112,7 @@ mod.register("players.hide", {
   doc: "hide a player from one game's leaderboards (both languages), or show them again; scores are kept",
   args: '{"game": "hangman|trivia|harf", "id": "<player id>", "hide": true|false}',
   async run(a) {
-    if (!GAMES.includes(a.game) || !ID_RE.test(String(a.id || "").replace(/_(ar|en)$/, ""))) throw new mod.Fail(400, "Expected {game, id, hide}");
+    if (!GAMES.includes(a.game) || !ID_RE.test(baseId(a.id))) throw new mod.Fail(400, "Expected {game, id, hide}");
     const was = isHidden(a.game, a.id);
     await setHidden(a.game, String(a.id), !!a.hide);
     return { sum: `${a.hide ? "hid" : "showed"} ${baseId(a.id)} on ${a.game}`, undo: { act: "players.hide", args: { game: a.game, id: a.id, hide: was } } };

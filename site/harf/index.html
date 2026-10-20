@@ -582,15 +582,15 @@ function myPresence(){
 function pushPresence(){if(roomApi)roomApi.presence(myPresence()).catch(()=>{})}
 function peers(){return roomApi?roomApi.peers().filter(p=>p.presence&&p.presence.n):[]}
 function others(){return peers().filter(p=>!p.sameTab)}
-function hostPeer(){const l=others().filter(p=>p.presence.h===1).sort((a,b)=>a.peer<b.peer?-1:1);return l[0]||null}
-function myPeer(){return roomApi?roomApi.peers().find(p=>p.sameTab):null}
+function hostPeer(){return Rush.hostOf(others())}
+function myPeer(){return Rush.mePeer(roomApi)}
 function hostInfo(){
   if(host||mode==="solo")return hs;
   const hp=hostPeer();if(!hp)return null;const P=hp.presence,lg=P.lg==="en"?"en":"ar";
   return{hr:num(P.hr),st:P.st,at:num(P.at),L:H.LETTERS[lg].includes(P.L)?P.L:"",lg,ms:H.ROOM_MS.includes(num(P.ms))?num(P.ms):H.ROOM_MS[1],sa:num(P.sa),sn:nm16(P.sn||"")};
 }
 $("#soloBtn").onclick=()=>{saveMe();mode="solo";host=true;hs=freshHost();setInputs(null,false,lang);showGame()};
-function newCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ";let s="";for(let i=0;i<4;i++)s+=A[Math.floor(Math.random()*A.length)];return s}
+const newCode=Rush.roomCode;
 $("#createBtn").onclick=()=>{if(!requireName())return;netMsg=null;saveMe();mode="room";host=true;hs=freshHost();enterRoom(newCode())};
 $("#joinBtn").onclick=()=>{if(!requireName())return;const c=$("#codeIn").value.trim().toUpperCase();if(!/^[A-Z]{4}$/.test(c)){netMsg="codeLen";renderNet();return}
   netMsg=null;saveMe();mode="room";host=false;hs=freshHost();enterRoom(c)};

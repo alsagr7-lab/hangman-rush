@@ -14,7 +14,6 @@
 // not checked; the nightly pass tries those again.
 //
 // Rooms and solo practice run in the browser; they use /api/harf/check for the same answer check.
-const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const R = require("./site/shared/rules");
@@ -25,8 +24,6 @@ const auth = require("./auth");
 const mod = require("./mod");
 
 const H = R.HARF, N = H.CATS.length, num = R.num;
-const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
-const hashToken = t => crypto.createHash("sha256").update(String(t)).digest("hex");
 // the daily letter order is shuffled with a secret, so the public code can't tell anyone tomorrow's letter
 const SECRET = process.env.HARF_KEY || process.env.DAILY_KEY || "";
 const API_KEY = process.env.ANTHROPIC_API_KEY || "";
@@ -404,8 +401,8 @@ const rowId = (uid, lg) => `${uid}_${lg}`;
 // the device holding the player's token may write, checked against the player's records in every game.
 // checkNew: count a brand-new id against its network's daily allowance (only where a record gets created)
 async function authorize(uid, token, lg, ip, checkNew = false) {
-  if (!ID_RE.test(uid || "") || /_(ar|en)$/.test(uid) || typeof token !== "string" || token.length < 16) return { error: [400, "Expected {uid, token}"] };
-  const th = hashToken(token);
+  if (!ident.isUid(uid) || typeof token !== "string" || token.length < 16) return { error: [400, "Expected {uid, token}"] };
+  const th = ident.hashToken(token);
   const own = await ident.owner(uid, th);
   if (!own.ok) return { error: [403, "This player belongs to another device"] };
   if (own.isNew && checkNew && !limits.allowNewId(ip, uid)) return { error: [429, "Too many new players from this network today"] };
@@ -527,14 +524,7 @@ async function migrate() {
   }
   if (legacy.length) console.log(`Harf: split ${legacy.length} record(s) by language`);
 }
-const locks = new Map();
-function withLock(uid, fn) {
-  const prev = locks.get(uid) || Promise.resolve();
-  const next = prev.then(fn, fn);
-  locks.set(uid, next.catch(() => {}));
-  next.finally(() => { if (locks.get(uid) === next) locks.delete(uid); }).catch(() => {});
-  return next;
-}
+const withLock = ident.locker();
 
 /* ---------- the daily run ----------
    rec.run = {d: day key, n, lg, L: letter, at: start time, dr: latest saved draft [5 words]} */
@@ -703,8 +693,8 @@ const checkCalls = new Map();
 // rooms and practice: the caller must hold the token for their id (any game's records), like the daily
 async function roomPlayer(body) {
   const uid = String(body.uid || "");
-  if (!ID_RE.test(uid) || /_(ar|en)$/.test(uid) || typeof body.token !== "string" || body.token.length < 16) return { error: [400, "Expected {uid, token}"] };
-  const own = await ident.owner(uid, hashToken(body.token));
+  if (!ident.isUid(uid) || typeof body.token !== "string" || body.token.length < 16) return { error: [400, "Expected {uid, token}"] };
+  const own = await ident.owner(uid, ident.hashToken(body.token));
   if (!own.ok) return { error: [403, "This player belongs to another device"] };
   return { uid };
 }
@@ -862,7 +852,7 @@ async function loadPinned() {
   for (const x of await store.wordsSearch({ src: "mod", limit: 2000 }).catch(() => [])) pinned.set(x.k, { ok: x.ok, fix: x.fix, base: x.base, src: "mod", by: x.by });
 }
 const KEY_RE = /^(ar|en)\|(name|animal|plant|object|place)\|.+$/;
-const baseUid = id => String(id).replace(/_(ar|en)$/, "");
+const baseUid = ident.baseId;
 const lastDays = n => [...Array(Math.max(1, n)).keys()].map(i => R.dayKey(R.dayNum() - i));
 const sig = a => JSON.stringify([a.ok, a.f || "", a.l || 0, a.u || 0, a.mo || 0]);
 
@@ -1136,8 +1126,8 @@ async function statsOut(ndays) {
   const days = lastDays(Math.min(40, ndays)).reverse(), set = new Set(days);
   const blank = () => ({ players: 0, perfect: 0, pts: 0, valid: 0, rejected: 0, letter: 0, unchecked: 0, empty: 0, won: 0, lost: 0, mod: 0, time: 0, newp: 0, cats: H.CATS.map(() => ({ ok: 0, no: 0 })) });
   const per = Object.fromEntries(days.map(d => [d, { ar: blank(), en: blank() }]));
-  const first = new Map(), top = new Map();
-  for (const r of await store.hAll()) {
+  const first = new Map(), top = new Map(), rows = await store.hAll(), byId = new Map(rows.map(r => [r.id, r.data]));
+  for (const r of rows) {
     const d = r.data || {}, uid = baseUid(r.id);
     for (const [day, e] of Object.entries(d.h || {})) {
       if (!e || !Array.isArray(e.a)) continue;
@@ -1160,9 +1150,10 @@ async function statsOut(ndays) {
       });
     }
   }
+  // a new player counts in the language they started with (from the records already read, not one read each)
   for (const [uid, day] of first) if (per[day]) {
-    const r = await store.hGet(rowId(uid, "ar")).catch(() => null);
-    per[day][r && r.data && r.data.h && r.data.h[day] ? "ar" : "en"].newp++;
+    const ar = byId.get(rowId(uid, "ar"));
+    per[day][ar && ar.h && ar.h[day] ? "ar" : "en"].newp++;
   }
   return {
     days: days.map(d => ({ d, ar: per[d].ar, en: per[d].en })),
@@ -1197,7 +1188,7 @@ async function admin(req, res, p, { send, readJson }, url) {
     return true;
   }
   if (p === "/api/harf/admin/player") {
-    if (!ID_RE.test(baseUid(q("id")))) { send(res, 400, { error: "Expected ?id=<player id>" }); return true; }
+    if (!ident.ID_RE.test(baseUid(q("id")))) { send(res, 400, { error: "Expected ?id=<player id>" }); return true; }
     send(res, 200, await playerOut(q("id")));
     return true;
   }

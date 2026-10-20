@@ -9,16 +9,13 @@
 // player in the room is marked as having seen them.
 const fs = require("fs");
 const path = require("path");
-const crypto = require("crypto");
 const R = require("./site/shared/rules");
 const store = require("./store");
 const limits = require("./limits");
 const ident = require("./ident");
 
 const T = R.TRIVIA;
-const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 const COOLDOWN_MS = Math.max(1, Number(process.env.TRIVIA_COOLDOWN_DAYS) || 60) * R.DAY;
-const hashToken = t => crypto.createHash("sha256").update(String(t)).digest("hex");
 
 /* ---------- question banks ---------- */
 // room/practice bank: [id, category, difficulty 1-3, question en, question ar, [answers en], [answers ar]]; answer 0 is right
@@ -62,8 +59,8 @@ function tidy(d) {
 // who may write to this id: the device holding its token, checked against the player's records in every game
 // checkNew: count a brand-new id against its network's daily allowance (only on calls that create a record)
 async function authorize(uid, token, ip, checkNew = true) {
-  if (!ID_RE.test(uid || "") || /_(ar|en)$/.test(uid) || typeof token !== "string" || token.length < 16) return { error: [400, "Expected {uid, token}"] };
-  const th = hashToken(token);
+  if (!ident.isUid(uid) || typeof token !== "string" || token.length < 16) return { error: [400, "Expected {uid, token}"] };
+  const th = ident.hashToken(token);
   const own = await ident.owner(uid, th);
   if (!own.ok) return { error: [403, "This player belongs to another device"] };
   if (own.isNew && checkNew && !limits.allowNewId(ip, uid)) return { error: [429, "Too many new players from this network today"] };
@@ -75,14 +72,7 @@ async function authorize(uid, token, ip, checkNew = true) {
 const publicRec = r => { const o = Object.assign({}, r); delete o.run; delete o.lvd; delete o.lvn; return o; };
 
 // one request at a time per player, so a double tap can't score an answer twice
-const locks = new Map();
-function withLock(uid, fn) {
-  const prev = locks.get(uid) || Promise.resolve();
-  const next = prev.then(fn, fn);
-  locks.set(uid, next.catch(() => {}));
-  next.finally(() => { if (locks.get(uid) === next) locks.delete(uid); }).catch(() => {});
-  return next;
-}
+const withLock = ident.locker();
 
 /* ---------- daily run ----------
    rec.run = {d: day key, n, i: next question, at: when question i was sent (0 = not open), f: 50/50 used on i,
@@ -180,7 +170,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
     if (!limits.take("pick|" + ip, 12, 6)) { send(res, 429, { error: "Too many rounds. Slow down a little." }); return true; }
     const who = await authorize(String(body.uid || ""), body.token, ip, false);
     if (who.error) { send(res, who.error[0], { error: who.error[1] }); return true; }
-    const uids = Array.isArray(body.uids) ? [...new Set(body.uids.filter(u => ID_RE.test(u || "")))].slice(0, 32) : [];
+    const uids = Array.isArray(body.uids) ? [...new Set(body.uids.filter(u => ident.ID_RE.test(u || "")))].slice(0, 32) : [];
     const cat = T.CATS.includes(body.cat) ? body.cat : null;
     if (!cat) { send(res, 400, { error: "Unknown category" }); return true; }
     const count = Math.max(1, Math.min(10, Number(body.count) || T.QUESTIONS));
