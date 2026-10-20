@@ -377,6 +377,7 @@ function freshHost(){return{hr:0,hs:-1,st:"waiting",at:0,used:[],md:"f",df:"norm
 /* 1v1 duel: both players get 5 words at the room's difficulty and each picks the word the other must solve.
    duel = {r: round, opts: [word index x5], pick: word index or null, gave: the word I picked, op: opponent's name} */
 let duel=null,duelUsed=new Set();
+let slotSeen={w:null,k:new Set()}; // which letters of the word are already showing, so only new ones animate
 function duelOptions(r,df){
   const D=DIFF[diffOf(df)],fits=WORDS.filter(x=>D.pool(x.w)&&!duelUsed.has(x.i));
   const pool=fits.length>=5?fits:WORDS.filter(x=>D.pool(x.w));
@@ -909,7 +910,7 @@ function renderPlay(){
     const hn=$("#hintNote");hn.hidden=!cur.bonus;hn.textContent=cur.bonus?t("bonusNote",{n:cur.bonus}):"";
   }
   const w=$("#word");w.textContent="";w.classList.toggle("ar",!!cur&&cur.lg==="ar");
-  if(live){for(const ch of cur.word){const known=cur.g.has(keyOf(ch));const s=el("span","slot",known||cur.done?ch:"");if(!known&&cur.done)s.classList.add("miss");w.appendChild(s)}}
+  if(live){const seen=slotSeen.w===cur.word?slotSeen.k:new Set();[...cur.word].forEach((ch,i)=>{const known=cur.g.has(keyOf(ch));const s=el("span","slot",known||cur.done?ch:"");if(!known&&cur.done)s.classList.add("miss");else if(known&&!seen.has(i)&&slotSeen.w===cur.word)s.classList.add("pop");if(known)seen.add(i);w.appendChild(s)});slotSeen={w:cur.word,k:seen}}
   else for(let i=0;i<6;i++)w.appendChild(el("span","slot",""));
   $("#missTxt").textContent=cur?(cur.miss?t("missesOf",{n:cur.miss,m:cur.maxMiss}):t("noMisses")):"";
   document.querySelectorAll(".key").forEach(b=>{const L=b.dataset.k;b.classList.remove("hit","bad");
@@ -956,10 +957,10 @@ function renderBoard(){
 }
 
 let lastPanelKey="";
-function showCount(ov,panel,n){const key="cd"+n;ov.hidden=false;if(lastPanelKey===key)return;lastPanelKey=key;panel.hidden=true;let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=n}
+function showCount(ov,panel,n){const key="cd"+n;ov.hidden=false;if(lastPanelKey===key)return;lastPanelKey=key;panel.hidden=true;let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=n;if(c.animate&&!matchMedia("(prefers-reduced-motion: reduce)").matches)c.animate([{opacity:0,transform:"scale(1.15)"},{opacity:1,transform:"none"}],{duration:180,easing:"cubic-bezier(.23,1,.32,1)"})}
 function setPanel(ov,panel,key,build){
   key=lang+"|"+key;
-  ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;
+  const again=!ov.hidden&&!panel.hidden;ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;panel.classList.toggle("still",again);
   const c=ov.querySelector(".count");if(c)c.hidden=true;
   panel.hidden=false;panel.textContent="";build().forEach(n=>panel.appendChild(n));renderPlay();
 }

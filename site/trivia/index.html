@@ -50,13 +50,14 @@
 :root[lang="ar"] .qtext{font-family:var(--f-ar);font-stretch:100%;line-height:1.55}
 .qwait{color:var(--muted);font-weight:600}
 .tbar{height:8px;background:var(--key);border-radius:9px;overflow:hidden}
-.tbar i{display:block;height:100%;background:var(--accent);border-radius:9px;transition:width .15s linear}
+.tbar i{display:block;height:100%;width:100%;transform-origin:left;background:var(--accent);border-radius:9px;transition:transform .15s linear}
+:root[dir="rtl"] .tbar i{transform-origin:right}
 .tbar.low i{background:var(--hot)}
 .opts{display:grid;gap:10px}
 .opt{display:flex;align-items:center;gap:14px;text-align:start;border:1px solid var(--line2);background:var(--raised);color:var(--ink);border-radius:18px;padding:12px 14px;font-weight:700;font-size:17px;
-  min-height:64px;line-height:1.3;transition:transform .08s,background .15s,border-color .15s}
-.opt:hover:not(:disabled){border-color:var(--hover-line)}
-.opt:active:not(:disabled){transform:scale(.99)}
+  min-height:64px;line-height:1.3;transition:transform .12s var(--ease-out),background .15s,border-color .15s}
+@media (hover:hover) and (pointer:fine){.opt:hover:not(:disabled){border-color:var(--hover-line)}}
+.opt:active:not(:disabled){transform:scale(.98)}
 .opt .k{flex:none;width:38px;height:38px;border-radius:11px;background:var(--key);display:grid;place-items:center;font-family:var(--f-num);font-weight:800;font-size:16px}
 .opt:disabled{cursor:default}
 .opt.gone{opacity:.28;text-decoration:line-through}
@@ -773,8 +774,8 @@ function renderTop(){
 }
 function renderTimer(){
   const v=view(),tm=$("#timer"),bar=$("#tbar");
-  if(v.live){const s=Math.ceil(v.left/1000);tm.textContent=t("secs",{n:s});tm.classList.toggle("low",s<=5);bar.classList.toggle("low",s<=5);bar.firstChild.style.width=(100*v.left/v.ms)+"%"}
-  else{tm.textContent="";tm.classList.remove("low");bar.classList.remove("low");bar.firstChild.style.width=v.reveal?"0%":"100%"}
+  if(v.live){const s=Math.ceil(v.left/1000);tm.textContent=t("secs",{n:s});tm.classList.toggle("low",s<=5);bar.classList.toggle("low",s<=5);bar.firstChild.style.transform="scaleX("+(v.left/v.ms)+")"}
+  else{tm.textContent="";tm.classList.remove("low");bar.classList.remove("low");bar.firstChild.style.transform=v.reveal?"scaleX(0)":"none"}
 }
 // the last question shown, for the Report button
 let lastShown=null;
@@ -848,9 +849,9 @@ function renderBoard(){
 /* overlay panels */
 let lastPanelKey="";
 function showCount(ov,panel,n){const key="cd"+n;ov.hidden=false;if(lastPanelKey===key)return;lastPanelKey=key;panel.hidden=true;
-  let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=String(n)}
+  let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=String(n);if(c.animate&&!matchMedia("(prefers-reduced-motion: reduce)").matches)c.animate([{opacity:0,transform:"scale(1.15)"},{opacity:1,transform:"none"}],{duration:180,easing:"cubic-bezier(.23,1,.32,1)"})}
 function setPanel(ov,panel,key,build){
-  key=lang+"|"+key;ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;
+  key=lang+"|"+key;const again=!ov.hidden&&!panel.hidden;ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;panel.classList.toggle("still",again);
   const c=ov.querySelector(".count");if(c)c.hidden=true;
   panel.hidden=false;panel.textContent="";build().forEach(n=>panel.appendChild(n));
 }
