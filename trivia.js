@@ -156,12 +156,6 @@ async function handle(req, res, url, { send, readJson, ip }) {
   if (!p.startsWith("/api/trivia/")) return false;
   const n = R.dailyNo();
 
-  if (p === "/api/trivia/players" && req.method === "GET") {
-    const rows = (await store.tAll()).filter(r => !require("./admin").isHidden("trivia", r.id) && R.namedRec(r.data));
-    send(res, 200, rows.map(r => ({ id: r.id, data: publicRec(tidy(r.data)) })));
-    return true;
-  }
-
   if (p === "/api/trivia/info" && req.method === "GET") {
     const f = firstDaily();
     send(res, 200, { n, daily: !!dailySet(n), first: f, last: DAILY && f != null ? f + DAILY.days.length - 1 : null, bank: BANK.length, cooldownDays: COOLDOWN_MS / R.DAY });

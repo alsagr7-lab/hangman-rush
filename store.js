@@ -160,15 +160,17 @@ function pgStore(url) {
       await pool.query(`CREATE TABLE IF NOT EXISTS auth_accounts (
         k TEXT PRIMARY KEY, uid TEXT NOT NULL UNIQUE, tok TEXT NOT NULL, at TIMESTAMPTZ DEFAULT now())`);
     },
-    async all() { return (await pool.query("SELECT id, data FROM players ORDER BY updated_at DESC LIMIT 500")).rows; },
+    // every record written in the last 45 days: a season is 30 days and Harf keeps 40, so nobody who could be on a
+    // board or in a nightly count is left out (a fixed row limit dropped players once there were enough of them)
+    async all() { return (await pool.query("SELECT id, data FROM players WHERE updated_at > now() - interval '45 days'")).rows; },
     async get(id) { return (await pool.query("SELECT id, token, data FROM players WHERE id=$1", [id])).rows[0] || null; },
     put: upsert("players"),
 
-    async tAll() { return (await pool.query("SELECT id, data FROM trivia_players ORDER BY updated_at DESC LIMIT 500")).rows; },
+    async tAll() { return (await pool.query("SELECT id, data FROM trivia_players WHERE updated_at > now() - interval '45 days'")).rows; },
     async tGet(id) { return (await pool.query("SELECT id, token, data FROM trivia_players WHERE id=$1", [id])).rows[0] || null; },
     tPut: upsert("trivia_players"),
 
-    async hAll() { return (await pool.query("SELECT id, data FROM harf_players ORDER BY updated_at DESC LIMIT 1000")).rows; },
+    async hAll() { return (await pool.query("SELECT id, data FROM harf_players WHERE updated_at > now() - interval '45 days'")).rows; },
     async hGet(id) { return (await pool.query("SELECT id, token, data FROM harf_players WHERE id=$1", [id])).rows[0] || null; },
     hPut: upsert("harf_players"),
     async hSetData(id, data) { await pool.query("UPDATE harf_players SET data=$2 WHERE id=$1", [id, data]); },
@@ -280,11 +282,12 @@ const store = {
   },
 };
 for (const k of ["ping", "all", "get", "put", "tAll", "tGet", "tPut", "seenGet", "seenAll", "seenMark", "seenPrune", "hAll", "hGet", "hPut", "hSetData", "hDel", "wordsGet", "wordsPut", "wordsDel", "wordsSearch", "wordsCount", "wordsRecent", "wordsPurge", "archivePut", "archiveOf", "archiveDay", "ipUids", "ipAdd", "metaGet", "metaPut", "metaSince", "metaPruneBefore", "acctGet", "acctByUid", "acctPut"]) store[k] = (...a) => impl[k](...a);
-// every write bumps its game's counter (the leaderboards cache their rankings until it moves)
+// every write bumps its game's counter (the leaderboards cache their rankings until it moves), except one passed
+// {quiet: true} as its last argument: a write that changes nothing a board shows (a Harf draft, a word in progress)
 store.ver = { hangman: 0, trivia: 0, harf: 0 };
 for (const [k, g] of [["put", "hangman"], ["tPut", "trivia"], ["hPut", "harf"], ["hSetData", "harf"], ["hDel", "harf"]]) {
   const f = store[k];
-  store[k] = async (...a) => { try { return await f(...a); } finally { store.ver[g]++; } };
+  store[k] = async (...a) => { try { return await f(...a); } finally { if (!(a[3] && a[3].quiet)) store.ver[g]++; } };
 }
 
 module.exports = store;

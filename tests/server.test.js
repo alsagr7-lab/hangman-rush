@@ -14,8 +14,6 @@ before(async () => {
 });
 after(() => srv.stop());
 
-const put = (id, body) => fetch(`${BASE}/api/players/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-
 test("on Render, a database that stays down stops the server instead of falling back to the file", async () => {
   const { spawn } = require("node:child_process"), path = require("node:path");
   const proc = spawn(process.execPath, [path.join(__dirname, "..", "server.js")], {
@@ -40,8 +38,11 @@ test("pages load", async () => {
 });
 
 test("game APIs answer", async () => {
-  for (const p of ["/api/players", "/api/trivia/players", "/api/harf/players", "/api/trivia/info", "/api/harf/info"])
+  for (const p of ["/api/board?game=hangman", "/api/board?game=trivia", "/api/board?game=harf", "/api/board/hub", "/api/trivia/info", "/api/harf/info"])
     assert.equal((await fetch(BASE + p)).status, 200, p);
+  // the old download-everyone lists are gone (the boards come from /api/board)
+  for (const p of ["/api/players", "/api/trivia/players", "/api/harf/players"])
+    assert.equal((await fetch(BASE + p)).status, 404, p);
   const tok = "t".repeat(20);
   for (const p of ["/api/trivia/daily/state", "/api/harf/daily/state"]) {
     const r = await fetch(BASE + p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ uid: "p_testapi01", token: tok, lg: "en" }) });
@@ -49,27 +50,15 @@ test("game APIs answer", async () => {
   }
 });
 
-test("Hangman saves from the page change only the name and colour, never results or counts", async () => {
-  const id = "p_hangman01", token = "k".repeat(20), today = R.todayKey(), yday = R.ydayKey();
-  const forged = { n: "Tester", c: "#d93c30", played: 9, wins: 9, streak: 9, best: 9, ls: today, sk: 5,
-    h: { [today]: { ok: 1, t: 1000, m: 0, pts: 340 }, [yday]: { ok: 1, pts: 340 } } };
-  assert.equal((await put(id, { token, data: forged })).status, 200);
-  let me = (await (await fetch(BASE + "/api/players")).json()).find(p => p.id === id);
-  assert.equal(me.data.n, "Tester"); assert.equal(me.data.c, "#d93c30");
-  assert.deepEqual(me.data.h, {});
-  for (const f of ["played", "wins", "streak", "best", "sk"]) assert.equal(me.data[f], 0, f);
-
-  // renaming keeps working, and a second forged save changes nothing else
-  await put(id, { token, data: { ...forged, n: "Renamed" } });
-  me = (await (await fetch(BASE + "/api/players")).json()).find(p => p.id === id);
-  assert.equal(me.data.n, "Renamed"); assert.deepEqual(me.data.h, {}); assert.equal(me.data.played, 0);
+test("the old Hangman page save is gone, so a page can't write results or counts", async () => {
+  const id = "p_hangman01", today = R.todayKey();
+  const forged = { n: "Tester", played: 9, wins: 9, streak: 9, ls: today, h: { [today]: { ok: 1, t: 1000, m: 0, pts: 340 } } };
+  const r = await fetch(`${BASE}/api/players/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: "k".repeat(20), data: forged }) });
+  assert.equal(r.status, 404);
+  assert.equal((await (await fetch(BASE + "/api/me?uid=" + id)).json()).hm, null);
 });
 
-test("unnamed \"Player\" entries are left off every board", async () => {
-  await put("p_noname001", { token: "n".repeat(20), data: { n: "Player" } });
-  await put("p_named0001", { token: "m".repeat(20), data: { n: "Sara" } });
-  const ids = (await (await fetch(BASE + "/api/players")).json()).map(p => p.id);
-  assert.ok(!ids.includes("p_noname001")); assert.ok(ids.includes("p_named0001"));
+test("unnamed \"Player\" entries are left off every board", () => {
   assert.ok(R.namedRec({ n: "Sara" })); assert.ok(!R.namedRec({ n: " player " })); assert.ok(!R.namedRec({}));
 });
 

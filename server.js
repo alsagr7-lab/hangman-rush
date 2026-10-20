@@ -18,19 +18,12 @@ const admin = require("./admin");
 const mod = require("./mod");
 const auth = require("./auth");
 const limits = require("./limits");
-const ident = require("./ident");
 const boards = require("./boards");
-const R = require("./site/shared/rules");
 // pages are served as single files with the shared styles and scripts written in (see scripts/build-site.js)
 const PAGES = require("./scripts/build-site").build({ api: "", site: SITE_URL });
 const NOT_FOUND = (() => { try { return fs.readFileSync(path.join(__dirname, "site", "404.html")); } catch { return null; } })();
 
-// ---------- daily word ----------
-// The lists live in hangman.js, which also runs the daily on the server. /api/daily below still hands today's word to
-// pages from before the server-run daily; it goes once those are gone.
-
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json" };
-const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
 // The API is called from the static site's origin too. Players are identified by a token in the request body,
 // never by cookies, so allowing any origin is safe.
@@ -56,12 +49,7 @@ async function readJson(req) {
   try { const v = JSON.parse(await readBody(req)); return v && typeof v === "object" && !Array.isArray(v) ? v : null; } catch { return null; }
 }
 
-const hashToken = t => crypto.createHash("sha256").update(String(t)).digest("hex");
-
-// Hangman results are written by the player's device, so the server keeps them within what the game allows:
-// no days past tomorrow (the device dates by its own clock, which may run a little fast near midnight UTC), at most
-// 340 points a day (0 for a miss), and a finished day can't be changed afterwards.
-// shortcut: a device can still claim a perfect score for today; the real fix is server-timed play like Trivia and Harf.
+// Every daily is played and scored on the server (hangman.js, trivia.js, harf.js); pages only send moves and names.
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://x");
@@ -102,38 +90,6 @@ const server = http.createServer(async (req, res) => {
       if (await mod.handle(req, res, url, ctx)) return;
     }
     if (await auth.handle(req, res, url, ctx)) return;
-
-    if (url.pathname === "/api/players" && req.method === "GET") {
-      const rows = await store.all();
-      return send(res, 200, rows.filter(r => !admin.isHidden("hangman", r.id) && R.namedRec(r.data)).map(r => ({ id: r.id, data: hangman.publicRec(r.data) })));
-    }
-
-    const m = url.pathname.match(/^\/api\/players\/([^/]+)$/);
-    if (m && req.method === "PUT") {
-      const id = m[1];
-      if (!ID_RE.test(id)) return send(res, 400, { error: "Bad player id" });
-      let body;
-      try { body = JSON.parse(await readBody(req)); } catch { return send(res, 400, { error: "Body must be JSON under 32 KB" }); }
-      if (!body || typeof body.token !== "string" || body.token.length < 16 || !body.data || typeof body.data !== "object" || Array.isArray(body.data))
-        return send(res, 400, { error: "Expected {token, data}" });
-      if (!limits.take("hm|" + ip, 30, 20)) return send(res, 429, { error: "Too many saves. Slow down a little." });
-      const th = hashToken(body.token);
-      // under the same lock as the server-run daily, so a save can't land between a guess's read and write
-      return hangman.withLock(ident.baseId(id), async () => {
-        // the id must belong to this device in every game, not just Hangman
-        const own = await ident.owner(id, th);
-        if (!own.ok) return send(res, 403, { error: "This player belongs to another device" });
-        if (own.isNew && !limits.allowNewId(ip, ident.baseId(id))) return send(res, 429, { error: "Too many new players from this network today" });
-        // the daily is played on the server, which writes every result and count: a save from the page only changes
-        // the name and colour shown with them
-        const stored = own.recs[id.endsWith("_ar") ? "hmAr" : "hm"], rec = hangman.tidy(stored && stored.data);
-        if (typeof body.data.n === "string" && body.data.n.trim().length >= 2) rec.n = R.nm16(body.data.n.trim());
-        if (body.data.c) rec.c = R.safeColor(body.data.c);
-        delete rec.run; if (stored && stored.data && stored.data.run) rec.run = stored.data.run;
-        await store.put(id, th, rec);
-        return send(res, 200, { ok: true });
-      });
-    }
 
     // static
     let p = url.pathname.endsWith("/") ? url.pathname + "index.html" : url.pathname;

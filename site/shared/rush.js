@@ -425,25 +425,9 @@
     try { await post("/api/profile", { n, c: me.color }); board.refresh(); } catch { profSent = ""; }
   }
 
-  const db = {
-    doc(path) {
-      const id = path.split("/")[1];
-      return {
-        async set(data) {
-          // a dropped connection becomes {status: 0}, so the page can tell it apart from a refusal and try again
-          const r = await fetch(http("/api/players/" + encodeURIComponent(id)), {
-            method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, data }),
-          }).catch(() => { throw { code: "unavailable", status: 0, message: "Save failed (offline)" }; });
-          if (!r.ok) throw { code: r.status === 403 ? "permission_denied" : "invalid_argument", status: r.status, message: "Save failed (" + r.status + ")" };
-        },
-      };
-    },
-  };
-
   /* ---------- user ---------- */
   const user = { id: async () => uid, isOwner: () => false, canEdit: () => false, can: () => true };
 
-  /* ---------- Hangman daily word (served one day at a time) ---------- */
   /* ---------- Trivia ---------- */
   async function post(path, body) {
     const r = await fetch(http(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({ uid, token }, body || {})) });
@@ -845,8 +829,8 @@
   }
   onBody(lobbyBoard);
 
-  window.Rush = { api: API, http, uid, token, store, room, db, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
+  window.Rush = { api: API, http, uid, token, store, room, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
-  const caps = { room, db, user, hangman };
+  const caps = { room, user, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };
 })();
