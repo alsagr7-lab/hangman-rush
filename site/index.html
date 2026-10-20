@@ -42,10 +42,6 @@
 @media (min-width:900px){.hero{grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:48px;padding:28px 0 8px}.hero-h{font-size:clamp(52px,5.4vw,76px)}}
 .eyebrow{display:flex;align-items:center;gap:12px}
 .eyebrow .lbl{color:var(--gold)}
-:root[data-theme="light"] .eyebrow .lbl,:root[data-theme="light"] #hub .rules b{color:var(--gold-hi)}
-/* returning players: today's games first; the game explainer cards are for people who haven't played yet */
-.returning .games{display:none}
-@media (max-width:759px){.returning .hero-h,.returning .hero .tag{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.returning .next{margin-top:12px}}
 .hero-h{font-family:var(--f-display);font-stretch:118%;font-weight:800;font-size:clamp(40px,11.4vw,80px);line-height:.95;letter-spacing:-.02em;margin:16px 0 0}
 .hero-h span{display:block}
 :root[lang="ar"] .hero-h{font-family:var(--f-ar);font-stretch:100%;font-weight:900;line-height:1.2;letter-spacing:0;font-size:clamp(38px,10.4vw,72px)}
@@ -67,8 +63,7 @@
 .dayrow.hangman .dr-go,.game.hangman .band,.game.hangman .go{background:var(--coral)}
 .dayrow.trivia .dr-go,.game.trivia .band,.game.trivia .go{background:var(--blue)}
 .dayrow.harf .dr-go,.game.harf .band,.game.harf .go{background:var(--green)}
-@media (max-width:380px){.dr-go{padding:0 12px;font-size:13.5px}}
-.dayrow.off .dr-go{background:var(--key);color:var(--soft)}
+@media (max-width:380px){.dr-go{display:none}}
 .games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
 @media (max-width:900px){.games{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:620px){.games{grid-template-columns:minmax(0,1fr);gap:16px}}
@@ -90,7 +85,7 @@
 .band.ar .hrf{font-family:var(--f-ar)}
 .hbs{display:grid;gap:7px;width:min(190px,58%);margin-inline-start:10px}
 .hb{height:30px;border-radius:9px;background:rgba(11,12,16,.2);display:flex;align-items:center;gap:8px;padding:0 10px;overflow:hidden;white-space:nowrap}
-.hb b{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.82;width:46px;flex:none}
+.hb b{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.62;width:46px;flex:none}
 .hb em{font-style:normal;font-family:var(--f-display);font-weight:800;font-size:15px}
 .band.ar .hb b{font-family:var(--f-ar);font-size:12px;letter-spacing:0;width:38px}
 .band.ar .hb em{font-family:var(--f-ar);font-size:15px}
@@ -141,11 +136,10 @@
 .ldg-h .lgsw{margin-inline-start:auto}
 .ldg .you{font-size:13px;color:var(--muted);padding-inline:4px}
 .ld-sub{display:flex;align-items:center;gap:8px;min-height:24px}
-.ldq{position:relative;flex:none;width:30px;height:30px;border-radius:999px;border:1px solid var(--line3);background:transparent;color:var(--muted);font:800 12px/1 var(--f-body);display:grid;place-items:center;padding:0}
-.ldq::before{content:"";position:absolute;inset:-7px}
+.ldq{flex:none;width:22px;height:22px;border-radius:999px;border:1px solid var(--line3);background:transparent;color:var(--muted);font:800 12px/1 var(--f-body);display:grid;place-items:center;padding:0}
 .ldq[aria-expanded="true"]{background:var(--gold);border-color:var(--gold);color:#0B0C10}
 .ld-help{margin:0;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line-soft);font-size:13px;line-height:1.55;color:var(--soft)}
-.ldg-h a{display:flex;align-items:center;gap:10px;min-height:44px;color:var(--ink);text-decoration:none;min-width:0}
+.ldg-h a{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;min-width:0}
 .ld-row .sc small{display:block;font-family:var(--f-body);font-weight:600;font-size:11.5px;color:var(--muted)}
 </style>
 </head>
@@ -230,7 +224,7 @@ const R=RushRules,num=R.num;
 const $=s=>document.querySelector(s);
 const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
 const I18N={
-en:{brand:"Rush Games",ldTitle:"Who's leading",sh_hangman:"Hangman",sh_trivia:"Trivia",sh_harf:"Harf",ldOverall:"Overall",ldBest:"{lg} · {p} pts",lgAr:"Arabic",lgEn:"English",ldQ:"How is this counted?",hOverall:"One ranking across all three games and both languages. Each game is worth up to 100 points, so 300 is the most. Your stronger language counts in full; your other one can only add a little, so playing just one language never costs you. On busy boards, beating a close field counts for more than beating a spread-out one.",hPlain:"Season points on this board, the same as the Season tab in the game.",hTwo:"Arabic and English have separate boards. When both have more than 5 players this season, points are compared with each board's average, so a board where everyone scores high doesn't count for more; otherwise each board is compared with its leader. Your better board counts in full, the other adds a small bonus, and only the game's top player gets 100.",hOne:"One board: the season leader gets 100 and everyone else a share of that leader's points.",ldNone:"No results yet this season.",ldYou:"You: #{r}",ldPts:"{p} pts",ldPlayers:"{n} players",ldSeason:"Season {s} · {l} days left",heroA:"Three games.",heroB:"One daily rush.",nextIn:"New challenges in",yourDay:"Your day",playDaily:"Play daily",tagline:"Three daily games, one profile. Play today's word, questions and letter, then race your friends.",langSwitch:"عربي",
+en:{brand:"Rush Games",ldTitle:"Who's leading",sh_hangman:"Hangman",sh_trivia:"Trivia",sh_harf:"Harf",ldOverall:"Overall",ldBest:"{lg} · {p} pts",lgAr:"Arabic",lgEn:"English",ldQ:"How is this counted?",hOverall:"One ranking for all three games and both languages together, so there's no language switch here. Each game adds up to 100, and its top player gets the 100. Your better language counts in full; your other one adds a small bonus only if it helps, so playing one language is never a penalty. Once both language boards have more than 5 players, what counts is how far above the board's average you are, compared with how spread out the board is, so standing out on a busy, close board counts for more. 300 is the most.",hPlain:"Season points on this board, the same as the Season tab in the game.",hTwo:"Arabic and English have separate boards. When both have more than 5 players this season, points are compared with each board's average, so a board where everyone scores high doesn't count for more; otherwise each board is compared with its leader. Your better board counts in full, the other adds a small bonus, and only the game's top player gets 100.",hOne:"One board: the season leader gets 100 and everyone else a share of that leader's points.",ldNone:"No results yet this season.",ldYou:"You: #{r}",ldPts:"{p} pts",ldPlayers:"{n} players",ldSeason:"Season {s} · {l} days left",heroA:"Three games.",heroB:"One daily rush.",nextIn:"Next dailies in",yourDay:"Your day",playDaily:"Play daily",tagline:"Three daily games, one profile. Play today's word, questions and letter, then race your friends.",langSwitch:"عربي",
   moveTitle:"There's a faster version of this site",moveHelp:"It opens instantly, even when the game server is asleep. Your name, streaks and leaderboard place come with you.",moveBtn:"Move me over",
   todayLbl:"Today · #{n}",seasonLine:"Season {s} · day {d} of 30",
   hangman:"Hangman Rush",hangmanDesc:"Same word, same moment. Solve it fastest with the fewest wrong letters.",
@@ -238,7 +232,7 @@ en:{brand:"Rush Games",ldTitle:"Who's leading",sh_hangman:"Hangman",sh_trivia:"T
   hWaiting:"Today's word is waiting",hSolved:"Solved today · {p} pts",hHanged:"Hanged today",
   harf:"Harf Rush",harfDesc:"Harf (\u062d\u0631\u0641) means \u201cletter\u201d. One letter: a name, an animal, a plant, an object and a place, in 90 seconds.",
   fWaiting:"Today's letter is waiting",fDone:"{c} of 5 valid · {p} pts",fGoing:"Started: carry on before time runs out",
-  fWaiting2:"Today's English and Arabic letters are waiting",fDoneS:"{c}/5 · {p} pts",fGoingS:"started",waitingS:"waiting",
+  fWaiting2:"Today's Arabic and English letters are waiting",fDoneS:"{c}/5 · {p} pts",fGoingS:"started",waitingS:"waiting",
   hWaiting2:"Today's English and Arabic words are waiting",hSolvedS:"solved · {p} pts",hHangedS:"hanged",
   tWaiting:"Today's questions are waiting",tDone:"{c} of 5 right · {p} pts",tGoing:"Started: {i} of 5 answered",tNone:"No questions set up for today",
   streak:" · streak {n}",
@@ -246,16 +240,16 @@ en:{brand:"Rush Games",ldTitle:"Who's leading",sh_hangman:"Hangman",sh_trivia:"T
   nameHintEmpty:"Pick a name so friends can find you on the leaderboards.",nameHintAs:"You'll show as ",nameHintTag:" in every game.",
   s1b:"One profile",s1:"Your name, colour and tag are the same in every game.",s2b:"30-day seasons",s2:"The leaderboards reset together, and each game keeps its own streak.",
   s3b:"Rooms",s3:"Share a 4-letter code, vote on categories, play free-for-all or in teams."},
-ar:{brand:"ألعاب رش",ldTitle:"المتصدرون",sh_hangman:"المشنقة",sh_trivia:"المعلومات",sh_harf:"الحروف",ldOverall:"الترتيب العام",ldBest:"{lg} · {p} نقطة",lgAr:"العربية",lgEn:"الإنجليزية",ldQ:"كيف يُحسب هذا؟",hOverall:"ترتيب واحد للألعاب الثلاث وباللغتين. كل لعبة تساوي حتى 100 نقطة، فالحد الأعلى 300. لغتك الأقوى تُحسب كاملة، والثانية تضيف قليلاً فقط، فاللعب بلغة واحدة لا يُنقص من ترتيبك. في اللوحات المزدحمة، التفوّق على منافسين متقاربين يُحسب أكثر.",hPlain:"نقاط الموسم في هذه اللوحة، مثل تبويب الموسم داخل اللعبة.",hTwo:"للعربي والإنجليزي لوحتان منفصلتان. إذا كان في كل لوحة أكثر من 5 لاعبين هذا الموسم، تُقارن النقاط بمتوسط كل لوحة، فلا تُحسب اللوحة ذات النقاط العالية أكثر من غيرها؛ وإلا تُقارن كل لوحة بمتصدرها. لوحتك الأقوى تُحسب كاملة والثانية تضيف مكافأة صغيرة، ولا يأخذ 100 إلا متصدر اللعبة.",hOne:"لوحة واحدة: متصدر الموسم يأخذ 100 والباقي نسبة من نقاطه.",ldNone:"لا نتائج بعد في هذا الموسم.",ldYou:"ترتيبك: {r}",ldPts:"{p} نقطة",ldPlayers:"{n} لاعب",ldSeason:"الموسم {s} · باقي {l} أيام",heroA:"ثلاث ألعاب.",heroB:"سباق كل يوم.",nextIn:"التحديات القادمة بعد",yourDay:"يومك",playDaily:"العب تحدي اليوم",tagline:"ثلاث ألعاب يومية وملف واحد. العب كلمة اليوم وأسئلته وحرفه، ثم تسابق مع أصحابك.",langSwitch:"English",
+ar:{brand:"ألعاب رش",ldTitle:"المتصدرون",sh_hangman:"المشنقة",sh_trivia:"المعلومات",sh_harf:"الحروف",ldOverall:"الترتيب العام",ldBest:"{lg} · {p} نقطة",lgAr:"العربية",lgEn:"الإنجليزية",ldQ:"كيف يُحسب هذا؟",hOverall:"ترتيب واحد للألعاب الثلاث وباللغتين معاً، لذلك لا يوجد هنا زر للغة. كل لعبة تضيف حتى 100، ويأخذ متصدرها الـ100. لغتك الأقوى تُحسب كاملة، والثانية تضيف مكافأة صغيرة فقط إذا كانت لصالحك، فاللعب بلغة واحدة لا يُعاقَب. إذا كان في كل لوحة لغة أكثر من 5 لاعبين، يُحسب بُعدك عن متوسط اللوحة مقارنةً بتفاوت نقاطها، فالتميّز في لوحة مزدحمة ومتقاربة يُحسب أكثر. الحد الأعلى 300.",hPlain:"نقاط الموسم في هذه اللوحة، مثل تبويب الموسم داخل اللعبة.",hTwo:"للعربي والإنجليزي لوحتان منفصلتان. إذا كان في كل لوحة أكثر من 5 لاعبين هذا الموسم، تُقارن النقاط بمتوسط كل لوحة، فلا تُحسب اللوحة ذات النقاط العالية أكثر من غيرها؛ وإلا تُقارن كل لوحة بمتصدرها. لوحتك الأقوى تُحسب كاملة والثانية تضيف مكافأة صغيرة، ولا يأخذ 100 إلا متصدر اللعبة.",hOne:"لوحة واحدة: متصدر الموسم يأخذ 100 والباقي نسبة من نقاطه.",ldNone:"لا نتائج بعد في هذا الموسم.",ldYou:"ترتيبك: {r}",ldPts:"{p} نقطة",ldPlayers:"{n} لاعب",ldSeason:"الموسم {s} · باقي {l} أيام",heroA:"ثلاث ألعاب.",heroB:"سباق كل يوم.",nextIn:"التحديات القادمة بعد",yourDay:"يومك",playDaily:"العب تحدي اليوم",tagline:"ثلاث ألعاب يومية وملف واحد. العب كلمة اليوم وأسئلته وحرفه، ثم تسابق مع أصحابك.",langSwitch:"English",
   moveTitle:"توجد نسخة أسرع من هذا الموقع",moveHelp:"تفتح فوراً حتى عندما يكون خادم اللعبة نائماً. اسمك وسلاسلك ومركزك في الترتيب تنتقل معك.",moveBtn:"انقلني إليها",
-  todayLbl:"اليوم · ⁦#{n}⁩",seasonLine:"الموسم {s} · اليوم {d} من 30",
+  todayLbl:"اليوم · #{n}",seasonLine:"الموسم {s} · اليوم {d} من 30",
   hangman:"سباق المشنقة",hangmanDesc:"نفس الكلمة في نفس اللحظة. حلّها أسرع وبأقل عدد من الأحرف الخاطئة.",
   trivia:"سباق المعلومات",triviaDesc:"خمسة أسئلة، و15 ثانية لكل سؤال، بالعربية أو الإنجليزية. الأسرع والأصح يفوز.",play:"العب",
   hWaiting:"كلمة اليوم بانتظارك",hSolved:"حللتها اليوم · {p} نقطة",hHanged:"شُنقت اليوم",
   harf:"سباق الحروف",harfDesc:"حرف واحد: إنسان وحيوان ونبات وجماد وبلاد، في 90 ثانية.",
   fWaiting:"حرف اليوم بانتظارك",fDone:"{c} من 5 صحيحة · {p} نقطة",fGoing:"بدأت: أكمل قبل أن ينتهي الوقت",
   fWaiting2:"حرفا اليوم العربي والإنجليزي بانتظارك",fDoneS:"{c}/5 · {p} نقطة",fGoingS:"بدأت",waitingS:"بانتظارك",
-  hWaiting2:"كلمتا اليوم العربية والإنجليزية بانتظارك",hSolvedS:"حُلّت · {p} نقطة",hHangedS:"شُنقت",
+  hWaiting2:"كلمتا اليوم الإنجليزية والعربية بانتظارك",hSolvedS:"حُلّت · {p} نقطة",hHangedS:"شُنقت",
   tWaiting:"أسئلة اليوم بانتظارك",tDone:"{c} من 5 صحيحة · {p} نقطة",tGoing:"بدأت: أجبت {i} من 5",tNone:"لا توجد أسئلة لهذا اليوم",
   streak:" · السلسلة {n}",
   yourName:"اسمك",namePh:"مثلاً: يوسف",yourColour:"لونك",colourAria:"اللون {c}",
@@ -267,7 +261,6 @@ if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWi
 const t=(k,v)=>{let s=I18N[lang][k]!=null?I18N[lang][k]:I18N.en[k];if(v)s=s.replace(/\{(\w+)\}/g,(_,n)=>v[n]!=null?v[n]:"");return s};
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}};
 
-document.documentElement.classList.toggle("returning",!!get("hr-me"));
 let me=get("hr-me")||{nick:"",color:R.COLORS[0]};me.color=R.safeColor(me.color);
 const nick=$("#nick");nick.value=me.nick||"";
 function saveMe(){me.nick=(nick.value.trim()||"Player").slice(0,16);try{localStorage.setItem("hr-me",JSON.stringify(me))}catch(e){}}
@@ -287,14 +280,11 @@ function renderStatus(){
   const hs=$("#sHangman");hs.className="status";
   const hPart=(key,name)=>{const r=get(key),e=r&&r.h?r.h[k]:null,st=r&&(r.ls===k||r.ls===R.ydayKey())?num(r.streak):0;
     return {done:!!(e&&("ok" in e)),ok:!!(e&&e.ok),txt:name+": "+(e&&("ok" in e)?(e.ok?t("hSolvedS",{p:num(e.pts)}):t("hHangedS")):t("waitingS"))+(st?t("streak",{n:st}):"")}};
-  // status names and order follow the page language (Arabic first on Arabic pages)
-  const sn=lg=>lang==="ar"?(lg==="ar"?"عربي":"إنجليزي"):(lg==="ar"?"Arabic":"English"),arFirst=lang==="ar";
-  const hEn=hPart("hr-daily",sn("en")),hAr=hPart("hr-daily-ar",sn("ar"));
+  const hEn=hPart("hr-daily","English"),hAr=hPart("hr-daily-ar","عربي");
   if(!hEn.done&&!hAr.done)hs.textContent=t("hWaiting2");
-  else{hs.textContent=arFirst?hAr.txt+" · "+hEn.txt:hEn.txt+" · "+hAr.txt;if(hEn.done&&hAr.done)hs.classList.add(hEn.ok||hAr.ok?"done":"miss")}
+  else{hs.textContent=hEn.txt+" · "+hAr.txt;if(hEn.done&&hAr.done)hs.classList.add(hEn.ok||hAr.ok?"done":"miss")}
   const tr=triviaLive||get("tr-today"),ts=$("#sTrivia");ts.className="status";
   const today=tr&&tr.d===k?tr:null,e=today&&today.entry,tStreak=today?num(today.streak):0;
-  document.querySelector(".dayrow.trivia").classList.toggle("off",!!(today&&today.unavailable));
   if(today&&today.unavailable)ts.textContent=t("tNone");
   else if(e&&("ok" in e)){ts.textContent=t("tDone",{c:e.c,p:e.pts})+(tStreak?t("streak",{n:tStreak}):"");ts.classList.add(e.ok?"done":"miss")}
   else if(today&&today.i>0)ts.textContent=t("tGoing",{i:today.i});
@@ -304,9 +294,9 @@ function renderStatus(){
   const ft=hf&&hf.d===k?hf:null;
   const fPart=(lg,name)=>{const x=ft&&ft[lg];if(!x)return {done:false,open:false,txt:name+": "+t("waitingS")};
     return {done:!!x.entry,open:!!x.open,txt:name+": "+(x.entry?t("fDoneS",{c:x.entry.c,p:x.entry.pts}):x.open?t("fGoingS"):t("waitingS"))+(num(x.streak)?t("streak",{n:x.streak}):"")}};
-  const fAr=fPart("ar",sn("ar")),fEn=fPart("en",sn("en"));
+  const fAr=fPart("ar","عربي"),fEn=fPart("en","English");
   if(!fAr.done&&!fEn.done&&!fAr.open&&!fEn.open)fs.textContent=t("fWaiting2");
-  else{fs.textContent=arFirst?fAr.txt+" · "+fEn.txt:fEn.txt+" · "+fAr.txt;if(fAr.done&&fEn.done)fs.classList.add("done")}
+  else{fs.textContent=fAr.txt+" · "+fEn.txt;if(fAr.done&&fEn.done)fs.classList.add("done")}
 }
 /* who's leading: worked out on the server (/api/board/hub), refreshed every minute while the page is open */
 let lead=null;const ldLg={};
