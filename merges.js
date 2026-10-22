@@ -75,6 +75,12 @@ async function mergePlayers(into, from, rule) {
     });
   }
   for (const g of ["hangman", "trivia", "harf"]) await admin.setHidden(g, from, true);
+  // weekly medals won as `from` now belong to `into` (boards.js follows these links)
+  const fb = ident.baseId(from), ib = ident.baseId(into);
+  if (fb !== ib) {
+    await store.metaPut("awlink:" + fb, ib);
+    require("./boards").forgetAwards();
+  }
   return { days, where };
 }
 // the token hash any of this player's records carries (they all share one)
