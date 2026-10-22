@@ -663,6 +663,8 @@ function ensureFinal() {
   finalizing = finalizeDays(today).then(done => { if (done) finalDone = today; }, e => console.error("Harf: finalize", e))
     .finally(() => { finalizing = null; });
 }
+// waits for a run of finalizeDays that's under way (or just started), so callers can see the finished days
+async function whenFinal() { ensureFinal(); if (finalizing) await finalizing.catch(() => {}); }
 // -> true when every past day is finished
 async function finalizeDays(today) {
   const rows = (await store.hAll()).map(r => ({ id: r.id, data: tidy(r.data) }));
@@ -1243,4 +1245,4 @@ async function admin(req, res, p, { send, readJson }, url) {
   return true;
 }
 
-module.exports = { handle, letterFor, check, prompt, alRoot, LANG_RULE, ensureMigrated, init: loadSettings, tidy, publicRec, withLock, ensureFinal };
+module.exports = { whenFinal, handle, letterFor, check, prompt, alRoot, LANG_RULE, ensureMigrated, init: loadSettings, tidy, publicRec, withLock, ensureFinal };
