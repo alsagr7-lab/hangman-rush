@@ -358,10 +358,12 @@
       }
       return pp;
     }
-    function row(r, first) {
+    function row(r, first, info) {
       const el = mk("div", "pl" + (first ? " first" : "")), dot = mk("span", "dot"); dot.style.background = r.c;
       const nm = mk("span", "pn"), rk = mk("span", "rkn", String(r.rank)); rk.dataset.r = String(r.rank);
-      nm.append(rk, document.createTextNode(r.n));
+      nm.append(rk);
+      const md = medals(r.aw, info, o.game); if (md) nm.append(md);
+      nm.append(document.createTextNode(r.n));
       if (r.tag) nm.append(mk("small", "tag", "#" + r.tag));
       if (r.me) nm.append(mk("small", "me", T("you")));
       el.append(dot, nm, mk("span", "ps", String(r.pts)), detail(r));
@@ -391,8 +393,8 @@
         mk("span", null, left === 1 ? T("tonight") : left <= 3 ? T("final", { n: left }) : T("left", { n: left })));
       box.append(bar);
       if (!data.rows.length) box.append(mk("div", "empty", tab === "today" ? G("tEmpty") : tab === "yday" ? T("yEmpty") : G("sEmpty")));
-      data.rows.forEach((r, i) => box.append(row(r, i === 0)));
-      if (data.me) { box.append(mk("p", "note", T("gap"))); box.append(row(data.me, false)); }
+      data.rows.forEach((r, i) => box.append(row(r, i === 0, data.awards)));
+      if (data.me) { box.append(mk("p", "note", T("gap"))); box.append(row(data.me, false, data.awards)); }
       if (tab === "season") box.append(mk("p", "note", G("note", { n: data.se + 1 })));
       if (g === "harf" && tab === "today" && data.rows.length) box.append(mk("p", "note", T("harfToday")));
       if (g === "harf" && tab === "yday" && data.rows.some(r => r.d && r.d.rb == null)) box.append(mk("p", "note", T("pending")));
@@ -1137,9 +1139,56 @@
     setTimeout(installTip, 2500);
   });
 
+  /* ---------- weekly medals ----------
+     Last week's top 3 on each board, and overall, wear a medal next to their name on every board until the next
+     week's are decided (boards.js sends them as "aw": [{k, p}]). Gold, silver, bronze rimmed in the game's colour,
+     with ع or E for the board's language; overall medals get a ring in all three games' colours, the champion a crown. */
+  const MEDAL_METAL = ["#F2B544", "#C9CDD6", "#D08A5A"], MEDAL_INK = ["#6B4800", "#3E424C", "#5A2E12"];
+  const MEDAL_GAME = { hangman: ["#FF6B57", "Hangman", "المشنقة"], trivia: ["#5B9BFF", "Trivia", "المعلومات"], harf: ["#3DD68C", "Harf", "الحروف"] };
+  const MEDAL_KEYS = /^(overall|hangman-(en|ar)|trivia|harf-(en|ar))$/;
+  function medalSvg(k, p) {
+    const m = MEDAL_METAL[p - 1], ink = MEDAL_INK[p - 1];
+    if (k === "overall") {
+      const arc = (c, off) => `<circle cx="20" cy="20" r="16.5" fill="none" stroke="${c}" stroke-width="3.5" stroke-dasharray="34.56 103.67" stroke-dashoffset="${off}" transform="rotate(-90 20 20)"/>`;
+      return arc("#FF6B57", 0) + arc("#5B9BFF", -34.56) + arc("#3DD68C", -69.12) + `<circle cx="20" cy="20" r="12.5" fill="${m}"/>`
+        + (p === 1 ? `<path d="M12.5 25 L11.5 15.5 L16 19 L20 12.5 L24 19 L28.5 15.5 L27.5 25 Z" fill="${ink}"/>`
+          : `<text x="20" y="25.5" text-anchor="middle" font-family="Saira,sans-serif" font-weight="800" font-size="15" fill="${ink}">${p}</text>`);
+    }
+    const [g, lg] = k.split("-"), c = MEDAL_GAME[g][0];
+    let s = `<circle cx="18" cy="18" r="14" fill="${m}" stroke="${c}" stroke-width="3"/>`;
+    if (g === "hangman") s += `<path d="M11 26H24M14 26V11H22V14" fill="none" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="22" cy="17" r="2.4" fill="none" stroke="${ink}" stroke-width="1.8"/>`;
+    else s += `<text x="18" y="${lg === "ar" ? 22.5 : 23.5}" text-anchor="middle" font-family="${lg === "ar" ? "Cairo" : "Saira"},sans-serif" font-weight="800" font-size="15" fill="${ink}">${g === "trivia" ? "?" : lg === "ar" ? "ح" : "A"}</text>`;
+    if (lg) s += `<circle cx="31" cy="31" r="7.5" fill="#0B0C10" stroke="${m}" stroke-width="1.5"/><text x="31" y="${lg === "ar" ? 33.6 : 34.4}" text-anchor="middle" font-family="${lg === "ar" ? "Cairo" : "Saira"},sans-serif" font-weight="800" font-size="${lg === "ar" ? 9 : 9.5}" fill="${m}">${lg === "ar" ? "ع" : "E"}</text>`;
+    return s;
+  }
+  function medalLabel(k, p, wk) {
+    const ar = document.documentElement.lang === "ar";
+    const place = ar ? ["الأول", "الثاني", "الثالث"][p - 1] : ["1st", "2nd", "3rd"][p - 1];
+    let what;
+    if (k === "overall") what = ar ? "الترتيب العام" : "overall";
+    else { const [g, lg] = k.split("-"); what = MEDAL_GAME[g][ar ? 2 : 1] + (lg ? " " + (ar ? (lg === "ar" ? "عربي" : "إنجليزي") : lg === "ar" ? "Arabic" : "English") : ""); }
+    return place + " · " + what + (wk ? (ar ? " · الأسبوع " : " · week ") + wk : "");
+  }
+  // -> a span of up to three medals (then "+n"), or null. On one game's board (game set) only the overall medal and
+  // that game's show, so the name keeps its room.
+  function medals(aw, info, game) {
+    const list = (Array.isArray(aw) ? aw : []).filter(a => a && MEDAL_KEYS.test(a.k) && [1, 2, 3].includes(a.p)
+      && (!game || a.k === "overall" || a.k.split("-")[0] === game));
+    if (!list.length) return null;
+    const box = document.createElement("span"); box.className = "medals";
+    list.slice(0, 3).forEach(a => {
+      const lbl = medalLabel(a.k, a.p, info && info.wk), s = document.createElement("span");
+      s.className = "medal"; s.title = lbl; s.setAttribute("role", "img"); s.setAttribute("aria-label", lbl);
+      s.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true">${medalSvg(a.k, a.p)}</svg>`; // fixed markup only
+      box.append(s);
+    });
+    if (list.length > 3) { const more = document.createElement("span"); more.className = "more"; more.textContent = "+" + (list.length - 3); box.append(more); }
+    return box;
+  }
+
   // the message shown when a name is turned down by the shared name filter (rules.js badName)
   const badNameMsg = () => (document.documentElement.lang === "ar" ? "اختر اسماً آخر، هذا الاسم غير مسموح." : "Please pick another name. That one isn't allowed.");
-  window.Rush = { badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
+  window.Rush = { medals, medalSvg, badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, user, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };

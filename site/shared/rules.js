@@ -31,7 +31,8 @@
   const weekStartKey = () => dayKey(weekStart());
   const weekDay = () => dayNum() - weekStart() + 1; // 1..7, Friday is 1
   const weekDaysLeft = () => 8 - weekDay(); // includes today
-  const weekNo = () => Math.floor((weekStart() - weekStart(EPOCH_DAY + 1)) / 7) + 1;
+  const weekNoOf = ws => Math.floor((ws - weekStart(EPOCH_DAY + 1)) / 7) + 1; // ws: a week's first day number
+  const weekNo = () => weekNoOf(weekStart());
 
   /* ---------- player records (one per game) ----------
      {n name, c colour, se season, streak, best, ls last solved day, played, wins, h:{day:{ok,t,m,pts,hn,...}}, prev, sk level} */
@@ -232,7 +233,7 @@
   function shuffledOrder(n, seed) { const r = seeded(seed), a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
   return {
-    num, DAY, TZ_OFF, EPOCH_DAY, keyAt, hourKey, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight, weekStart, weekStartKey, weekDay, weekDaysLeft, weekNo, weekEntries,
+    num, DAY, TZ_OFF, EPOCH_DAY, keyAt, hourKey, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight, weekStart, weekStartKey, weekDay, weekDaysLeft, weekNo, weekNoOf, weekEntries,
     COLORS, safeColor, nm16, badName, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
     HARF, harfNorm, harfStem, harfKey, harfGroup, harfLetterOk, harfRoomPoints,
