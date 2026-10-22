@@ -5,6 +5,9 @@
 //        -> { game, lg, tab, se, day, len, left, total, rows: [...top 50], me: {rank, row} | null }
 //   GET /api/board/hub?tab=week|season&me=<uid>  -> each game's leaders this week (Friday to Thursday) or season (best language, scored against its board's leader) and overall
 //   GET /api/awards[?me=<uid>]  -> every week's saved medals (or just that player's), newest first
+//   GET /api/player?id=<id>      -> a player's public profile: stats per board, ranks, medals (or just the name if private)
+//   POST /api/player {id, uid, token} -> the same for the owner, even when private
+//   POST /api/privacy {uid, token, private} -> a signed-in player keeps their profile to themselves (or not)
 //   GET /api/me?uid=<uid>        -> the player's own public records in every game (what the board would show)
 //   POST /api/profile {uid, token, n, c} -> sets the name and colour on every record the player has, in every game
 //
@@ -326,6 +329,48 @@ async function hub(me, tab) {
   };
 }
 
+// ---------- profiles ----------
+// Anyone can open a player's profile from a leaderboard: their name, and for each board they've played this week's and
+// this season's points and rank, days played, wins and streak, plus every weekly medal they've won. A signed-in player
+// can make it private: then others see only the name and tag (they still appear on the leaderboards, where everyone's
+// results are public). Kept in meta "private:<id>".
+const PROFILE_BOARDS = [["hangman", "en", "hm", ""], ["hangman", "ar", "hmAr", "_ar"], ["trivia", "", "tri", ""], ["harf", "ar", "hfAr", "_ar"], ["harf", "en", "hfEn", "_en"]];
+let privSet = null;
+async function privacy() {
+  if (!privSet) privSet = new Set((await store.metaSince("private:", "private:").catch(() => [])).filter(x => x.v === true).map(x => x.k.slice(8)));
+  return privSet;
+}
+async function setPrivate(id, on) { await store.metaPut("private:" + id, !!on); (await privacy())[on ? "add" : "delete"](id); }
+
+async function player(id, own) {
+  await awardsNow(); // a week that's just closed gets its medals first
+  await loadLinks();
+  const b = current(base(id)), recs = await ident.records(b), se = R.curSeason();
+  let n = null, c = null;
+  const boards = [];
+  for (const [game, lg, key, sfx] of PROFILE_BOARDS) {
+    const r = recs[key];
+    if (!r || admin.isHidden(game, b + sfx)) continue;
+    const S = SOURCES[game], d = S.tidy(r.data);
+    if (!n && R.namedRec(d) && R.nm16(d.n) !== "Player") { n = R.nm16(d.n); c = R.safeColor(d.c); }
+    const done = game === "harf" ? e => e && e.lg === lg : e => e && "ok" in e;
+    const cur = R.seasonOfRec(d) === se, days = cur ? Object.values(d.h).filter(done) : [];
+    const wk = R.weekEntries(d).filter(done);
+    if (!days.length && !wk.length && !d.prev) continue;
+    const rankIn = async tab => { const rows = (await view(game, lg || S.langs[0], tab)).views.get((lg || S.langs[0]) + "|" + tab); const i = rows.findIndex(x => x.id === b); return i < 0 ? null : i + 1; };
+    boards.push({ game, lg,
+      week: { pts: wk.reduce((a, e) => a + num(e.pts), 0), days: wk.length, rank: await rankIn("week") },
+      season: { pts: days.reduce((a, e) => a + num(e.pts), 0), days: days.length, wins: days.filter(e => e.ok).length, rank: await rankIn("season") },
+      streak: R.curStreak(d), best: game === "hangman" ? num(d.best) : null,
+      last: Object.keys(d.h).filter(k => done(d.h[k])).sort().pop() || null,
+      prev: d.prev && num(d.prev.se) ? { se: num(d.prev.se), pts: num(d.prev.pts), played: num(d.prev.played) } : null });
+  }
+  if (!n && !own) return null; // nobody by that id on any board
+  const priv = (await privacy()).has(b), out = { id: b, tag: R.tagOf(b), n: n || "Player", c: c || R.COLORS[0], private: priv, se, wk: R.weekNo() };
+  if (priv && !own) return out;
+  return Object.assign(out, { boards, medals: (await history(b)).won });
+}
+
 // ---------- the player's own records, and one name for every game ----------
 async function mine(uid) {
   const { hm, hmAr, tri, hfAr, hfEn } = await ident.records(uid);
@@ -363,6 +408,35 @@ async function handle(req, res, url, { send, readJson, ip }, limits) {
     if (me && !ident.isUid(me)) { send(res, 400, { error: "Bad player id" }); return true; }
     await awardsNow();
     send(res, 200, await history(me));
+    return true;
+  }
+  if (p === "/api/player" && (req.method === "GET" || req.method === "POST")) {
+    if (!limits.take("pl|" + ip, 60, 30)) { send(res, 429, { error: "Too many requests. Slow down a little." }); return true; }
+    let id = url.searchParams.get("id") || "", own = false;
+    if (req.method === "POST") {
+      const body = await readJson(req);
+      id = String((body && body.id) || ""); const uid = String((body && body.uid) || "");
+      if (body && uid === id && ident.isUid(uid) && typeof body.token === "string" && body.token.length >= 16) {
+        const o = await ident.owner(uid, ident.hashToken(body.token)); own = o.ok && !o.isNew;
+      }
+    }
+    if (!ident.isUid(id)) { send(res, 400, { error: "Bad player id" }); return true; }
+    const out = await player(id, own);
+    if (!out) { send(res, 404, { error: "No such player" }); return true; }
+    if (own) out.signedIn = await require("./auth").isSignedIn(id);
+    send(res, 200, out);
+    return true;
+  }
+  if (p === "/api/privacy" && req.method === "POST") {
+    const body = await readJson(req);
+    const uid = String((body && body.uid) || "");
+    if (!body || !ident.isUid(uid) || typeof body.token !== "string" || body.token.length < 16 || typeof body.private !== "boolean") { send(res, 400, { error: "Expected {uid, token, private}" }); return true; }
+    if (!limits.take("priv|" + ip, 20, 10)) { send(res, 429, { error: "Too many changes. Slow down a little." }); return true; }
+    const o = await ident.owner(uid, ident.hashToken(body.token));
+    if (!o.ok || o.isNew) { send(res, 403, { error: "This player belongs to another device" }); return true; }
+    if (!(await require("./auth").isSignedIn(uid))) { send(res, 403, { error: "Sign in to make your profile private" }); return true; }
+    await setPrivate(uid, body.private);
+    send(res, 200, { ok: true, private: body.private });
     return true;
   }
   if (p === "/api/me" && req.method === "GET") {
