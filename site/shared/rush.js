@@ -1189,8 +1189,9 @@
     const ar = uiAr(), [g, lg] = k.split("-");
     if (k === "overall") return ar ? "الترتيب العام" : "Overall";
     // each language's own words only, so Arabic and English never mix in one label
+    if (!lg) return MEDAL_GAME[g][ar ? 2 : 1]; // Trivia: one board, no language
     const lgName = ar ? (lg === "ar" ? "عربي" : "إنجليزي") : short ? lg.toUpperCase() : lg === "ar" ? "Arabic" : "English";
-    return MEDAL_GAME[g][ar ? 2 : 1] + (lg ? " " + lgName : "");
+    return MEDAL_GAME[g][ar ? 2 : 1] + " " + lgName;
   }
   function medalWhat(k, p) {
     const ar = uiAr();
@@ -1314,7 +1315,9 @@
     if (d.err) { pv.append(mkEl("p", "pv-note", pt(d.err))); keep(); return; }
     if (d.private) pv.append(mkEl("p", "pv-note", mine ? pt("privMine") : pt("privOther", { n: d.n })));
     else if (mine && d.signedIn === false) pv.append(mkEl("p", "pv-note", pt("signIn")));
-    if (Array.isArray(d.boards)) {
+    // each part is drawn on its own, so a fault in one never leaves the profile blank
+    const part = f => { try { f(); } catch (e) { console.error("profile", e); } };
+    if (Array.isArray(d.boards)) part(() => {
       // trophy shelf: each kind of medal once, with how many times it was won
       const shelf = mkEl("section", "pv-sec"), won = Array.isArray(d.medals) ? d.medals : [], kinds = new Map();
       shelf.append(mkEl("h3", null, pt("shelf")));
@@ -1328,6 +1331,8 @@
         shelf.append(g);
       }
       pv.append(shelf);
+    });
+    if (Array.isArray(d.boards)) part(() => {
       // each board they play
       const sec = mkEl("section", "pv-sec"); sec.append(mkEl("h3", null, pt("boards")));
       if (!d.boards.length) sec.append(mkEl("p", "note", pt("none2")));
@@ -1346,8 +1351,11 @@
         sec.append(card);
       });
       pv.append(sec);
-      // every week they won something, newest first
-      if (won.length) {
+    });
+    // every week they won something, newest first
+    const won = Array.isArray(d.medals) ? d.medals : [];
+    if (Array.isArray(d.boards) && won.length) part(() => {
+      {
         const hs = mkEl("section", "pv-sec"), byWk = new Map();
         hs.append(mkEl("h3", null, pt("history")));
         for (const m of won) { const k = m.from || String(m.wk); if (!byWk.has(k)) byWk.set(k, { info: { wk: m.wk, from: m.from, to: m.to }, list: [] }); byWk.get(k).list.push({ k: m.k, p: m.p }); }
@@ -1358,8 +1366,8 @@
         });
         pv.append(hs);
       }
-    }
-    if (mine && acct) pv.append(privToggle());
+    });
+    if (mine && acct) part(() => pv.append(privToggle()));
     keep();
   }
   // the switch, in the profile sheet and on your own profile
