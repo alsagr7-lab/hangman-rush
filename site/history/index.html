@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Android draws an installed app behind its navigation bar when the page covers the whole screen; only iPhones need that (for the notch) -->
+<script>if(/Android/i.test(navigator.userAgent)){var vp=document.querySelector('meta[name="viewport"]');if(vp)vp.setAttribute("content","width=device-width,initial-scale=1")}</script>
+<script>(function(){var t;try{t=localStorage.getItem("rush-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.setAttribute("data-theme",t)})()</script>
+<style>:root{color-scheme:dark;background:#0B0C10;padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}[hidden]{display:none!important}:root[data-theme="light"]{color-scheme:light;background:#F5F3EE}:root[data-theme="light"] body{background:#F5F3EE;color:#15161B}</style>
+<title>Leaderboard history · Rush Games</title>
+<meta name="description" content="How every week ended on the Rush Games leaderboards: final standings, points and medals for Hangman, Trivia and Harf.">
+<meta name="theme-color" content="#0B0C10">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rush Games">
+<meta property="og:title" content="Leaderboard history · Rush Games">
+<meta property="og:description" content="How every week ended on the Rush Games leaderboards: final standings, points and medals for Hangman, Trivia and Harf.">
+<meta property="og:url" content="https://rushgames.cc/history/">
+<meta property="og:image" content="https://rushgames.cc/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rush Games">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>/* record script load failures, so the page can say what went wrong */window.__rushErrs=[];window.addEventListener("error",function(e){var t=e.target;if(t&&t!==window&&t.src)window.__rushErrs.push("couldn't load "+t.src.split("/").pop());else if(e.message)window.__rushErrs.push(e.message)},true)</script>
+<script src="/shared/config.js"></script>
+<script src="/shared/rules.js"></script>
+<script src="/shared/rush.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@100..125,400..800&family=Figtree:wght@400..800&family=Cairo:wght@400..900&display=swap">
+<link rel="stylesheet" href="/shared/rush.css">
+<style>
+/* leaderboard history: how each finished week ended */
+#hist{max-width:820px;margin:0 auto;display:grid;gap:20px}
+.hh{display:grid;gap:6px}
+.hh h1{margin:0;font-family:var(--f-display);font-stretch:118%;font-weight:800;font-size:clamp(28px,6vw,40px);line-height:1.05}
+:root[lang="ar"] .hh h1{font-family:var(--f-ar);font-stretch:100%;font-weight:900;line-height:1.3}
+.hh p{margin:0;color:var(--soft);font-size:15px;line-height:1.5}
+.hh a{color:var(--accent-hi);font-weight:700;text-decoration:none;justify-self:start}
+.hh a:hover{text-decoration:underline}
+.weeks{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.weeks button{flex:none;display:grid;gap:1px;text-align:start;padding:9px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);color:var(--ink);font:inherit;cursor:pointer;min-height:44px}
+.weeks button b{font-weight:800;font-size:15px}
+.weeks button span{font-size:12px;color:var(--muted)}
+.weeks button[aria-pressed="true"]{border-color:var(--gold);background:var(--me-bg)}
+.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end}
+.pod{display:grid;justify-items:center;gap:4px;text-align:center;padding:14px 8px 12px;border-radius:16px;background:var(--bg);border:1px solid var(--line-soft);min-width:0}
+.pod.p1{border-color:var(--gold);padding-top:20px}
+.pod.p2{order:-1}
+.pod .medal{width:44px;height:44px;display:block}.pod.p1 .medal{width:56px;height:56px}
+.pod .medal svg{display:block;width:100%;height:100%}
+.pod .nmw{font-weight:800;font-size:16px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pod.p1 .nmw{color:var(--gold-hi);font-size:18px}
+.pod .lbl{font-size:10px;letter-spacing:.1em;white-space:nowrap}
+:root[lang="ar"] .pod .lbl{font-size:13px;letter-spacing:0}
+.pod small{font-family:var(--f-num);font-weight:700;color:var(--muted);font-size:13px}
+.bsel{display:flex;flex-wrap:wrap;gap:6px}
+.bsel button{min-height:40px;padding:0 14px;border-radius:999px;background:transparent;border:1px solid var(--line3);color:var(--soft);font:700 14px/1 var(--f-body);cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.bsel button i{width:10px;height:10px;border-radius:3px;flex:none}
+.bsel button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.tbl{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.tr{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:2px 12px;padding:10px 12px;border-radius:14px;background:var(--bg);border:1px solid var(--line-soft)}
+.tr.me{border-color:var(--gold);background:var(--me-bg)}
+.tr[data-pid]:hover{border-color:var(--line3)}
+.tr .rkn{display:grid;place-items:center;height:26px;border-radius:8px;background:var(--key);color:var(--soft);font-family:var(--f-num);font-weight:800;font-size:13px}
+.tr .rkn[data-r="1"]{background:var(--gold);color:#0B0C10}.tr .rkn[data-r="2"]{background:#C9CDD6;color:#0B0C10}.tr .rkn[data-r="3"]{background:#D08A5A;color:#0B0C10}
+.tr .who-l{display:flex;align-items:center;gap:8px;min-width:0}
+.tr .dot{width:12px;height:12px;border-radius:4px;flex:none}
+.tr .who{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tr .tagx{font-family:var(--f-num);color:var(--faint);font-size:12px;direction:ltr;unicode-bidi:isolate;flex:none}
+.tr .medal{width:22px;height:22px;display:block;flex:none}.tr .medal svg{display:block;width:100%;height:100%}
+.tr .pts{font-family:var(--f-num);font-weight:800;font-size:17px;text-align:end;font-variant-numeric:tabular-nums}
+.tr .sub{grid-column:2/4;display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;font-size:12.5px;color:var(--muted)}
+.tr .gap{font-family:var(--f-num);font-weight:700;color:var(--soft)}
+.tr .gap.lead{color:var(--good-ink,var(--green))}
+.empty{padding:28px 16px;text-align:center;color:var(--muted);border-radius:16px;border:1px dashed var(--line3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main id="hist">
+    <div class="lobbytop"><button class="langbtn" id="lang" type="button"></button></div>
+    <header class="hh">
+      <a href="/" id="back" data-i18n="back">← All games</a>
+      <h1 data-i18n="title">Leaderboard history</h1>
+      <p data-i18n="intro">How every week ended. Weeks run Friday to Thursday, Saudi time.</p>
+    </header>
+    <div class="weeks" id="weeks" role="group"></div>
+    <section class="card" id="week" hidden>
+      <div class="ld-h"><h2 id="wkTitle" style="margin:0"></h2></div>
+      <div class="podium" id="podium"></div>
+      <div class="bsel" id="bsel" role="group"></div>
+      <p class="note" id="bnote"></p>
+      <ol class="tbl" id="tbl"></ol>
+    </section>
+    <p class="empty" id="empty" hidden></p>
+  </main>
+</div>
+<script>
+(function(){
+if(!window.Rush||!window.RushRules){document.addEventListener("DOMContentLoaded",()=>{const p=document.getElementById("empty");p.hidden=false;p.textContent="Something didn't load. Reload the page."});return}
+const R=RushRules,$=s=>document.querySelector(s);
+const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
+const I18N={
+en:{title:"Leaderboard history",intro:"How every week ended. Weeks run Friday to Thursday, Saudi time.",back:"← All games",langSwitch:"عربي",
+  week:"Week {w}",champ:"Champion",second:"Runner-up",third:"Third",overall:"Overall",pts:"{p} pts",
+  behind:"{x} behind #{r}",behindTop:"{y} behind 1st",lead:"+{x} ahead of #2",alone:"Only player",days1:"1 day played",daysN:"{n} days played",
+  topOnly:"Only the top 3 were kept for this week.",oNote:"Overall: each game adds up to 100, its top player gets the 100. 300 is the most.",
+  noBoard:"Nobody played this board that week.",none:"No finished weeks yet. The first results arrive after Thursday midnight, Saudi time.",err:"Couldn't load the history. Try again in a moment.",
+  loading:"Loading…",hangman:"Hangman",trivia:"Trivia",harf:"Harf",en:"EN",ar:"عربي",docTitle:"Leaderboard history · Rush Games"},
+ar:{title:"سجل المتصدرين",intro:"كيف انتهى كل أسبوع. الأسبوع من الجمعة إلى الخميس بتوقيت السعودية.",back:"→ كل الألعاب",langSwitch:"English",
+  week:"الأسبوع {w}",champ:"البطل",second:"الوصيف",third:"الثالث",overall:"الترتيب العام",pts:"{p} نقطة",
+  behind:"بفارق {x} عن #{r}",behindTop:"بفارق {y} عن الأول",lead:"متقدم بـ{x} على #2",alone:"اللاعب الوحيد",days1:"لعب يوماً واحداً",daysN:"لعب {n} أيام",
+  topOnly:"لم يُحفظ لهذا الأسبوع إلا أول 3.",oNote:"الترتيب العام: كل لعبة تضيف حتى 100 ويأخذ متصدرها الـ100. الحد الأعلى 300.",
+  noBoard:"لم يلعب أحد في هذه اللوحة ذلك الأسبوع.",none:"لا توجد أسابيع منتهية بعد. تظهر أول النتائج بعد منتصف ليل الخميس بتوقيت السعودية.",err:"تعذّر تحميل السجل. حاول بعد قليل.",
+  loading:"جارٍ التحميل…",hangman:"المشنقة",trivia:"المعلومات",harf:"الحروف",en:"إنجليزي",ar:"عربي",docTitle:"سجل المتصدرين · ألعاب رش"}};
+let lang;try{lang=localStorage.getItem("hr-lang")}catch(e){}
+if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en";
+const t=(k,v)=>{let s=I18N[lang][k]!=null?I18N[lang][k]:I18N.en[k];if(v)s=s.replace(/\{(\w+)\}/g,(_,n)=>v[n]!=null?v[n]:"");return s};
+const BOARDS=[["overall",null],["hangman-en","#FF6B57"],["hangman-ar","#FF6B57"],["trivia","#5B9BFF"],["harf-ar","#3DD68C"],["harf-en","#3DD68C"]];
+const bName=k=>{if(k==="overall")return t("overall");const[g,lg]=k.split("-");return t(g)+(lg?" "+t(lg):"")};
+const fmt=x=>{const n=Math.round(Number(x)*10)/10;return Number.isInteger(n)?String(n):n.toFixed(1)};
+const fmtDay=k=>{try{return new Date(k+"T12:00:00Z").toLocaleDateString(lang==="ar"?"ar-u-ca-gregory-nu-latn":"en-GB",{day:"numeric",month:"short",timeZone:"UTC"})}catch(e){return k}};
+const span=w=>fmtDay(w.from)+" – "+fmtDay(w.to);
+const qs=new URLSearchParams(location.search);
+let weeks=null,sel=qs.get("week")||"",board=BOARDS.some(b=>b[0]===qs.get("b"))?qs.get("b"):"overall",data=new Map(),loadErr=false;
+
+function setUrl(){const u=new URL(location.href);if(sel)u.searchParams.set("week",sel);if(board!=="overall")u.searchParams.set("b",board);else u.searchParams.delete("b");history.replaceState(null,"",u.pathname+u.search)}
+function render(){
+  const root=document.documentElement;root.lang=lang;root.dir=lang==="ar"?"rtl":"ltr";document.title=t("docTitle");
+  document.querySelectorAll("[data-i18n]").forEach(n=>{n.textContent=t(n.dataset.i18n)});
+  const lb=$("#lang");lb.textContent=t("langSwitch");lb.lang=lang==="ar"?"en":"ar";
+  $("#back").href=(location.pathname.startsWith("/ar/")?"/ar/":"/");
+  const empty=$("#empty"),wk=$("#week"),ws=$("#weeks");ws.textContent="";
+  if(!weeks){empty.hidden=false;empty.textContent=loadErr?t("err"):t("loading");wk.hidden=true;return}
+  if(!weeks.length){empty.hidden=false;empty.textContent=t("none");wk.hidden=true;return}
+  empty.hidden=true;
+  ws.setAttribute("aria-label",t("title"));
+  weeks.forEach(w=>{const b=el("button");b.type="button";b.setAttribute("aria-pressed",String(w.from===sel));
+    b.append(el("b",null,t("week",{w:w.wk})),el("span",null,span(w)));b.onclick=()=>{sel=w.from;setUrl();load()};ws.append(b)});
+  const d=data.get(sel);wk.hidden=false;
+  const w=weeks.find(x=>x.from===sel);$("#wkTitle").textContent=t("week",{w:w.wk})+" · "+span(w);
+  const pod=$("#podium"),tbl=$("#tbl"),bs=$("#bsel"),note=$("#bnote");pod.textContent="";tbl.textContent="";bs.textContent="";note.textContent="";
+  if(!d){tbl.append(el("li","note",d===null?t("err"):t("loading")));return}
+  const info={wk:d.wk,from:d.from,to:d.to};
+  // the overall top 3, champion in the middle on wider screens
+  d.overall.slice(0,3).forEach(x=>{const c=el("div","pod p"+x.rank);c.dataset.pid=x.id;
+    c.append(Rush.medalEl("overall",x.rank,info));const n=el("span","nmw");n.append(Rush.whoBtn(x.n));
+    c.append(el("span","lbl",t(["champ","second","third"][x.rank-1])),n,el("small",null,fmt(x.score)));pod.append(c)});
+  BOARDS.forEach(([k,c])=>{const b=el("button");b.type="button";b.setAttribute("aria-pressed",String(k===board));
+    if(c){const i=el("i");i.style.background=c;b.append(i)}b.append(document.createTextNode(bName(k)));b.onclick=()=>{board=k;setUrl();render()};bs.append(b)});
+  const rows=board==="overall"?d.overall:(d.boards[board]||[]),val=x=>board==="overall"?x.score:x.pts;
+  if(board==="overall")note.textContent=t("oNote");
+  if(!d.full)note.textContent=(note.textContent?note.textContent+" ":"")+t("topOnly");
+  if(!rows.length){tbl.append(el("li","note",t("noBoard")));return}
+  rows.forEach((x,i)=>{
+    const li=el("li","tr"+(x.me?" me":""));li.dataset.pid=x.id;
+    const rk=el("span","rkn",String(x.rank));rk.dataset.r=String(x.rank);
+    const who=el("span","who-l"),dot=el("span","dot");dot.style.background=x.c;who.append(dot);
+    if(x.rank<=3)who.append(Rush.medalEl(board,x.rank,info));
+    who.append(Rush.whoBtn(x.n));if(x.tag)who.append(el("small","tagx","#"+x.tag));
+    li.append(rk,who,el("span","pts",board==="overall"?fmt(x.score):t("pts",{p:fmt(x.pts)})));
+    // how far apart: the lead for #1, otherwise the gap to the player above (and to 1st, from 3rd down)
+    const sub=el("span","sub"),g=el("span","gap");
+    if(i===0){if(rows[1]){g.textContent=t("lead",{x:fmt(val(x)-val(rows[1]))});g.classList.add("lead")}else g.textContent=t("alone")}
+    else{g.textContent=t("behind",{x:fmt(val(rows[i-1])-val(x)),r:rows[i-1].rank})+(i>1?" · "+t("behindTop",{y:fmt(val(rows[0])-val(x))}):"")}
+    sub.append(g);if(board!=="overall"&&x.d)sub.append(el("span",null,x.d===1?t("days1"):t("daysN",{n:x.d})));
+    li.append(sub);tbl.append(li);
+  });
+}
+async function load(){
+  render();
+  if(sel&&!data.has(sel)){
+    try{data.set(sel,await fetch(Rush.http("/api/history?week="+encodeURIComponent(sel)+"&me="+encodeURIComponent(Rush.uid)),{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}))}
+    catch(e){data.set(sel,null)}
+  }
+  render();
+}
+$("#lang").onclick=()=>{lang=lang==="ar"?"en":"ar";try{localStorage.setItem("hr-lang",lang)}catch(e){}render()};
+(async()=>{
+  render();
+  try{await Rush.ready;const r=await fetch(Rush.http("/api/history"),{cache:"no-store"});if(!r.ok)throw 0;weeks=(await r.json()).weeks||[]}
+  catch(e){loadErr=true;weeks=null;render();return}
+  if(!weeks.some(w=>w.from===sel))sel=weeks.length?weeks[0].from:"";
+  if(sel)setUrl();load();
+})();
+})();
+</script>
+</body>
+</html>

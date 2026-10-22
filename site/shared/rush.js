@@ -1058,8 +1058,10 @@
       "أمامك 90 ثانية. كل إجابة صحيحة تُحتسب فوراً، وفي اليوم التالي تكسب الإجابات النادرة مكافأة.",
       "الحيوان والنبات والجماد يجب أن تكون كلمات من لغة اللعب. ترى أن إجابتك رُفضت خطأً؟ قدّم اعتراضاً."]] },
   };
+  const subPage = () => /^\/history(\/|$)/.test(basePath()); // the hub's other pages: no tour or install tip there
   async function maybeTour() {
     const g = gameKey, k = "rush-tour-" + g;
+    if (subPage()) return;
     if (!TOUR[g] || store.get(k)) return;
     store.set(k, "1");
     // someone who has played before (they have a name saved on this device) doesn't need it
@@ -1131,7 +1133,7 @@
   const standalone = () => { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch { return false; } };
   let tipShown = false;
   function installTip() {
-    if (tipShown || gameKey !== "hub" || standalone() || store.get("rush-install-x") === "1" || !store.get("hr-me")) return;
+    if (tipShown || gameKey !== "hub" || subPage() || standalone() || store.get("rush-install-x") === "1" || !store.get("hr-me")) return;
     const ua = navigator.userAgent || "", ios = /iphone|ipad|ipod/i.test(ua) && /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
     if (!installEvt && !ios) return;
     tipShown = true;
