@@ -202,12 +202,13 @@ async function awardsNow() {
     decideTry = Date.now();
     deciding = (async () => {
       await loadLinks();
+      await harf.whenFinal(); // the closed week's last Harf bonuses, if they're being added right now
       const saved = await store.metaSince("awards:", "awards:" + R.dayKey(AW_FIRST)).catch(() => []);
       const have = new Set(saved.map(x => x.k));
       for (let ws = Math.max(AW_FIRST, last - 7 * 6); ws <= last; ws += 7) {
         if (have.has("awards:" + R.dayKey(ws))) continue;
         const a = await decideWeek(ws);
-        if (!a) break; // still waiting on this week's last bonuses
+        if (!a) { decideTry = Date.now() - 4 * 60000; break; } // still waiting on Harf: look again in a minute
         await store.metaPut("awards:" + R.dayKey(ws), a);
       }
       const all = await store.metaSince("awards:", "awards:" + R.dayKey(AW_FIRST)).catch(() => []);
@@ -278,6 +279,20 @@ function gameScores(boards, byAvg) {
   return per;
 }
 
+// last week's overall top 3 for the hub's card, under the names and colours they have now (a renamed winner shows
+// the new name; a player no longer on any board keeps the name saved with the week)
+async function lastWinners(aw, mb) {
+  if (!aw || !aw.a.overall || !aw.a.overall.length) return null;
+  const now = new Map();
+  for (const game of ["hangman", "trivia", "harf"]) {
+    const c = await view(game, SOURCES[game].langs[0], "week");
+    for (const p of c.recs) if (!now.has(p.b)) now.set(p.b, { n: p.d.n, c: p.d.c });
+  }
+  return { wk: aw.a.wk, from: aw.a.from, to: aw.a.to, list: aw.a.overall.map((x, i) => {
+    const id = current(x.id), cur = now.get(id) || { n: x.n, c: x.c };
+    return Object.assign({ rank: i + 1, id, tag: R.tagOf(id), n: cur.n, c: cur.c, score: x.score }, id === mb ? { me: 1 } : {});
+  }) };
+}
 async function hub(me, tab) {
   if (tab !== "season") tab = "week";
   const mb = me ? base(me) : "", games = {}, overall = new Map(), aw = await awardsNow();
@@ -305,7 +320,7 @@ async function hub(me, tab) {
   const all = [...overall.values()].sort((a, b) => b.score - a.score || Object.keys(b.games).length - Object.keys(a.games).length);
   const mi = mb ? all.findIndex(x => x.id === mb) : -1;
   return {
-    tab, awards: awInfo(aw), se: R.curSeason(), day: R.seasonDay(), len: R.SEASON_LEN, left: R.seasonDaysLeft(), wk: R.weekNo(), wleft: R.weekDaysLeft(), games,
+    tab, awards: awInfo(aw), last: await lastWinners(aw, mb), se: R.curSeason(), day: R.seasonDay(), len: R.SEASON_LEN, left: R.seasonDaysLeft(), wk: R.weekNo(), wleft: R.weekDaysLeft(), games,
     overall: all.slice(0, 10).map((x, i) => Object.assign({ rank: i + 1, tag: R.tagOf(x.id) }, x, medals(x.id), x.id === mb ? { me: 1 } : {})),
     me: mi >= 10 ? Object.assign({ rank: mi + 1, tag: R.tagOf(all[mi].id), me: 1 }, all[mi], medals(all[mi].id)) : null,
   };

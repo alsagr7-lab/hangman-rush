@@ -71,3 +71,10 @@ test("a new name keeps the medals: they belong to the player's id", async () => 
   const { won } = await get("/api/awards?me=p_awardC00001");
   assert.deepEqual(won.map(x => x.k + " " + x.p).sort(), ["hangman-en 3", "overall 3"]);
 });
+
+test("the hub's weekly board leads with last week's overall top 3, under their names now", async () => {
+  const h = await get("/api/board/hub?tab=week&me=p_awardB00001");
+  assert.equal(h.last.wk, R.weekNo() - 1);
+  assert.deepEqual(h.last.list.map(x => x.rank + " " + x.n), ["1 Ann", "2 Ben", "3 Kitty"]); // Cat was renamed Kitty
+  assert.equal(h.last.list[1].me, 1); assert.equal(h.last.list[0].tag, R.tagOf("p_awardA00001"));
+});
