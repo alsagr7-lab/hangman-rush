@@ -363,7 +363,7 @@
       const nm = mk("span", "pn"), rk = mk("span", "rkn", String(r.rank)); rk.dataset.r = String(r.rank);
       nm.append(rk);
       const md = medals(r.aw, info, o.game); if (md) nm.append(md);
-      nm.append(document.createTextNode(r.n));
+      nm.append(whoBtn(r.n)); if (r.id) el.dataset.pid = r.id;
       if (r.tag) nm.append(mk("small", "tag", "#" + r.tag));
       if (r.me) nm.append(mk("small", "me", T("you")));
       el.append(dot, nm, mk("span", "ps", String(r.pts)), detail(r));
@@ -549,6 +549,23 @@
   } catch {}
   const BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
   const mkEl = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  // player profiles' words and state (the code is further down, by the medals)
+  const PV = {
+    en: { loading: "Loading…", none: "This player isn't on any board.", err: "Couldn't load this profile. Try again in a moment.", close: "Close", you: "You",
+      privTitle: "Private profile", privOther: "{n} keeps their stats private.", privMine: "Your profile is private: others see only your name and tag.",
+      signIn: "Sign in to make your profile private.", week: "This week", season: "Season {s}", days: "Days played", streak: "Streak", best: "best {b}",
+      boards: "Leaderboards", shelf: "Trophy shelf", noMedals: "No medals yet. Finish a week in the top 3 of any board to win one.", history: "Medal history",
+      none2: "No results this season yet.", lastSeason: "Season {s}: {p} pts", times: "×{n}", privT: "Private profile",
+      privS: "Others see only your name and tag. You still appear on the leaderboards.", privErr: "Couldn't change that. Try again.", mine: "View my profile" },
+    ar: { loading: "جارٍ التحميل…", none: "هذا اللاعب غير موجود في أي لوحة.", err: "تعذّر تحميل الملف. حاول بعد قليل.", close: "إغلاق", you: "أنت",
+      privTitle: "ملف خاص", privOther: "{n} يُبقي إحصاءاته خاصة.", privMine: "ملفك خاص: يرى الآخرون اسمك ورمزك فقط.",
+      signIn: "سجّل الدخول لتجعل ملفك خاصاً.", week: "هذا الأسبوع", season: "الموسم {s}", days: "أيام اللعب", streak: "السلسلة", best: "الأفضل {b}",
+      boards: "لوحات الترتيب", shelf: "خزانة الجوائز", noMedals: "لا ميداليات بعد. أنهِ أسبوعاً ضمن أول 3 في أي لوحة لتفوز بواحدة.", history: "سجل الميداليات",
+      none2: "لا نتائج في هذا الموسم بعد.", lastSeason: "الموسم {s}: {p} نقطة", times: "×{n}", privT: "ملف خاص",
+      privS: "يرى الآخرون اسمك ورمزك فقط، وتبقى في لوحات الترتيب.", privErr: "تعذّر التغيير. حاول مرة أخرى.", mine: "عرض ملفي" },
+  };
+  const pt = (k, v) => { let s = PV[document.documentElement.lang === "ar" ? "ar" : "en"][k]; for (const [a, b] of Object.entries(v || {})) s = s.split("{" + a + "}").join(String(b)); return s; };
+  let pv = null, pvBg = null, pvOpen = false, pvBack = null, pvId = null, pvData = null, privOn = null;
 
   /* an in-page question with two buttons, in place of the browser's grey confirm() box; resolves true or false */
   function ask({ title, body, ok, cancel }) {
@@ -627,6 +644,7 @@
         acctBox.append(m);
         setTimeout(() => { try { localStorage.removeItem("hr-merged"); } catch {} }, 1000);
       }
+      acctBox.append(privToggle()); loadPriv();
       const b = mkEl("button", "rush-acct-out", at("out")); b.type = "button"; b.onclick = signOut; acctBox.append(b);
     } else if (authCfg && authCfg.google) {
       const head = mkEl("p", "ah"); head.append(svg(CLOUD), document.createTextNode(at("guest")));
@@ -636,6 +654,8 @@
       drawGsi();
     }
     if (acctMsg) acctBox.append(mkEl("p", "note warn", at(acctMsg)));
+    const mineB = mkEl("button", "rsheet-mine", pt("mine")); mineB.type = "button"; mineB.onclick = () => openPlayer(uid);
+    acctBox.prepend(mineB);
   }
 
   /* the player as this device knows them, for the avatar */
@@ -1161,13 +1181,32 @@
     if (lg) s += `<circle cx="31" cy="31" r="7.5" fill="#0B0C10" stroke="${m}" stroke-width="1.5"/><text x="31" y="${lg === "ar" ? 33.6 : 34.4}" text-anchor="middle" font-family="${lg === "ar" ? "Cairo" : "Saira"},sans-serif" font-weight="800" font-size="${lg === "ar" ? 9 : 9.5}" fill="${m}">${lg === "ar" ? "ع" : "E"}</text>`;
     return s;
   }
-  function medalLabel(k, p, wk) {
-    const ar = document.documentElement.lang === "ar";
-    const place = ar ? ["الأول", "الثاني", "الثالث"][p - 1] : ["1st", "2nd", "3rd"][p - 1];
-    let what;
-    if (k === "overall") what = ar ? "الترتيب العام" : "overall";
-    else { const [g, lg] = k.split("-"); what = MEDAL_GAME[g][ar ? 2 : 1] + (lg ? " " + (ar ? (lg === "ar" ? "عربي" : "إنجليزي") : lg === "ar" ? "Arabic" : "English") : ""); }
-    return place + " · " + what + (wk ? (ar ? " · الأسبوع " : " · week ") + wk : "");
+  // what a medal is for ("1st place · Hangman Arabic"), and which week ("Week 2 · 16 Oct – 22 Oct")
+  const ORD = { en: ["1st", "2nd", "3rd"], ar: ["الأول", "الثاني", "الثالث"] };
+  function boardName(k, short) {
+    const ar = uiAr(), [g, lg] = k.split("-");
+    if (k === "overall") return ar ? "الترتيب العام" : "Overall";
+    // each language's own words only, so Arabic and English never mix in one label
+    const lgName = ar ? (lg === "ar" ? "عربي" : "إنجليزي") : short ? lg.toUpperCase() : lg === "ar" ? "Arabic" : "English";
+    return MEDAL_GAME[g][ar ? 2 : 1] + (lg ? " " + lgName : "");
+  }
+  function medalWhat(k, p) {
+    const ar = uiAr();
+    if (k === "overall") return ar ? ["بطل الأسبوع", "وصيف الترتيب العام", "ثالث الترتيب العام"][p - 1] : ["Champion of the week", "Runner-up overall", "Third overall"][p - 1];
+    return (ar ? "المركز " + ORD.ar[p - 1] : ORD.en[p - 1] + " place") + " · " + boardName(k);
+  }
+  const fmtDay = k => { try { return new Date(k + "T12:00:00Z").toLocaleDateString(uiAr() ? "ar-u-ca-gregory-nu-latn" : "en-GB", { day: "numeric", month: "short", timeZone: "UTC" }); } catch { return k; } };
+  function weekText(info) {
+    if (!info || !info.wk) return "";
+    return (uiAr() ? "الأسبوع " : "Week ") + info.wk + (info.from && info.to ? " · " + fmtDay(info.from) + " – " + fmtDay(info.to) : "");
+  }
+  // one medal: tap, hover or focus shows what it's for
+  function medalEl(k, p, info, when) {
+    const what = medalWhat(k, p), wk = when != null ? when : weekText(info), s = document.createElement("span");
+    s.className = "medal"; s.tabIndex = 0; s.setAttribute("role", "img"); s.setAttribute("aria-label", what + (wk ? " · " + wk : ""));
+    s.dataset.what = what; if (wk) s.dataset.when = wk;
+    s.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true">${medalSvg(k, p)}</svg>`; // fixed markup only
+    return s;
   }
   // -> a span of up to three medals (then "+n"), or null. On one game's board (game set) only the overall medal and
   // that game's show, so the name keeps its room.
@@ -1176,19 +1215,170 @@
       && (!game || a.k === "overall" || a.k.split("-")[0] === game));
     if (!list.length) return null;
     const box = document.createElement("span"); box.className = "medals";
-    list.slice(0, 3).forEach(a => {
-      const lbl = medalLabel(a.k, a.p, info && info.wk), s = document.createElement("span");
-      s.className = "medal"; s.title = lbl; s.setAttribute("role", "img"); s.setAttribute("aria-label", lbl);
-      s.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true">${medalSvg(a.k, a.p)}</svg>`; // fixed markup only
-      box.append(s);
-    });
+    list.slice(0, 3).forEach(a => box.append(medalEl(a.k, a.p, info)));
     if (list.length > 3) { const more = document.createElement("span"); more.className = "more"; more.textContent = "+" + (list.length - 3); box.append(more); }
     return box;
   }
 
+  /* ---------- medal details: a small bubble on hover, focus or tap ---------- */
+  let tipEl = null, tipFor = null;
+  function showTip(m) {
+    if (!tipEl) { tipEl = document.createElement("div"); tipEl.className = "mtip"; tipEl.id = "rush-mtip"; tipEl.setAttribute("role", "tooltip"); document.body.append(tipEl); }
+    if (tipFor && tipFor !== m) tipFor.removeAttribute("aria-describedby");
+    tipEl.textContent = "";
+    const b = document.createElement("b"); b.textContent = m.dataset.what || ""; tipEl.append(b);
+    if (m.dataset.when) { const w = document.createElement("span"); w.textContent = m.dataset.when; tipEl.append(w); }
+    tipEl.dir = uiAr() ? "rtl" : "ltr"; tipEl.hidden = false; tipFor = m; m.setAttribute("aria-describedby", "rush-mtip");
+    const r = m.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+    const x = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+    let y = r.top - h - 8; if (y < 8) y = r.bottom + 8;
+    tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+  }
+  function hideTip() { if (tipEl) tipEl.hidden = true; if (tipFor) tipFor.removeAttribute("aria-describedby"); tipFor = null; }
+  const medalAt = t => (t && t.closest ? t.closest(".medal") : null);
+  document.addEventListener("pointerover", e => { if (e.pointerType === "mouse" && medalAt(e.target)) showTip(medalAt(e.target)); });
+  document.addEventListener("pointerout", e => { const m = medalAt(e.target); if (e.pointerType === "mouse" && m && !m.contains(e.relatedTarget)) hideTip(); });
+  document.addEventListener("focusin", e => { if (medalAt(e.target)) showTip(medalAt(e.target)); });
+  document.addEventListener("focusout", e => { if (medalAt(e.target)) hideTip(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && tipFor) hideTip(); });
+  addEventListener("scroll", hideTip, { passive: true, capture: true });
+  addEventListener("resize", hideTip);
+  // a tap on a medal shows what it's for; a tap on a leaderboard row (but not the small lobby board, which opens the
+  // whole board) opens that player's profile
+  document.addEventListener("click", e => {
+    const m = medalAt(e.target);
+    if (m) { e.preventDefault(); e.stopPropagation(); showTip(m); return; } // a tap anywhere else hides it
+    hideTip();
+    const row = e.target.closest && e.target.closest("[data-pid]");
+    if (!row || row.closest(".board.mini") || e.target.closest("a, input, select, button:not(.who)")) return;
+    e.preventDefault(); openPlayer(row.dataset.pid);
+  }, true);
+  // the player's name on a row: a real button, so keyboards reach it (the click above does the opening)
+  function whoBtn(name) { const b = document.createElement("button"); b.type = "button"; b.className = "who"; b.textContent = name; return b; }
+
+  /* ---------- player profiles ----------
+     Opened from any leaderboard: the player's name, this week's and this season's points and rank on each board they
+     play, and their trophy shelf of weekly medals. A signed-in player can make theirs private (others then see only
+     the name); they still show on the leaderboards. */
+  const BOARD_ORDER = ["overall", "hangman-en", "hangman-ar", "trivia", "harf-ar", "harf-en"];
+  function pvBuild() {
+    if (pv) return;
+    pvBg = mkEl("div", "rsheet-bg pv-bg"); pvBg.hidden = true; pvBg.onclick = closePlayer;
+    pv = mkEl("section", "rsheet pview"); pv.hidden = true; pv.setAttribute("role", "dialog"); pv.setAttribute("aria-modal", "true"); pv.setAttribute("aria-labelledby", "pv-t");
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && pvOpen && !tipFor) { e.stopPropagation(); closePlayer(); } });
+    // Tab stays inside the open profile
+    pv.addEventListener("keydown", e => {
+      if (e.key !== "Tab") return;
+      const f = [...pv.querySelectorAll("button, input, [tabindex='0']")].filter(n => !n.disabled && n.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+    document.body.append(pvBg, pv);
+    new MutationObserver(() => { if (pvOpen) drawPlayer(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+  }
+  function closePlayer() {
+    if (!pvOpen) return;
+    pvOpen = false; hideTip(); pv.classList.remove("open"); pvBg.classList.remove("open");
+    setTimeout(() => { if (!pvOpen) { pv.hidden = true; pvBg.hidden = true; } }, 260);
+    try { if (pvBack && pvBack.isConnected) pvBack.focus({ preventScroll: true }); } catch {}
+  }
+  async function openPlayer(id) {
+    if (!id) return;
+    pvBuild(); if (sheetOpen) closeSheet();
+    pvBack = document.activeElement; pvId = id; pvData = { loading: true }; pvOpen = true; pv.hidden = false; pvBg.hidden = false;
+    drawPlayer();
+    requestAnimationFrame(() => requestAnimationFrame(() => { pv.classList.add("open"); pvBg.classList.add("open"); }));
+    let d;
+    try { d = id === uid ? await post("/api/player", { id }) : await get("/api/player?id=" + encodeURIComponent(id)); }
+    catch (e) { d = { err: e.status === 404 ? "none" : "err" }; }
+    if (id === uid && d && !d.err) { privOn = !!d.private; renderAcct(); }
+    if (pvOpen && pvId === id) { pvData = d; drawPlayer(); }
+  }
+  function drawPlayer() {
+    if (!pv) return;
+    const d = pvData || {}, mine = pvId === uid, ar = uiAr();
+    pv.textContent = ""; pv.dir = ar ? "rtl" : "ltr";
+    const head = mkEl("div", "rsheet-head"), av = mkEl("span", "av"), hd = mkEl("div"), h = mkEl("h2", null, d.n || (d.loading ? pt("loading") : "")), x = mkEl("button", "rsheet-x");
+    h.id = "pv-t"; av.style.background = d.c || "var(--key)"; av.textContent = d.n ? Array.from(d.n.trim())[0] || "" : "";
+    if (mine) h.append(mkEl("span", "pv-you", pt("you")));
+    hd.append(h); if (d.tag) hd.append(mkEl("span", "tagl", "#" + d.tag));
+    x.type = "button"; x.setAttribute("aria-label", pt("close")); x.append(svg(X_ICON)); x.onclick = closePlayer;
+    head.append(av, hd, x); pv.append(mkEl("span", "grab"), head);
+    // keep keyboard focus inside the profile (each redraw replaces its buttons)
+    const keep = () => { if (!pv.contains(document.activeElement)) setTimeout(() => { try { x.focus({ preventScroll: true }); } catch {} }, 30); };
+    if (d.loading) { pv.append(mkEl("p", "note", pt("loading"))); keep(); return; }
+    if (d.err) { pv.append(mkEl("p", "pv-note", pt(d.err))); keep(); return; }
+    if (d.private) pv.append(mkEl("p", "pv-note", mine ? pt("privMine") : pt("privOther", { n: d.n })));
+    else if (mine && d.signedIn === false) pv.append(mkEl("p", "pv-note", pt("signIn")));
+    if (Array.isArray(d.boards)) {
+      // trophy shelf: each kind of medal once, with how many times it was won
+      const shelf = mkEl("section", "pv-sec"), won = Array.isArray(d.medals) ? d.medals : [], kinds = new Map();
+      shelf.append(mkEl("h3", null, pt("shelf")));
+      for (const m of won) { if (!MEDAL_KEYS.test(m.k)) continue; const key = m.k + "|" + m.p; kinds.set(key, (kinds.get(key) || 0) + 1); }
+      const sorted = [...kinds.entries()].map(([key, n]) => { const [k, p] = key.split("|"); return { k, p: +p, n }; })
+        .sort((a, b) => (a.k === "overall" ? 0 : 1) - (b.k === "overall" ? 0 : 1) || a.p - b.p || BOARD_ORDER.indexOf(a.k) - BOARD_ORDER.indexOf(b.k));
+      if (!sorted.length) shelf.append(mkEl("p", "note", pt("noMedals")));
+      else {
+        const g = mkEl("div", "pv-shelf");
+        sorted.forEach(m => { const it = mkEl("div", "pv-m"); it.append(medalEl(m.k, m.p, null, pt("times", { n: m.n })), mkEl("b", null, pt("times", { n: m.n })), mkEl("span", null, boardName(m.k, true) + " · " + (ar ? ORD.ar : ORD.en)[m.p - 1])); g.append(it); });
+        shelf.append(g);
+      }
+      pv.append(shelf);
+      // each board they play
+      const sec = mkEl("section", "pv-sec"); sec.append(mkEl("h3", null, pt("boards")));
+      if (!d.boards.length) sec.append(mkEl("p", "note", pt("none2")));
+      d.boards.forEach(b => {
+        const card = mkEl("div", "pv-g"), gh = mkEl("div", "pv-gh"), tile = mkEl("span", "gtile " + b.game);
+        tile.setAttribute("aria-hidden", "true"); tile.append(mkEl("span", "rmark"));
+        gh.append(tile, mkEl("b", null, MEDAL_GAME[b.game][ar ? 2 : 1]));
+        if (b.lg) gh.append(mkEl("small", null, ar ? (b.lg === "ar" ? "عربي" : "إنجليزي") : b.lg === "ar" ? "Arabic" : "English"));
+        const st = mkEl("div", "pv-st"), cell = (v, label, extra) => { const c = mkEl("div"); c.append(mkEl("b", null, String(v)), mkEl("span", null, label)); if (extra) c.append(mkEl("small", null, extra)); st.append(c); };
+        cell(b.week.pts, pt("week"), b.week.rank ? "#" + b.week.rank : "");
+        cell(b.season.pts, pt("season", { s: d.se }), b.season.rank ? "#" + b.season.rank : "");
+        cell(b.season.days, pt("days"));
+        cell(b.streak, pt("streak"), b.best ? pt("best", { b: b.best }) : "");
+        card.append(gh, st);
+        if (b.prev && b.prev.se) card.append(mkEl("p", "note", pt("lastSeason", { s: b.prev.se, p: b.prev.pts })));
+        sec.append(card);
+      });
+      pv.append(sec);
+      // every week they won something, newest first
+      if (won.length) {
+        const hs = mkEl("section", "pv-sec"), byWk = new Map();
+        hs.append(mkEl("h3", null, pt("history")));
+        for (const m of won) { const k = m.from || String(m.wk); if (!byWk.has(k)) byWk.set(k, { info: { wk: m.wk, from: m.from, to: m.to }, list: [] }); byWk.get(k).list.push({ k: m.k, p: m.p }); }
+        [...byWk.values()].forEach(w => {
+          const row = mkEl("div", "pv-h"); row.append(mkEl("span", null, weekText(w.info)));
+          w.list.sort((a, b) => BOARD_ORDER.indexOf(a.k) - BOARD_ORDER.indexOf(b.k) || a.p - b.p);
+          const ms = mkEl("span", "medals"); w.list.forEach(m => ms.append(medalEl(m.k, m.p, w.info))); row.append(ms); hs.append(row);
+        });
+        pv.append(hs);
+      }
+    }
+    if (mine && acct) pv.append(privToggle());
+    keep();
+  }
+  // the switch, in the profile sheet and on your own profile
+  function privToggle() {
+    const l = mkEl("label", "rush-priv"), i = document.createElement("input"), t = mkEl("span"), msg = mkEl("small", "warn");
+    i.type = "checkbox"; i.checked = !!privOn; i.disabled = privOn === null;
+    t.append(mkEl("b", null, pt("privT")), mkEl("small", null, pt("privS"))); l.append(i, t);
+    i.onchange = async () => {
+      const want = i.checked; i.disabled = true; msg.textContent = "";
+      try { await post("/api/privacy", { private: want }); privOn = want; }
+      catch { i.checked = !want; msg.textContent = pt("privErr"); t.append(msg); }
+      i.disabled = false; renderAcct();
+      if (pvOpen && pvId === uid && pvData && !pvData.err) { pvData.private = privOn; drawPlayer(); }
+    };
+    return l;
+  }
+  function loadPriv() { if (!acct || privOn !== null) return; post("/api/player", { id: uid }).then(d => { privOn = !!(d && d.private); renderAcct(); }).catch(() => {}); }
+
   // the message shown when a name is turned down by the shared name filter (rules.js badName)
   const badNameMsg = () => (document.documentElement.lang === "ar" ? "اختر اسماً آخر، هذا الاسم غير مسموح." : "Please pick another name. That one isn't allowed.");
-  window.Rush = { medals, medalSvg, badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
+  window.Rush = { medals, medalSvg, medalEl, whoBtn, openPlayer, badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, user, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };

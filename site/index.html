@@ -318,7 +318,8 @@ try{if(localStorage.getItem("hr-ldtab")==="season")ldTab="season"}catch(e){}
 const LD_GAMES=["hangman","trivia","harf"];
 function ldRow(x,score,extra,game){
   const li=el("li","ld-row"+(x.me?" me":"")),rk=el("span","rkn",String(x.rank)),dot=el("span","dot"),nm=el("span","nm");
-  const md=window.Rush&&Rush.medals?Rush.medals(x.aw,lead&&lead.awards,game):null;if(md)nm.append(md);nm.append(document.createTextNode(x.n));
+  const md=window.Rush&&Rush.medals?Rush.medals(x.aw,lead&&lead.awards,game):null;if(md)nm.append(md);
+  if(window.Rush&&Rush.whoBtn){nm.append(Rush.whoBtn(x.n));if(x.id)li.dataset.pid=x.id}else nm.append(document.createTextNode(x.n));
   rk.dataset.r=String(x.rank);dot.style.background=x.c;if(x.tag)nm.append(el("small",null,"#"+x.tag));
   li.append(rk,dot,nm,el("span","sc",score));if(extra)li.append(extra);return li;
 }
@@ -361,12 +362,13 @@ function renderLast(){
   const box=$("#ldLast"),L=lead&&lead.tab==="week"&&lead.last;box.textContent="";
   if(!L||!L.list||!L.list.length){box.hidden=true;return}
   box.hidden=false;
-  const [w1,...rest]=L.list,champ=el("div","ld-champ"),txt=el("div"),nm=el("b",w1.me?"me":null,w1.n);
+  const who=n=>window.Rush&&Rush.whoBtn?Rush.whoBtn(n):document.createTextNode(n);
+  const [w1,...rest]=L.list,champ=el("div","ld-champ"),txt=el("div"),nm=el("b",w1.me?"me":null);nm.append(who(w1.n));if(w1.id)champ.dataset.pid=w1.id;
   if(w1.tag)nm.append(el("small",null,"#"+w1.tag));
   txt.append(el("span","lbl",t("lastChamp",{w:L.wk})),nm);champ.append(medalIcon(1),txt);box.append(champ);
   if(rest.length){const r=el("div","ld-rest");
     rest.forEach(x=>{const s=el("span");s.append(medalIcon(x.rank),document.createTextNode(t(x.rank===2?"lastP2":"lastP3")+" "));
-      const n=el("span","nmr"+(x.me?" me":""),x.n);s.append(n);r.append(s)});
+      const n=el("span","nmr"+(x.me?" me":""));n.append(who(x.n));if(x.id)s.dataset.pid=x.id;s.append(n);r.append(s)});
     box.append(r)}
 }
 $("#leaders").addEventListener("click",e=>{
