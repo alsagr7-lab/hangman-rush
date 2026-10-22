@@ -21,6 +21,8 @@ const players = Object.fromEntries([
   ...(se > 1 ? [rec("p_oldsea0001", { n: "Oldie", se: se - 1, played: 3, wins: 3, h: { "2020-01-01": { ok: 1, pts: 300, t: 1, m: 0 } } })] : []),
   // many players, so "me" lands past the top 50
   ...Array.from({ length: 60 }, (_, i) => rec("p_many" + String(i).padStart(8, "0"), { n: "Many " + i, played: 1, wins: 1, h: { [today]: { ok: 1, pts: 100 + i, t: 30000, m: 1 } } })),
+  // played before this week, with one day carried over from last season into this week
+  rec("p_weekie0001", { n: "Weekie", played: 1, wins: 1, h: { [R.dayKey(R.weekStart() - 1)]: { ok: 1, pts: 5, t: 1, m: 0 } }, wk: { [R.weekStartKey()]: { ok: 1, pts: 7 } } }),
   rec("p_lastone0001", { n: "Last", played: 1, wins: 1, h: { [today]: { ok: 1, pts: 1, t: 59000, m: 5 } } }),
 ]);
 const trivia = Object.fromEntries([
@@ -83,7 +85,8 @@ test("Harf: today never shows the letter or answers; yesterday shows words, bonu
 });
 
 test("the hub: each game's boards as they are; the overall puts them on one scale", async () => {
-  const h = await get("/api/board/hub?me=p_alpha000001");
+  const h = await get("/api/board/hub?tab=season&me=p_alpha000001");
+  assert.equal(h.tab, "season");
   // plain boards: season points, no calculations
   assert.deepEqual(h.games.hangman.boards.en.top.map(x => x.n + " " + x.pts), ["Alpha 450", "Bravo 250", "Many 59 159"]);
   assert.equal(h.games.hangman.boards.en.top[0].me, 1);
@@ -116,4 +119,20 @@ test("one rename reaches every game, and the boards show it straight away", asyn
   // a "Player" who sets a name shows up again
   await post("p_noname0001", { n: "Named Now" });
   assert.equal((await get("/api/board?game=hangman&lg=en&tab=today")).rows[0].n, "Named Now");
+});
+
+test("weekly boards: Friday to Thursday, days before Friday left out, last season's days this week kept", async () => {
+  const b = await get("/api/board?game=hangman&lg=en&tab=week&me=p_weekie0001");
+  // by id: an earlier test renames players
+  const pts = id => (b.rows.concat(b.me || []).find(r => r.id === id) || {}).pts;
+  assert.equal(pts("p_weekie0001"), 7);
+  assert.equal(pts("p_alpha000001"), 250 + (yday >= R.weekStartKey() ? 200 : 0));
+  assert.equal(pts("p_bravo000001"), 250);
+  assert.ok(!names(b).includes("Player"));
+  assert.equal(b.wk, R.weekNo()); assert.equal(b.wleft, R.weekDaysLeft());
+  const h = await get("/api/board/hub?me=p_alpha000001");
+  assert.equal(h.tab, "week"); assert.equal(h.wleft, R.weekDaysLeft());
+  assert.ok(h.games.hangman.boards.en.top.length > 0);
+  const hf = await get("/api/board?game=harf&lg=ar&tab=week");
+  assert.equal(hf.rows.find(r => r.id === "p_alpha000001").pts, 40 + (yday >= R.weekStartKey() ? 66 : 0));
 });

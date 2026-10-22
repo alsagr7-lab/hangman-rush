@@ -113,7 +113,7 @@
 @media (max-width:620px){#hub .rules{grid-template-columns:1fr;gap:16px}}
 /* who's leading: each game's season top three, and an overall ranking across the games */
 .leaders{gap:16px}
-.ld-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ld-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.ld-h h2{margin-inline-end:auto}.ld-when{flex-basis:100%}
 .ld-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .ld-row{display:grid;grid-template-columns:26px 12px minmax(0,1fr) auto;align-items:center;gap:4px 10px;padding:8px 12px;border-radius:14px;background:var(--bg);border:1px solid var(--line-soft)}
 .ld-row.me{border-color:var(--gold);background:var(--me-bg)}
@@ -184,7 +184,7 @@
     </div>
 
     <section class="card leaders" id="leaders" hidden>
-      <div class="ld-h"><h2 data-i18n="ldTitle">Who's leading</h2><span class="note" id="ldSeason"></span></div>
+      <div class="ld-h"><h2 data-i18n="ldTitle">Who's leading</h2><span class="lgsw" id="ldTab"><button type="button" data-tab="week" data-i18n="ldTabW">This week</button><button type="button" data-tab="season" data-i18n="ldTabS">Season</button></span><span class="note ld-when" id="ldSeason"></span></div>
       <div class="ld-all"><div class="ld-sub"><span class="lbl" data-i18n="ldOverall">Overall</span><button type="button" class="ldq" data-help="hOverall">?</button></div><p class="note ld-help" hidden></p><ol class="ld-list" id="ldAll"></ol></div>
       <div class="ld-games" id="ldGames"></div>
     </section>
@@ -198,7 +198,7 @@
 
     <div class="rules">
       <div><b data-i18n="s1b">One profile</b><span data-i18n="s1">Your name, colour and tag are the same in every game.</span></div>
-      <div><b data-i18n="s2b">30-day seasons</b><span data-i18n="s2">The leaderboards reset together, and each game keeps its own streak.</span></div>
+      <div><b data-i18n="s2b">Weekly and 30-day boards</b><span data-i18n="s2">A new week starts every Friday and a new season every 30 days. Each game keeps its own streak.</span></div>
       <div><b data-i18n="s3b">Rooms</b><span data-i18n="s3">Share a 4-letter code, vote on categories, play free-for-all or in teams.</span></div>
     </div>
   </section>
@@ -224,7 +224,7 @@ const R=RushRules,num=R.num;
 const $=s=>document.querySelector(s);
 const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
 const I18N={
-en:{brand:"Rush Games",ldTitle:"Who's leading",sh_hangman:"Hangman",sh_trivia:"Trivia",sh_harf:"Harf",ldOverall:"Overall",ldBest:"{lg} · {p} pts",lgAr:"Arabic",lgEn:"English",ldQ:"How is this counted?",hOverall:"One ranking for all three games and both languages together, so there's no language switch here. Each game adds up to 100, and its top player gets the 100. Your better language counts in full; your other one adds a small bonus only if it helps, so playing one language is never a penalty. Once both language boards have more than 5 players, what counts is how far above the board's average you are, compared with how spread out the board is, so standing out on a busy, close board counts for more. 300 is the most.",hPlain:"Season points on this board, the same as the Season tab in the game.",hTwo:"Arabic and English have separate boards. When both have more than 5 players this season, points are compared with each board's average, so a board where everyone scores high doesn't count for more; otherwise each board is compared with its leader. Your better board counts in full, the other adds a small bonus, and only the game's top player gets 100.",hOne:"One board: the season leader gets 100 and everyone else a share of that leader's points.",ldNone:"No results yet this season.",ldYou:"You: #{r}",ldPts:"{p} pts",ldPlayers:"{n} players",ldSeason:"Season {s} · {l} days left",heroA:"Three games.",heroB:"One daily rush.",nextIn:"Next dailies in",yourDay:"Your day",playDaily:"Play daily",tagline:"Three daily games, one profile. Play today's word, questions and letter, then race your friends.",langSwitch:"عربي",
+en:{brand:"Rush Games",ldTitle:"Who's leading",sh_hangman:"Hangman",sh_trivia:"Trivia",sh_harf:"Harf",ldOverall:"Overall",ldBest:"{lg} · {p} pts",lgAr:"Arabic",lgEn:"English",ldQ:"How is this counted?",hOverall:"One ranking for all three games and both languages together, so there's no language switch here. Each game adds up to 100, and its top player gets the 100. Your better language counts in full; your other one adds a small bonus only if it helps, so playing one language is never a penalty. Once both language boards have more than 5 players, what counts is how far above the board's average you are, compared with how spread out the board is, so standing out on a busy, close board counts for more. 300 is the most.",hPlain:"Season points on this board, the same as the Season tab in the game.",hPlainW:"Points this week, Friday to Thursday. Everyone starts again from zero every Friday.",ldTabW:"This week",ldTabS:"Season",ldWeek:"Week {w} · {l} days left · new week Friday",ldWeekLast:"Week {w} · last day · new week Friday",hTwo:"Arabic and English have separate boards. When both have more than 5 players, points are compared with each board's average, so a board where everyone scores high doesn't count for more; otherwise each board is compared with its leader. Your better board counts in full, the other adds a small bonus, and only the game's top player gets 100.",hOne:"One board: the leader gets 100 and everyone else a share of that leader's points.",ldNone:"No results yet.",ldYou:"You: #{r}",ldPts:"{p} pts",ldPlayers:"{n} players",ldSeason:"Season {s} · {l} days left",heroA:"Three games.",heroB:"One daily rush.",nextIn:"Next dailies in",yourDay:"Your day",playDaily:"Play daily",tagline:"Three daily games, one profile. Play today's word, questions and letter, then race your friends.",langSwitch:"عربي",
   moveTitle:"There's a faster version of this site",moveHelp:"It opens instantly, even when the game server is asleep. Your name, streaks and leaderboard place come with you.",moveBtn:"Move me over",
   todayLbl:"Today · #{n}",seasonLine:"Season {s} · day {d} of 30",
   hangman:"Hangman Rush",hangmanDesc:"Same word, same moment. Solve it fastest with the fewest wrong letters.",
@@ -238,9 +238,9 @@ en:{brand:"Rush Games",ldTitle:"Who's leading",sh_hangman:"Hangman",sh_trivia:"T
   streak:" · streak {n}",
   yourName:"Your name",namePh:"e.g. Yousef",yourColour:"Your colour",colourAria:"Colour {c}",
   nameHintEmpty:"Pick a name so friends can find you on the leaderboards.",nameHintAs:"You'll show as ",nameHintTag:" in every game.",
-  s1b:"One profile",s1:"Your name, colour and tag are the same in every game.",s2b:"30-day seasons",s2:"The leaderboards reset together, and each game keeps its own streak.",
+  s1b:"One profile",s1:"Your name, colour and tag are the same in every game.",s2b:"Weekly and 30-day boards",s2:"A new week starts every Friday and a new season every 30 days. Each game keeps its own streak.",
   s3b:"Rooms",s3:"Share a 4-letter code, vote on categories, play free-for-all or in teams."},
-ar:{brand:"ألعاب رش",ldTitle:"المتصدرون",sh_hangman:"المشنقة",sh_trivia:"المعلومات",sh_harf:"الحروف",ldOverall:"الترتيب العام",ldBest:"{lg} · {p} نقطة",lgAr:"العربية",lgEn:"الإنجليزية",ldQ:"كيف يُحسب هذا؟",hOverall:"ترتيب واحد للألعاب الثلاث وباللغتين معاً، لذلك لا يوجد هنا زر للغة. كل لعبة تضيف حتى 100، ويأخذ متصدرها الـ100. لغتك الأقوى تُحسب كاملة، والثانية تضيف مكافأة صغيرة فقط إذا كانت لصالحك، فاللعب بلغة واحدة لا يُعاقَب. إذا كان في كل لوحة لغة أكثر من 5 لاعبين، يُحسب بُعدك عن متوسط اللوحة مقارنةً بتفاوت نقاطها، فالتميّز في لوحة مزدحمة ومتقاربة يُحسب أكثر. الحد الأعلى 300.",hPlain:"نقاط الموسم في هذه اللوحة، مثل تبويب الموسم داخل اللعبة.",hTwo:"للعربي والإنجليزي لوحتان منفصلتان. إذا كان في كل لوحة أكثر من 5 لاعبين هذا الموسم، تُقارن النقاط بمتوسط كل لوحة، فلا تُحسب اللوحة ذات النقاط العالية أكثر من غيرها؛ وإلا تُقارن كل لوحة بمتصدرها. لوحتك الأقوى تُحسب كاملة والثانية تضيف مكافأة صغيرة، ولا يأخذ 100 إلا متصدر اللعبة.",hOne:"لوحة واحدة: متصدر الموسم يأخذ 100 والباقي نسبة من نقاطه.",ldNone:"لا نتائج بعد في هذا الموسم.",ldYou:"ترتيبك: {r}",ldPts:"{p} نقطة",ldPlayers:"{n} لاعب",ldSeason:"الموسم {s} · باقي {l} أيام",heroA:"ثلاث ألعاب.",heroB:"سباق كل يوم.",nextIn:"التحديات القادمة بعد",yourDay:"يومك",playDaily:"العب تحدي اليوم",tagline:"ثلاث ألعاب يومية وملف واحد. العب كلمة اليوم وأسئلته وحرفه، ثم تسابق مع أصحابك.",langSwitch:"English",
+ar:{brand:"ألعاب رش",ldTitle:"المتصدرون",sh_hangman:"المشنقة",sh_trivia:"المعلومات",sh_harf:"الحروف",ldOverall:"الترتيب العام",ldBest:"{lg} · {p} نقطة",lgAr:"العربية",lgEn:"الإنجليزية",ldQ:"كيف يُحسب هذا؟",hOverall:"ترتيب واحد للألعاب الثلاث وباللغتين معاً، لذلك لا يوجد هنا زر للغة. كل لعبة تضيف حتى 100، ويأخذ متصدرها الـ100. لغتك الأقوى تُحسب كاملة، والثانية تضيف مكافأة صغيرة فقط إذا كانت لصالحك، فاللعب بلغة واحدة لا يُعاقَب. إذا كان في كل لوحة لغة أكثر من 5 لاعبين، يُحسب بُعدك عن متوسط اللوحة مقارنةً بتفاوت نقاطها، فالتميّز في لوحة مزدحمة ومتقاربة يُحسب أكثر. الحد الأعلى 300.",hPlain:"نقاط الموسم في هذه اللوحة، مثل تبويب الموسم داخل اللعبة.",hPlainW:"نقاط هذا الأسبوع، من الجمعة إلى الخميس. الكل يبدأ من الصفر كل جمعة.",ldTabW:"هذا الأسبوع",ldTabS:"الموسم",ldWeek:"الأسبوع {w} · باقي {l} أيام · أسبوع جديد يوم الجمعة",ldWeekLast:"الأسبوع {w} · آخر يوم · أسبوع جديد يوم الجمعة",hTwo:"للعربي والإنجليزي لوحتان منفصلتان. إذا كان في كل لوحة أكثر من 5 لاعبين، تُقارن النقاط بمتوسط كل لوحة، فلا تُحسب اللوحة ذات النقاط العالية أكثر من غيرها؛ وإلا تُقارن كل لوحة بمتصدرها. لوحتك الأقوى تُحسب كاملة والثانية تضيف مكافأة صغيرة، ولا يأخذ 100 إلا متصدر اللعبة.",hOne:"لوحة واحدة: المتصدر يأخذ 100 والباقي نسبة من نقاطه.",ldNone:"لا نتائج بعد.",ldYou:"ترتيبك: {r}",ldPts:"{p} نقطة",ldPlayers:"{n} لاعب",ldSeason:"الموسم {s} · باقي {l} أيام",heroA:"ثلاث ألعاب.",heroB:"سباق كل يوم.",nextIn:"التحديات القادمة بعد",yourDay:"يومك",playDaily:"العب تحدي اليوم",tagline:"ثلاث ألعاب يومية وملف واحد. العب كلمة اليوم وأسئلته وحرفه، ثم تسابق مع أصحابك.",langSwitch:"English",
   moveTitle:"توجد نسخة أسرع من هذا الموقع",moveHelp:"تفتح فوراً حتى عندما يكون خادم اللعبة نائماً. اسمك وسلاسلك ومركزك في الترتيب تنتقل معك.",moveBtn:"انقلني إليها",
   todayLbl:"اليوم · #{n}",seasonLine:"الموسم {s} · اليوم {d} من 30",
   hangman:"سباق المشنقة",hangmanDesc:"نفس الكلمة في نفس اللحظة. حلّها أسرع وبأقل عدد من الأحرف الخاطئة.",
@@ -254,7 +254,7 @@ ar:{brand:"ألعاب رش",ldTitle:"المتصدرون",sh_hangman:"المشن�
   streak:" · السلسلة {n}",
   yourName:"اسمك",namePh:"مثلاً: يوسف",yourColour:"لونك",colourAria:"اللون {c}",
   nameHintEmpty:"اختر اسماً ليجدك أصحابك في لوحات الترتيب.",nameHintAs:"ستظهر باسم ",nameHintTag:" في كل الألعاب.",
-  s1b:"ملف واحد",s1:"اسمك ولونك ورمزك نفسها في كل الألعاب.",s2b:"مواسم من 30 يوماً",s2:"لوحات الترتيب تبدأ من جديد معاً، ولكل لعبة سلسلتها.",
+  s1b:"ملف واحد",s1:"اسمك ولونك ورمزك نفسها في كل الألعاب.",s2b:"لوحات أسبوعية ومواسم من 30 يوماً",s2:"يبدأ أسبوع جديد كل جمعة وموسم جديد كل 30 يوماً، ولكل لعبة سلسلتها.",
   s3b:"الغرف",s3:"شارك رمزاً من 4 أحرف، وصوّت للفئات، والعب فردياً أو بفرق."}};
 let lang;try{lang=localStorage.getItem("hr-lang")}catch(e){}
 if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en";
@@ -299,7 +299,8 @@ function renderStatus(){
   else{fs.textContent=fAr.txt+" · "+fEn.txt;if(fAr.done&&fEn.done)fs.classList.add("done")}
 }
 /* who's leading: worked out on the server (/api/board/hub), refreshed every minute while the page is open */
-let lead=null;const ldLg={};
+let lead=null,ldTab="week";const ldLg={},leadBy={};
+try{if(localStorage.getItem("hr-ldtab")==="season")ldTab="season"}catch(e){}
 const LD_GAMES=["hangman","trivia","harf"];
 function ldRow(x,score,extra){
   const li=el("li","ld-row"+(x.me?" me":"")),rk=el("span","rkn",String(x.rank)),dot=el("span","dot"),nm=el("span","nm",x.n);
@@ -308,7 +309,9 @@ function ldRow(x,score,extra){
 }
 function renderLeaders(){
   const box=$("#leaders");if(!lead){box.hidden=true;return}
-  box.hidden=false;$("#ldSeason").textContent=t("ldSeason",{s:lead.se,l:lead.left});
+  box.hidden=false;
+  $("#ldSeason").textContent=lead.tab==="week"?t(lead.wleft>1?"ldWeek":"ldWeekLast",{w:lead.wk,l:lead.wleft}):t("ldSeason",{s:lead.se,l:lead.left});
+  $("#ldTab").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.tab===ldTab)));
   box.querySelectorAll(".ldq").forEach(b=>{b.setAttribute("aria-label",t("ldQ"));b.title=t("ldQ")});
   const oh=box.querySelector(".ld-all .ld-help");if(!oh.hidden)oh.textContent=t("hOverall");
   const all=$("#ldAll");all.textContent="";
@@ -324,7 +327,7 @@ function renderLeaders(){
     const a=el("div","ldg "+g),link=el("a");link.href=card?card.getAttribute("href").replace(/#.*$/,""):"/"+g+"/";
     const h=el("div","ldg-h"),tile=el("span","gtile "+g);tile.setAttribute("aria-hidden","true");tile.append(el("span","rmark"));
     link.append(tile,el("b",null,t(g)));
-    const q=el("button","ldq","?");q.type="button";q.dataset.help="hPlain";q.setAttribute("aria-label",t("ldQ"));q.title=t("ldQ");q.setAttribute("aria-expanded","false");
+    const q=el("button","ldq","?");q.type="button";q.dataset.help=lead.tab==="week"?"hPlainW":"hPlain";q.setAttribute("aria-label",t("ldQ"));q.title=t("ldQ");q.setAttribute("aria-expanded","false");
     h.append(link,q);
     if(lgs.length){const sw=el("span","lgsw");["ar","en"].filter(L=>lgs.includes(L)).forEach(L=>{const b=el("button",null,L==="ar"?"عربي":"EN");b.type="button";b.lang=L;b.setAttribute("aria-pressed",String(L===lg));b.setAttribute("aria-label",L==="ar"?"عربي":"English");b.onclick=()=>{ldLg[g]=L;renderLeaders()};sw.append(b)});h.append(sw)}
     a.append(h,Object.assign(el("p","note ld-help"),{hidden:true}));
@@ -336,12 +339,16 @@ function renderLeaders(){
   });
 }
 $("#leaders").addEventListener("click",e=>{
+  const tb=e.target.closest("#ldTab button");
+  if(tb){if(tb.dataset.tab===ldTab)return;ldTab=tb.dataset.tab;try{localStorage.setItem("hr-ldtab",ldTab)}catch(x){}
+    if(leadBy[ldTab]){lead=leadBy[ldTab];renderLeaders()}else{$("#ldTab").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.tab===ldTab)))}
+    loadLeaders();return}
   const b=e.target.closest(".ldq");if(!b)return;
   const p=b.closest(".ldg,.ld-all").querySelector(".ld-help"),open=p.hidden;
   p.hidden=!open;p.textContent=t(b.dataset.help);b.setAttribute("aria-expanded",String(open));
 });
 async function loadLeaders(){
-  try{await Rush.ready;const r=await fetch(Rush.http("/api/board/hub?me="+encodeURIComponent(Rush.uid)),{cache:"no-store"});if(!r.ok)return;lead=await r.json();renderLeaders()}catch(e){}
+  try{await Rush.ready;const tab=ldTab,r=await fetch(Rush.http("/api/board/hub?tab="+tab+"&me="+encodeURIComponent(Rush.uid)),{cache:"no-store"});if(!r.ok)return;const j=await r.json();if(!j.tab)j.tab="season";leadBy[tab]=j;if(tab===ldTab){lead=j;renderLeaders()}}catch(e){}
 }
 function apply(){
   const root=document.documentElement;root.lang=lang;root.dir=lang==="ar"?"rtl":"ltr";

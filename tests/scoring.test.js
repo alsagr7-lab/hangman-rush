@@ -109,3 +109,17 @@ test("merging a device into an account: the first result played each day wins, t
   // another season's record is never merged in
   assert.equal(mergeDays(d(today, { ok: 0, pts: 0, at: 9 }), { se: se + 1, h: { [today]: { ok: 1, pts: 99, at: 1 } } }, FIRST), 0);
 });
+
+test("weeks start on Friday and the season rollover keeps this week's points", () => {
+  const dn = (y, m, d) => Math.floor(Date.UTC(y, m - 1, d) / R.DAY);
+  assert.equal(R.weekStart(dn(2026, 10, 23)), dn(2026, 10, 23)); // Friday
+  assert.equal(R.weekStart(dn(2026, 10, 22)), dn(2026, 10, 16)); // Thursday belongs to the week before
+  assert.equal(R.weekStart(dn(2026, 10, 29)), dn(2026, 10, 23));
+  assert.ok(R.weekDay() >= 1 && R.weekDay() <= 7); assert.equal(R.weekDay() + R.weekDaysLeft(), 8);
+  const before = R.dayKey(R.weekStart() - 1), today = R.todayKey();
+  const r = { se: -1, h: { [before]: { ok: 1, pts: 50, a: ["secret"] }, [today]: { ok: 1, pts: 20, a: ["secret"], lg: "ar" } } };
+  assert.ok(R.rollover(r));
+  assert.deepEqual(r.h, {});
+  assert.deepEqual(r.wk, { [today]: { pts: 20, ok: 1, lg: "ar" } });
+  assert.deepEqual(R.weekEntries(r).map(e => e.pts), [20]);
+});
