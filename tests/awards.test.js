@@ -78,3 +78,18 @@ test("the hub's weekly board leads with last week's overall top 3, under their n
   assert.deepEqual(h.last.list.map(x => x.rank + " " + x.n), ["1 Ann", "2 Ben", "3 Kitty"]); // Cat was renamed Kitty
   assert.equal(h.last.list[1].me, 1); assert.equal(h.last.list[0].tag, R.tagOf("p_awardA00001"));
 });
+
+test("history: every finished week with its champion, and its full final table", async () => {
+  const { weeks } = await get("/api/history");
+  assert.equal(weeks.length, 1);
+  assert.equal(weeks[0].from, R.dayKey(lastWk)); assert.equal(weeks[0].full, true);
+  assert.equal(weeks[0].champ.n, "Ann");
+  const w = await get("/api/history?week=" + R.dayKey(lastWk) + "&me=p_awardD00001");
+  // the whole board, not just the medals: Dan came 4th
+  assert.deepEqual(w.boards["hangman-en"].map(x => x.rank + " " + x.n + " " + x.pts), ["1 Ann 300", "2 Ben 200", "3 Kitty 100", "4 Dan 50"]);
+  assert.equal(w.boards["hangman-en"][0].d, 2); // Ann played two days
+  assert.equal(w.boards["hangman-en"][3].me, 1);
+  assert.deepEqual(w.overall.map(x => x.n), ["Ann", "Ben", "Kitty", "Dan"]);
+  assert.ok(!JSON.stringify(w).includes("Eve")); // played the week before
+  const r = await fetch(BASE + "/api/history?week=2020-01-03"); assert.equal(r.status, 404);
+});
