@@ -1,9 +1,9 @@
 // The leaderboards, worked out on the server for all three games, so a page downloads a short ranked list instead of
 // every player's full history.
 //
-//   GET /api/board?game=hangman|trivia|harf&lg=en|ar&tab=today|yday|season&me=<uid>
+//   GET /api/board?game=hangman|trivia|harf&lg=en|ar&tab=today|yday|week|season&me=<uid>
 //        -> { game, lg, tab, se, day, len, left, total, rows: [...top 50], me: {rank, row} | null }
-//   GET /api/board/hub?me=<uid>  -> each game's season leaders (best language, scored against its board's leader) and overall
+//   GET /api/board/hub?tab=week|season&me=<uid>  -> each game's leaders this week (Friday to Thursday) or season (best language, scored against its board's leader) and overall
 //   GET /api/me?uid=<uid>        -> the player's own public records in every game (what the board would show)
 //   POST /api/profile {uid, token, n, c} -> sets the name and colour on every record the player has, in every game
 //
@@ -39,8 +39,11 @@ async function records(game) {
     const d = S.pub(S.tidy(r.data));
     d.n = R.nm16(d.n); // names saved before a filter was added show as "Player" too, and drop off like unnamed ones
     if (!R.namedRec(d)) continue;
-    if (R.seasonOfRec(d) !== se) continue; // a record from an earlier season shows once its owner plays again
-    out.push({ id: r.id, b: base(r.id), lg: S.lgOf(r.id), d });
+    // a record from an earlier season is only on the weekly board (for this week's days), and on the others once its
+    // owner plays again
+    const rs = R.seasonOfRec(d);
+    if (rs < se - 1 || rs > se) continue;
+    out.push({ id: r.id, b: base(r.id), lg: S.lgOf(r.id), d, cur: rs === se });
   }
   return out;
 }
@@ -57,6 +60,15 @@ function dayDetail(game, e, tab) {
 const head = (p, pts, extra) => Object.assign({ id: p.b, n: p.d.n, c: p.d.c, pts, streak: R.curStreak(p.d) }, extra);
 
 function rank(game, recs, lg, tab) {
+  if (tab === "week") {
+    const done = game === "harf" ? e => e.lg === lg : e => "ok" in e;
+    return recs.filter(p => p.lg === lg).map(p => {
+      const es = R.weekEntries(p.d).filter(done);
+      return { p, pts: es.reduce((a, e) => a + num(e.pts), 0), n: es.length, w: es.filter(e => e.ok).length };
+    }).filter(x => x.n > 0).sort((a, b) => b.pts - a.pts || b.w - a.w || R.curStreak(b.p.d) - R.curStreak(a.p.d))
+      .map(x => head(x.p, x.pts, { d: { w: x.w, p: x.n } }));
+  }
+  recs = recs.filter(p => p.cur);
   if (tab === "season") {
     if (game === "harf") {
       return recs.filter(p => p.lg === lg).map(p => {
@@ -108,20 +120,20 @@ async function view(game, lg, tab) {
 async function board(game, lg, tab, me) {
   const S = SOURCES[game];
   if (!S.langs.includes(lg)) lg = S.langs[0];
-  if (!["today", "yday", "season"].includes(tab)) tab = "today";
+  if (!["today", "yday", "week", "season"].includes(tab)) tab = "today";
   const c = await view(game, lg, tab), rows = c.views.get(lg + "|" + tab);
   const mb = me ? base(me) : "", mi = mb ? rows.findIndex(r => r.id === mb) : -1;
   return {
-    game, lg, tab, se: R.curSeason(), day: R.seasonDay(), len: R.SEASON_LEN, left: R.seasonDaysLeft(), total: rows.length,
+    game, lg, tab, se: R.curSeason(), day: R.seasonDay(), len: R.SEASON_LEN, left: R.seasonDaysLeft(), wk: R.weekNo(), wleft: R.weekDaysLeft(), total: rows.length,
     rows: rows.slice(0, TOP).map((r, i) => Object.assign({ rank: i + 1 }, r, { tag: R.tagOf(r.id) }, r.id === mb ? { me: 1 } : {})),
     me: mi >= TOP ? Object.assign({ rank: mi + 1 }, rows[mi], { tag: R.tagOf(rows[mi].id), me: 1 }) : null,
   };
 }
 
-// ---------- the hub: who leads each game this season, and overall ----------
-// Each game's column on the hub is just its season boards as they are (top three per language, plain points).
+// ---------- the hub: who leads each game this week (or season), and overall ----------
+// Each game's column on the hub is just its week (or season) boards as they are (top three per language, plain points).
 // The overall ranking is where the boards are put on one scale:
-//  - two-board games (Hangman, Harf): when both language boards have more than 5 active players this season, each
+//  - two-board games (Hangman, Harf): when both language boards have more than 5 active players, each
 //    player is measured by how far above their board's average they are, in units of how spread out that board is
 //    (a standard score), so standing out on a busy, close board counts for more; with 5 or fewer, against the leader;
 //  - a player's better board counts in full and the other adds a tenth, but only if it's above average: a weak
@@ -153,12 +165,13 @@ function gameScores(boards, byAvg) {
   return per;
 }
 
-async function hub(me) {
+async function hub(me, tab) {
+  if (tab !== "season") tab = "week";
   const mb = me ? base(me) : "", games = {}, overall = new Map();
   const mark = (x, i) => Object.assign({ rank: i + 1, tag: R.tagOf(x.id), id: x.id, n: x.n, c: x.c, pts: x.pts }, x.id === mb ? { me: 1 } : {});
   for (const game of ["hangman", "trivia", "harf"]) {
     const S = SOURCES[game], boards = [];
-    for (const lg of S.langs) boards.push({ lg, rows: (await view(game, lg, "season")).views.get(lg + "|season") });
+    for (const lg of S.langs) boards.push({ lg, rows: (await view(game, lg, tab)).views.get(lg + "|" + tab) });
     // the column: each board as it is
     const out = {};
     for (const { lg, rows } of boards) {
@@ -178,7 +191,7 @@ async function hub(me) {
   const all = [...overall.values()].sort((a, b) => b.score - a.score || Object.keys(b.games).length - Object.keys(a.games).length);
   const mi = mb ? all.findIndex(x => x.id === mb) : -1;
   return {
-    se: R.curSeason(), day: R.seasonDay(), len: R.SEASON_LEN, left: R.seasonDaysLeft(), games,
+    tab, se: R.curSeason(), day: R.seasonDay(), len: R.SEASON_LEN, left: R.seasonDaysLeft(), wk: R.weekNo(), wleft: R.weekDaysLeft(), games,
     overall: all.slice(0, 10).map((x, i) => Object.assign({ rank: i + 1, tag: R.tagOf(x.id) }, x, x.id === mb ? { me: 1 } : {})),
     me: mi >= 10 ? Object.assign({ rank: mi + 1, tag: R.tagOf(all[mi].id), me: 1 }, all[mi]) : null,
   };
@@ -215,7 +228,7 @@ async function handle(req, res, url, { send, readJson, ip }, limits) {
     send(res, 200, await board(game, url.searchParams.get("lg") || "", url.searchParams.get("tab") || "today", url.searchParams.get("me") || ""));
     return true;
   }
-  if (p === "/api/board/hub" && req.method === "GET") { send(res, 200, await hub(url.searchParams.get("me") || "")); return true; }
+  if (p === "/api/board/hub" && req.method === "GET") { send(res, 200, await hub(url.searchParams.get("me") || "", url.searchParams.get("tab") || "week")); return true; }
   if (p === "/api/me" && req.method === "GET") {
     const uid = url.searchParams.get("uid") || "";
     if (!ident.isUid(uid)) { send(res, 400, { error: "Bad player id" }); return true; }

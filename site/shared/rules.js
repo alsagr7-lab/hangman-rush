@@ -21,6 +21,13 @@
   const seasonDay = () => ((dayNum() - EPOCH_DAY - 1) % SEASON_LEN + SEASON_LEN) % SEASON_LEN + 1; // 1..30
   const seasonDaysLeft = () => SEASON_LEN - seasonDay() + 1; // includes today
   const msToMidnight = () => (dayNum() + 1) * DAY - Date.now();
+  /* weeks run Friday to Thursday (UTC days, like the dailies), so the weekly boards close at midnight going into
+     Friday. Week 1 is the week of Daily #1. */
+  const weekStart = (dn = dayNum()) => dn - ((dn + 6) % 7); // day 0 (1 Jan 1970) was a Thursday
+  const weekStartKey = () => dayKey(weekStart());
+  const weekDay = () => dayNum() - weekStart() + 1; // 1..7, Friday is 1
+  const weekDaysLeft = () => 8 - weekDay(); // includes today
+  const weekNo = () => Math.floor((weekStart() - weekStart(EPOCH_DAY + 1)) / 7) + 1;
 
   /* ---------- player records (one per game) ----------
      {n name, c colour, se season, streak, best, ls last solved day, played, wins, h:{day:{ok,t,m,pts,hn,...}}, prev, sk level} */
@@ -63,10 +70,19 @@
     // a record from an earlier season starts fresh, keeping a summary of the old one
     if (seasonOfRec(r) >= curSeason()) return false;
     r.prev = { se: seasonOfRec(r), best: r.best, wins: r.wins, played: r.played, pts: seasonPts(r) };
+    // this week's days from the old season stay on the weekly board (just the points, not the answers)
+    const from = weekStartKey();
+    r.wk = {};
+    for (const [k, e] of Object.entries(r.h || {})) if (e && k >= from) r.wk[k] = { pts: num(e.pts), ok: e.ok ? 1 : 0, lg: e.lg };
     r.se = curSeason(); r.streak = 0; r.best = 0; r.ls = ""; r.played = 0; r.wins = 0; r.h = {};
     return true;
   }
   const namedRec = r => { const n = r && typeof r.n === "string" ? r.n.trim() : ""; return n.length > 0 && n.toLowerCase() !== "player"; };
+  // the record's days this week (Friday to today), including any carried over from last season
+  function weekEntries(r) {
+    const from = weekStartKey(), to = todayKey(), days = Object.assign({}, r.wk || {}, r.h || {});
+    return Object.keys(days).filter(k => days[k] && k >= from && k <= to).map(k => days[k]);
+  }
   function seasonPts(r) { return Object.values(r.h || {}).reduce((a, e) => a + num(e.pts), 0); }
   function curStreak(r) { return r.ls === todayKey() || r.ls === ydayKey() ? num(r.streak) : 0; }
   // count a finished daily: a solved day extends the streak, anything else breaks it
@@ -212,7 +228,7 @@
   function shuffledOrder(n, seed) { const r = seeded(seed), a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
   return {
-    num, DAY, EPOCH_DAY, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight,
+    num, DAY, EPOCH_DAY, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight, weekStart, weekStartKey, weekDay, weekDaysLeft, weekNo, weekEntries,
     COLORS, safeColor, nm16, badName, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
     HARF, harfNorm, harfStem, harfKey, harfGroup, harfLetterOk, harfRoomPoints,
