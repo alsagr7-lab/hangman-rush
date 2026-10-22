@@ -24,7 +24,7 @@ Rush Games (Arabic name: ألعاب رش) is three free browser games sharing on
 ## Operating Context
 
 - Played mostly on phones, often in short sessions; installable as a web app.
-- Daily numbering started 13–14 Oct 2026; days change at midnight UTC; 30-day seasons reset all boards together.
+- Daily numbering started 13–14 Oct 2026; days change at midnight Saudi time (21:00 UTC); 30-day seasons reset all boards together.
 - Leaderboards load when opened (no live updating); "refresh the page" is how a friend shows they passed you.
 - Harf answers are checked by word lists, then saved verdicts, then Claude; players can appeal.
 

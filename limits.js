@@ -1,6 +1,7 @@
 // Request limits shared by every route: the visitor's real address, simple rate limits, and a cap on how many new
 // player ids one address may start a day. Everything is kept in memory; a restart clears it, which is fine for
 // limits measured in minutes and hours.
+const R = require("./site/shared/rules");
 const NEW_IDS_PER_DAY = Math.max(1, Number(process.env.NEW_IDS_PER_IP_DAY) || 40);
 
 /* ---------- the visitor's address ----------
@@ -35,9 +36,9 @@ function take(key, perMin, burst = perMin) {
 }
 
 /* ---------- daily counts per address ----------
-   count(kind, ip, max) -> true and counts one, or false once the address has used `max` today (UTC). */
+   count(kind, ip, max) -> true and counts one, or false once the address has used `max` today (Saudi date, like the dailies). */
 const daily = new Map();
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => R.todayKey();
 function count(kind, ip, max) {
   const k = `${today()}|${kind}|${ip}`, n = daily.get(k) || 0;
   if (n >= max) return false;

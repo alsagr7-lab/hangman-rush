@@ -10,13 +10,13 @@ const PAGES = ["home", "hangman", "trivia", "harf"];
 const GAMES = ["hangman", "trivia", "harf"];
 const { ID_RE, baseId } = require("./ident");
 const DAY = R.DAY;
-const dayKey = t => new Date(t).toISOString().slice(0, 10);
+const dayKey = R.keyAt; // the Saudi date, like the dailies
 
 // -> true when the request carries a team key with this permission; otherwise answers it (see mod.js)
 const checkAdmin = (req, res, send, perm = "view") => !!mod.auth(req, res, send, perm);
 
 /* ---------- visits ----------
-   Each page load sends {p: page, v: the device's player id}. Counted per UTC day as page views plus unique devices
+   Each page load sends {p: page, v: the device's player id}. Counted per day (Saudi date) as page views plus unique devices
    (a short hash of the id; no IPs, nothing else). Kept in memory and saved once a minute, 35 days kept. */
 const visits = new Map(); // day -> {page: {v, u: Set}}
 const loaded = new Set();

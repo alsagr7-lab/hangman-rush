@@ -184,7 +184,7 @@ function prompt(lg, items) {
 /* usage, from the token counts Claude reports on each call, kept per clock hour for 35 days ("usage:2026-10-17T21") */
 const usageHour = new Map(); // hour key -> {check: {calls, in, out}, appeal: {...}}
 async function recordUsage(kind, u) {
-  const k = "usage:" + new Date().toISOString().slice(0, 13);
+  const k = "usage:" + R.hourKey(Date.now());
   let h = usageHour.get(k);
   if (!h) {
     h = (await store.metaGet(k).catch(() => null)) || {};
@@ -194,7 +194,7 @@ async function recordUsage(kind, u) {
   const x = (h[kind] = h[kind] || { calls: 0, in: 0, out: 0 });
   x.calls++; x.in += Number(u && u.input_tokens) || 0; x.out += Number(u && u.output_tokens) || 0;
   store.metaPut(k, h).catch(e => console.error("Harf: saving usage", e.message));
-  if (Math.random() < 0.02) store.metaPruneBefore("usage:", "usage:" + new Date(Date.now() - 35 * R.DAY).toISOString().slice(0, 13)).catch(() => {});
+  if (Math.random() < 0.02) store.metaPruneBefore("usage:", "usage:" + R.hourKey(Date.now() - 35 * R.DAY)).catch(() => {});
 }
 // Claude Haiku 5.5 thinks by default, and thinking tokens count toward max_tokens: with a small max_tokens the reply
 // can stop before any JSON ("unexpected API reply max_tokens"). A word check needs no thinking, so it's turned off
@@ -874,7 +874,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
    permission and writes the audit log with an undo (see mod.js). */
 // totals for the last 24 hours, 7 days and 30 days, plus one row per day for the last 14
 async function usageSummary() {
-  const now = Date.now(), hk = t => "usage:" + new Date(t).toISOString().slice(0, 13);
+  const now = Date.now(), hk = t => "usage:" + R.hourKey(t);
   const rows = await store.metaSince("usage:", hk(now - 30 * R.DAY)).catch(() => []);
   const empty = () => ({ check: { calls: 0, in: 0, out: 0 }, second: { calls: 0, in: 0, out: 0 }, appeal: { calls: 0, in: 0, out: 0 } });
   const add = (t, v) => { for (const kind of ["check", "second", "appeal"]) if (v && v[kind]) for (const f of ["calls", "in", "out"]) t[kind][f] += Number(v[kind][f]) || 0; };
@@ -884,7 +884,7 @@ async function usageSummary() {
     if (k >= hk(now - 7 * R.DAY)) add(periods.week, v);
     add(periods.month, v);
     const d = k.slice(6, 16);
-    if (d >= new Date(now - 13 * R.DAY).toISOString().slice(0, 10)) add((days[d] = days[d] || empty()), v);
+    if (d >= R.keyAt(now - 13 * R.DAY)) add((days[d] = days[d] || empty()), v);
   }
   return { periods, days, price: PRICE };
 }

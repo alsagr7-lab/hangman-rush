@@ -120,8 +120,10 @@ const GAME={hangman:"Hangman",trivia:"Trivia",harf:"Harf"};
 const SRC={ai:["AI, one check",""],ai2:["AI, checked twice","b-acc"],appeal:["appeal","b-acc"],mod:["team","b-good"],list:["word list","b-good"]};
 const TYPE={rejected:["AI said no","b-hot"],unchecked:["not checked yet","b-warn"],letter:["wrong first letter","b-warn"],"letter-fix":["AI: other letter","b-warn"]};
 const dateOf=t=>{const d=new Date(t);return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})};
-const today=()=>new Date().toISOString().slice(0,10);
-const dayMinus=n=>new Date(Date.now()-n*864e5).toISOString().slice(0,10);
+// days are Saudi dates (midnight to midnight UTC+3), like the dailies
+const sa=t=>new Date(t+3*36e5).toISOString().slice(0,10);
+const today=()=>sa(Date.now());
+const dayMinus=n=>sa(Date.now()-n*864e5);
 const wordOf=k=>k.split("|").slice(2).join("|");
 
 let key="",me=null,tab="review",cache={};
@@ -470,7 +472,7 @@ async function agentsTab(){
         edit?h("button",{class:A.paused?"yes":"no",onclick:e=>set({paused:!A.paused},e.target)},A.paused?"Resume":"Pause all"):null),
       h("div",{class:"switch"},h("label",null,h("b",null,"Mode"),h("small",null,"Act: changes happen at once. Propose: they wait on the Review tab for a person's OK.")),
         h("select",{disabled:!edit,onchange:e=>set({mode:e.target.value})},h("option",{value:"act",selected:A.mode==="act"},"Act on their own"),h("option",{value:"propose",selected:A.mode==="propose"},"Propose only"))),
-      h("div",{class:"switch"},h("label",null,h("b",null,"Changes per agent a day"),h("small",null,"Past this, the agent is refused until tomorrow (UTC)")),h("span",{class:"row"},cap,edit?h("button",{class:"sm",onclick:e=>set({cap:+cap.value},e.target)},"Save"):null))),
+      h("div",{class:"switch"},h("label",null,h("b",null,"Changes per agent a day"),h("small",null,"Past this, the agent is refused until tomorrow (Saudi time)")),h("span",{class:"row"},cap,edit?h("button",{class:"sm",onclick:e=>set({cap:+cap.value},e.target)},"Save"):null))),
     h("div",{class:"card"},h("h2",null,"Agents"),a.list.length?a.list.map(m=>h("div",{class:"prow"},h("div",{class:"ph"},h("b",null,m.name),h("span",{class:"note"},(m.off?"off · ":"")+m.today+" changes today · "+(m.seen?"seen "+dateOf(m.seen):"never used"))),h("div",{class:"note"},"Can: "+m.perms.join(", "))))
       :h("p",{class:"note"},can("team")?"None yet. Add one on the Team tab (role: agent) and give it the key.":"None yet. The owner adds them on the Team tab.")),
     h("div",{class:"card"},h("h2",null,"Connecting an agent"),
