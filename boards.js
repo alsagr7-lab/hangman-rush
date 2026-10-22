@@ -4,6 +4,7 @@
 //   GET /api/board?game=hangman|trivia|harf&lg=en|ar&tab=today|yday|week|season&me=<uid>
 //        -> { game, lg, tab, se, day, len, left, total, rows: [...top 50], me: {rank, row} | null }
 //   GET /api/board/hub?tab=week|season&me=<uid>  -> each game's leaders this week (Friday to Thursday) or season (best language, scored against its board's leader) and overall
+//   GET /api/awards[?me=<uid>]  -> every week's saved medals (or just that player's), newest first
 //   GET /api/me?uid=<uid>        -> the player's own public records in every game (what the board would show)
 //   POST /api/profile {uid, token, n, c} -> sets the name and colour on every record the player has, in every game
 //
@@ -117,16 +118,112 @@ async function view(game, lg, tab) {
   return c;
 }
 
+// ---------- weekly medals ----------
+// Once a week has closed (Friday 00:00 Saudi time), its top 3 on each of the five boards and overall are saved for
+// good under meta "awards:<the week's Friday>". Each row on every board then carries its player's medals from the
+// latest saved week ("aw": [{k, p}], k = "overall", "hangman-en", "trivia", ...), until the next week's are saved.
+// A week waits until Harf has added the rarity bonuses for its last day (or two days have passed), so the medals
+// match the final points. Players are kept by their base id, with the name and colour they had that week.
+const AW_BOARDS = [["hangman", "en"], ["hangman", "ar"], ["trivia", ""], ["harf", "ar"], ["harf", "en"]];
+const awKey = (g, lg) => (lg ? g + "-" + lg : g);
+// the first week with medals: the week of 16 Oct 2026, when the weekly board started (AWARDS_FIRST="YYYY-MM-DD" for tests)
+const AW_FIRST = R.weekStart(R.dayNum(Date.parse((/^\d{4}-\d{2}-\d{2}$/.test(process.env.AWARDS_FIRST || "") ? process.env.AWARDS_FIRST : "2026-10-16") + "T12:00:00Z")));
+async function weekBoard(game, lg, from, to) {
+  const S = SOURCES[game], done = game === "harf" ? e => e.lg === lg : e => "ok" in e;
+  let pending = false;
+  const out = [];
+  for (const r of await S.all()) {
+    if (S.lgOf(r.id) !== lg || admin.isHidden(game, r.id)) continue;
+    const d = r.data || {}, n = R.nm16(d.n);
+    if (!R.namedRec({ n })) continue;
+    // straight from the saved record (not tidied): a season change since then mustn't drop the week's days
+    const days = Object.assign({}, d.wk || {}, d.h || {});
+    const es = Object.keys(days).filter(k => k >= from && k <= to && days[k] && done(days[k])).map(k => days[k]);
+    if (!es.length) continue;
+    if (game === "harf" && es.some(e => e.rb == null && Array.isArray(e.a))) pending = true;
+    out.push({ id: base(r.id), n, c: R.safeColor(d.c), pts: es.reduce((a, e) => a + num(e.pts), 0), w: es.filter(e => e.ok).length });
+  }
+  out.sort((a, b) => b.pts - a.pts || b.w - a.w);
+  return { rows: out, pending };
+}
+async function decideWeek(ws) {
+  const from = R.dayKey(ws), to = R.dayKey(ws + 6), boards = {}, byGame = {};
+  let pending = false;
+  for (const [g, lg] of AW_BOARDS) {
+    const b = await weekBoard(g, lg, from, to);
+    pending = pending || b.pending;
+    boards[awKey(g, lg)] = b.rows;
+    (byGame[g] = byGame[g] || []).push({ lg, rows: b.rows });
+  }
+  // the bonuses for the last day are added after midnight; wait for them, but not for ever
+  if (pending && R.dayNum() <= ws + 8) return null;
+  const overall = new Map();
+  for (const [g, bs] of Object.entries(byGame)) {
+    const byAvg = bs.length > 1 && bs.every(b => b.rows.length >= MIN_ACTIVE);
+    for (const x of gameScores(bs, byAvg).values()) {
+      const o = overall.get(x.id) || { id: x.id, n: x.n, c: x.c, score: 0 };
+      o.score = one(o.score + x.score); overall.set(x.id, o);
+    }
+  }
+  const top = rows => rows.slice(0, 3).map(x => ({ id: x.id, n: x.n, c: x.c, pts: x.pts }));
+  const out = { wk: R.weekNoOf(ws), from, to, at: Date.now(), boards: {} };
+  for (const k of Object.keys(boards)) out.boards[k] = top(boards[k]);
+  out.overall = [...overall.values()].filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 3)
+    .map(x => ({ id: x.id, n: x.n, c: x.c, score: x.score }));
+  return out;
+}
+// the medals now on show: the latest saved week, deciding any closed week that isn't saved yet (at most every 5 min)
+let shown = null, deciding = null, decideTry = 0;
+function medalMap(a) {
+  const m = new Map(), add = (id, k, p) => { if (!m.has(id)) m.set(id, []); m.get(id).push({ k, p }); };
+  (a.overall || []).forEach((x, i) => add(x.id, "overall", i + 1));
+  for (const [k, rows] of Object.entries(a.boards || {})) rows.forEach((x, i) => add(x.id, k, i + 1));
+  for (const l of m.values()) l.sort((x, y) => (y.k === "overall") - (x.k === "overall") || x.p - y.p);
+  return m;
+}
+async function awardsNow() {
+  const last = R.weekStart() - 7; // the week that closed most recently
+  if (shown && shown.ws === last) return shown;
+  if (!deciding && Date.now() - decideTry > 5 * 60000) {
+    decideTry = Date.now();
+    deciding = (async () => {
+      const saved = await store.metaSince("awards:", "awards:" + R.dayKey(AW_FIRST)).catch(() => []);
+      const have = new Set(saved.map(x => x.k));
+      for (let ws = Math.max(AW_FIRST, last - 7 * 6); ws <= last; ws += 7) {
+        if (have.has("awards:" + R.dayKey(ws))) continue;
+        const a = await decideWeek(ws);
+        if (!a) break; // still waiting on this week's last bonuses
+        await store.metaPut("awards:" + R.dayKey(ws), a);
+      }
+      const all = await store.metaSince("awards:", "awards:" + R.dayKey(AW_FIRST)).catch(() => []);
+      const newest = all.sort((a, b) => (a.k < b.k ? 1 : -1))[0];
+      if (newest) shown = { ws: R.dayNum(Date.parse(newest.k.slice(7) + "T12:00:00Z")), a: newest.v, map: medalMap(newest.v) };
+    })().catch(e => console.error("awards", e)).finally(() => { deciding = null; });
+  }
+  if (deciding) await deciding;
+  return shown;
+}
+const medalsOf = (aw, id) => (aw && aw.map.get(id)) || null;
+const awInfo = aw => (aw ? { wk: aw.a.wk, from: aw.a.from, to: aw.a.to } : null);
+async function history(me) {
+  const all = (await store.metaSince("awards:", "awards:" + R.dayKey(AW_FIRST)).catch(() => [])).sort((a, b) => (a.k < b.k ? 1 : -1)).map(x => x.v);
+  if (!me) return { weeks: all };
+  const mb = base(me), won = [];
+  for (const a of all) { const l = medalMap(a).get(mb); if (l) l.forEach(x => won.push(Object.assign({ wk: a.wk, from: a.from, to: a.to }, x))); }
+  return { won };
+}
+
 async function board(game, lg, tab, me) {
   const S = SOURCES[game];
   if (!S.langs.includes(lg)) lg = S.langs[0];
   if (!["today", "yday", "week", "season"].includes(tab)) tab = "today";
-  const c = await view(game, lg, tab), rows = c.views.get(lg + "|" + tab);
+  const c = await view(game, lg, tab), rows = c.views.get(lg + "|" + tab), aw = await awardsNow();
   const mb = me ? base(me) : "", mi = mb ? rows.findIndex(r => r.id === mb) : -1;
-  return {
+  const medals = r => { const m = medalsOf(aw, r.id); return m ? { aw: m } : {}; };
+  return { awards: awInfo(aw),
     game, lg, tab, se: R.curSeason(), day: R.seasonDay(), len: R.SEASON_LEN, left: R.seasonDaysLeft(), wk: R.weekNo(), wleft: R.weekDaysLeft(), total: rows.length,
-    rows: rows.slice(0, TOP).map((r, i) => Object.assign({ rank: i + 1 }, r, { tag: R.tagOf(r.id) }, r.id === mb ? { me: 1 } : {})),
-    me: mi >= TOP ? Object.assign({ rank: mi + 1 }, rows[mi], { tag: R.tagOf(rows[mi].id), me: 1 }) : null,
+    rows: rows.slice(0, TOP).map((r, i) => Object.assign({ rank: i + 1 }, r, { tag: R.tagOf(r.id) }, medals(r), r.id === mb ? { me: 1 } : {})),
+    me: mi >= TOP ? Object.assign({ rank: mi + 1 }, rows[mi], { tag: R.tagOf(rows[mi].id), me: 1 }, medals(rows[mi])) : null,
   };
 }
 
@@ -167,8 +264,9 @@ function gameScores(boards, byAvg) {
 
 async function hub(me, tab) {
   if (tab !== "season") tab = "week";
-  const mb = me ? base(me) : "", games = {}, overall = new Map();
-  const mark = (x, i) => Object.assign({ rank: i + 1, tag: R.tagOf(x.id), id: x.id, n: x.n, c: x.c, pts: x.pts }, x.id === mb ? { me: 1 } : {});
+  const mb = me ? base(me) : "", games = {}, overall = new Map(), aw = await awardsNow();
+  const medals = id => { const m = medalsOf(aw, id); return m ? { aw: m } : {}; };
+  const mark = (x, i) => Object.assign({ rank: i + 1, tag: R.tagOf(x.id), id: x.id, n: x.n, c: x.c, pts: x.pts }, medals(x.id), x.id === mb ? { me: 1 } : {});
   for (const game of ["hangman", "trivia", "harf"]) {
     const S = SOURCES[game], boards = [];
     for (const lg of S.langs) boards.push({ lg, rows: (await view(game, lg, tab)).views.get(lg + "|" + tab) });
@@ -191,9 +289,9 @@ async function hub(me, tab) {
   const all = [...overall.values()].sort((a, b) => b.score - a.score || Object.keys(b.games).length - Object.keys(a.games).length);
   const mi = mb ? all.findIndex(x => x.id === mb) : -1;
   return {
-    tab, se: R.curSeason(), day: R.seasonDay(), len: R.SEASON_LEN, left: R.seasonDaysLeft(), wk: R.weekNo(), wleft: R.weekDaysLeft(), games,
-    overall: all.slice(0, 10).map((x, i) => Object.assign({ rank: i + 1, tag: R.tagOf(x.id) }, x, x.id === mb ? { me: 1 } : {})),
-    me: mi >= 10 ? Object.assign({ rank: mi + 1, tag: R.tagOf(all[mi].id), me: 1 }, all[mi]) : null,
+    tab, awards: awInfo(aw), se: R.curSeason(), day: R.seasonDay(), len: R.SEASON_LEN, left: R.seasonDaysLeft(), wk: R.weekNo(), wleft: R.weekDaysLeft(), games,
+    overall: all.slice(0, 10).map((x, i) => Object.assign({ rank: i + 1, tag: R.tagOf(x.id) }, x, medals(x.id), x.id === mb ? { me: 1 } : {})),
+    me: mi >= 10 ? Object.assign({ rank: mi + 1, tag: R.tagOf(all[mi].id), me: 1 }, all[mi], medals(all[mi].id)) : null,
   };
 }
 
@@ -229,6 +327,13 @@ async function handle(req, res, url, { send, readJson, ip }, limits) {
     return true;
   }
   if (p === "/api/board/hub" && req.method === "GET") { send(res, 200, await hub(url.searchParams.get("me") || "", url.searchParams.get("tab") || "week")); return true; }
+  if (p === "/api/awards" && req.method === "GET") {
+    const me = url.searchParams.get("me") || "";
+    if (me && !ident.isUid(me)) { send(res, 400, { error: "Bad player id" }); return true; }
+    await awardsNow();
+    send(res, 200, await history(me));
+    return true;
+  }
   if (p === "/api/me" && req.method === "GET") {
     const uid = url.searchParams.get("uid") || "";
     if (!ident.isUid(uid)) { send(res, 400, { error: "Bad player id" }); return true; }
@@ -247,4 +352,4 @@ async function handle(req, res, url, { send, readJson, ip }, limits) {
   return false;
 }
 
-module.exports = { handle, board, hub, mine, profile };
+module.exports = { handle, board, hub, mine, profile, awardsNow, decideWeek };
