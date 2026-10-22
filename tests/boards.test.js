@@ -22,7 +22,7 @@ const players = Object.fromEntries([
   // many players, so "me" lands past the top 50
   ...Array.from({ length: 60 }, (_, i) => rec("p_many" + String(i).padStart(8, "0"), { n: "Many " + i, played: 1, wins: 1, h: { [today]: { ok: 1, pts: 100 + i, t: 30000, m: 1 } } })),
   // played before this week, with one day carried over from last season into this week
-  rec("p_weekie0001", { n: "Weekie", played: 1, wins: 1, h: { [R.dayKey(R.weekStart() - 1)]: { ok: 1, pts: 5, t: 1, m: 0 } }, wk: { [R.weekStartKey()]: { ok: 1, pts: 7 } } }),
+  rec("p_weekie0001", { n: "Weekie", played: 1, wins: 1, h: { [R.dayKey(R.weekStart() - 2)]: { ok: 1, pts: 5, t: 1, m: 0 } }, wk: { [R.weekStartKey()]: { ok: 1, pts: 7 } } }),
   rec("p_lastone0001", { n: "Last", played: 1, wins: 1, h: { [today]: { ok: 1, pts: 1, t: 59000, m: 5 } } }),
 ]);
 const trivia = Object.fromEntries([

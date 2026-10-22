@@ -246,7 +246,7 @@ en:{
   dailyIntro:"Everyone gets the same letter today. One attempt, 90 seconds. Each valid answer is worth 10 points right away; tomorrow you'll see the bonus for rare answers.",
   curStreak:"🔥 Perfect streak: {n}. All five valid today adds +{b}.",noStreak:"All five valid today starts a perfect streak (+1).",
   start:"Start",doneTitle:"{c} of 5 valid",statPoints:"points",statValid:"valid",statStreak:"streak",statBest:"best",copyResult:"Copy result",
-  streakBonus:"Perfect streak bonus",rareSoon:"Rare-answer bonus",rareSoonV:"tomorrow",nextLetter:"Next letter in {t}. It changes at midnight UTC.",
+  streakBonus:"Perfect streak bonus",rareSoon:"Rare-answer bonus",rareSoonV:"tomorrow",nextLetter:"Next letter in {t}. It changes at midnight Saudi time.",
   shareHead:"Harf Rush · daily #{n} · {lg}",backLobby:"Back to the lobby",
   shareStart:"Share the code, then start",roomCodeLine:"Room code: ",readyPractise:"Ready to practise?",startRound1:"Start round 1",nextRound:"Next round",
   waitingFor:"Waiting for {name}",startsAtOnce:"The round starts for everyone at once.",noHost:"No host in room {c}",noHostHelp:"Check the code with your friend, or run the room yourself.",
@@ -422,7 +422,7 @@ function answerRow(cat,a,L,lg,np,opts,i){
   }
   return li;
 }
-// the daily: appeal one of today's answers, or (ydLg set) one of yesterday's until midnight UTC
+// the daily: appeal one of today's answers, or (ydLg set) one of yesterday's until midnight Saudi time
 let appealMsg="",ydMsg="";
 async function appealDaily(i,btn,ydLg){
   btn.disabled=true;btn.textContent=t("appealing");
@@ -440,7 +440,7 @@ function renderYday(){
     box.append(el("p","lbl",LGN[y.lg]+" · "+t("ydayTitle",{L:y.L,p:y.pts})));
     const ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,y.a[i],y.L,y.lg,num(y.np),{base:true,rare:true,appeal:apiOn!==false,yd:true},i)));box.append(ul);
     box.append(el("p","note",num(y.np)<2?t("ydayAlone"):(y.rb?t("ydayRare",{n:y.rb}):t("ydayNoRare"))));
-    // yesterday's turned-down answers can be appealed until the letters change at midnight UTC
+    // yesterday's turned-down answers can be appealed until the letters change at midnight Saudi time
     if(apiOn!==false&&y.a.some(a=>a&&a.w&&!a.ok&&!a.l&&!a.ap&&!a.u))box.append(el("p","note",t("ydAppeal")+" "+t("appealsLeft",{n:num(dstates[y.lg]&&dstates[y.lg].appealsLeft)})));
     if(ydMsg)box.append(el("p","note warn",t(ydMsg)));
   });

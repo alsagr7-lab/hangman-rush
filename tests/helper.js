@@ -21,7 +21,7 @@ async function startServer({ env = {}, seed = null } = {}) {
   fs.writeFileSync(path.join(tmp, "ar.enc"), encrypt([["animals", "أسد", "King of the jungle", "ملك الغابة", "Lion"]]));
   // one Trivia daily set, starting today: question i's right answer is "Right i" (the server always lists it first)
   const q = i => ["science", 1, "Question " + i, "سؤال " + i, ["Right " + i, "Wrong a", "Wrong b", "Wrong c"], ["صح " + i, "خطأ أ", "خطأ ب", "خطأ ج"]];
-  fs.writeFileSync(path.join(tmp, "trivia.enc"), encrypt({ start: new Date().toISOString().slice(0, 10), days: [[0, 1, 2, 3, 4].map(q)] }));
+  fs.writeFileSync(path.join(tmp, "trivia.enc"), encrypt({ start: new Date(Date.now() + 3 * 36e5).toISOString().slice(0, 10), days: [[0, 1, 2, 3, 4].map(q)] }));
   if (seed) fs.writeFileSync(path.join(tmp, "data.json"), JSON.stringify(seed));
   const proc = spawn(process.execPath, [path.join(__dirname, "..", "server.js")], {
     env: { ...process.env, PORT: String(port), DATA_FILE: path.join(tmp, "data.json"), DATABASE_URL: "", ANTHROPIC_API_KEY: "",

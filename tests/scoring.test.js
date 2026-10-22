@@ -123,3 +123,19 @@ test("weeks start on Friday and the season rollover keeps this week's points", (
   assert.deepEqual(r.wk, { [today]: { pts: 20, ok: 1, lg: "ar" } });
   assert.deepEqual(R.weekEntries(r).map(e => e.pts), [20]);
 });
+
+test("days change at midnight Saudi time (21:00 UTC), not midnight UTC", () => {
+  assert.equal(R.keyAt(Date.UTC(2026, 9, 22, 20, 59, 59)), "2026-10-22");
+  assert.equal(R.keyAt(Date.UTC(2026, 9, 22, 21, 0, 0)), "2026-10-23");
+  assert.equal(R.keyAt(Date.UTC(2026, 9, 23, 0, 30)), "2026-10-23");
+  // Daily #1 was 14 Oct Saudi time, which began at 21:00 UTC on 13 Oct
+  assert.equal(R.dailyNo(Date.UTC(2026, 9, 13, 21, 0)), 1);
+  assert.equal(R.dailyNo(Date.UTC(2026, 9, 13, 20, 59)), 0);
+  // the week turns at Thursday 21:00 UTC = Friday 00:00 in Saudi
+  assert.equal(R.dayKey(R.weekStart(R.dayNum(Date.UTC(2026, 9, 22, 20, 59)))), "2026-10-16");
+  assert.equal(R.dayKey(R.weekStart(R.dayNum(Date.UTC(2026, 9, 22, 21, 0)))), "2026-10-23");
+  assert.equal(R.hourKey(Date.UTC(2026, 9, 22, 21, 30)), "2026-10-23T00");
+  const left = R.msToMidnight(), next = Date.now() + left;
+  assert.ok(left > 0 && left <= R.DAY);
+  assert.equal(new Date(next).getUTCHours(), 21); assert.notEqual(R.keyAt(next), R.todayKey());
+});

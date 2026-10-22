@@ -8,10 +8,14 @@
   const num = v => { v = Number(v); return isFinite(v) ? v : 0; };
 
   /* ---------- days and seasons ----------
-     Daily #1 was 14 Oct 2026. Both games use the same numbering and the same 30-day seasons. */
-  const DAY = 864e5, EPOCH_DAY = Math.floor(Date.UTC(2026, 9, 13) / DAY), SEASON_LEN = 30;
-  const dayNum = (x = Date.now()) => Math.floor(x / DAY);
+     Daily #1 was 14 Oct 2026. All games use the same numbering and the same 30-day seasons.
+     A day runs midnight to midnight Saudi time (UTC+3 all year, no daylight saving): it changes at 21:00 UTC.
+     A day's key ("2026-10-22") is its Saudi date. */
+  const DAY = 864e5, TZ_OFF = 3 * 36e5, EPOCH_DAY = Math.floor(Date.UTC(2026, 9, 13) / DAY), SEASON_LEN = 30;
+  const dayNum = (x = Date.now()) => Math.floor((x + TZ_OFF) / DAY);
   const dayKey = dn => new Date(dn * DAY).toISOString().slice(0, 10);
+  const keyAt = x => dayKey(dayNum(x)); // the Saudi date at a moment
+  const hourKey = x => new Date(x + TZ_OFF).toISOString().slice(0, 13); // "2026-10-22T23", Saudi time
   const todayKey = () => dayKey(dayNum());
   const ydayKey = () => dayKey(dayNum() - 1);
   const dailyNo = (x = Date.now()) => dayNum(x) - EPOCH_DAY;
@@ -20,8 +24,8 @@
   const curSeason = () => Math.max(1, seasonOf(dayNum()));
   const seasonDay = () => ((dayNum() - EPOCH_DAY - 1) % SEASON_LEN + SEASON_LEN) % SEASON_LEN + 1; // 1..30
   const seasonDaysLeft = () => SEASON_LEN - seasonDay() + 1; // includes today
-  const msToMidnight = () => (dayNum() + 1) * DAY - Date.now();
-  /* weeks run Friday to Thursday (UTC days, like the dailies), so the weekly boards close at midnight going into
+  const msToMidnight = () => (dayNum() + 1) * DAY - TZ_OFF - Date.now(); // to midnight Saudi time
+  /* weeks run Friday to Thursday (Saudi days, like the dailies), so the weekly boards close at midnight going into
      Friday. Week 1 is the week of Daily #1. */
   const weekStart = (dn = dayNum()) => dn - ((dn + 6) % 7); // day 0 (1 Jan 1970) was a Thursday
   const weekStartKey = () => dayKey(weekStart());
@@ -228,7 +232,7 @@
   function shuffledOrder(n, seed) { const r = seeded(seed), a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
   return {
-    num, DAY, EPOCH_DAY, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight, weekStart, weekStartKey, weekDay, weekDaysLeft, weekNo, weekEntries,
+    num, DAY, TZ_OFF, EPOCH_DAY, keyAt, hourKey, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight, weekStart, weekStartKey, weekDay, weekDaysLeft, weekNo, weekEntries,
     COLORS, safeColor, nm16, badName, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
     HARF, harfNorm, harfStem, harfKey, harfGroup, harfLetterOk, harfRoomPoints,

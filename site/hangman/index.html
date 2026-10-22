@@ -242,7 +242,7 @@ en:{
   dailyIntro:"Everyone gets this word today. You get one attempt, and the clock starts after the countdown.",
   curStreak1:"Current streak: 1 day. Solve to keep it.",curStreakN:"Current streak: {n} days. Solve to keep it.",start:"Start",
   statPoints:"points",statMisses:"misses",statStreak:"streak",statBest:"best",copyResult:"Copy my result",
-  nextWordUtc:"Next word in {t}. It changes at midnight UTC.",
+  nextWordUtc:"Next word in {t}. It changes at midnight Saudi time.",
   shareHead:"Hangman Rush · Season {s} · daily #{n}",shareSolved:"Solved in {t}, {m}, {p} pts",shareHanged:"Hanged",shareStreak:"Streak: {n}",
   pts:"{n} pts",hm:"{h}h {m}m",
   diffEasy:"Easy",diffNormal:"Normal",diffHard:"Hard",
@@ -310,7 +310,7 @@ ar:{
   dailyIntro:"الكل يحصل على هذه الكلمة اليوم. لديك محاولة واحدة، ويبدأ الوقت بعد العدّ التنازلي.",
   curStreak1:"سلسلتك الحالية: يوم واحد. حلّها لتحافظ عليها.",curStreakN:"سلسلتك الحالية: {n} يوم. حلّها لتحافظ عليها.",start:"ابدأ",
   statPoints:"النقاط",statMisses:"الأخطاء",statStreak:"السلسلة",statBest:"الأفضل",copyResult:"انسخ نتيجتي",
-  nextWordUtc:"الكلمة التالية بعد {t}. تتغيّر عند منتصف الليل بتوقيت UTC (الثالثة فجراً بتوقيت السعودية).",
+  nextWordUtc:"الكلمة التالية بعد {t}. تتغيّر عند منتصف الليل بتوقيت السعودية.",
   shareHead:"سباق المشنقة · الموسم {s} · كلمة اليوم #{n}",shareSolved:"حلّيتها في {t}، {m}، {p} نقطة",shareHanged:"شُنقت",shareStreak:"السلسلة: {n}",
   pts:"{n} نقطة",hm:"{h}س {m}د",
   diffEasy:"سهل",diffNormal:"عادي",diffHard:"صعب",
@@ -352,7 +352,7 @@ const ROWS_AR=["ضصثقفغعهخحج","شسيبلاتنمك","ءرزوظطذد
 const AR_SAME={"أ":"ا","إ":"ا","آ":"ا","ٱ":"ا","ة":"ه","ى":"ي","ئ":"ي","ؤ":"و"};
 const keyOf=ch=>AR_SAME[ch]||ch;
 const LGN={en:"English",ar:"عربي"},LGS=["en","ar"];
-const DAY=864e5,EPOCH_DAY=Math.floor(Date.UTC(2026,9,13)/DAY);
+const DAY=864e5,TZ_OFF=3*36e5,EPOCH_DAY=Math.floor(Date.UTC(2026,9,13)/DAY);
 const $=s=>document.querySelector(s);
 const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
 const ltr=(txt,c)=>{const e=el("span",(c?c+" ":"")+"ltr",txt);return e};
@@ -396,8 +396,8 @@ function duelOpp(){
   return hostPeer();
 }
 
-/* ---------- daily helpers ---------- */
-const dayNum=(x=Date.now())=>Math.floor(x/DAY);
+/* ---------- daily helpers: days change at midnight Saudi time (UTC+3) ---------- */
+const dayNum=(x=Date.now())=>Math.floor((x+TZ_OFF)/DAY);
 const dayKey=dn=>new Date(dn*DAY).toISOString().slice(0,10);
 const todayKey=()=>dayKey(dayNum());
 const ydayKey=()=>dayKey(dayNum()-1);
@@ -418,7 +418,7 @@ function rollover(r){
   return true;
 }
 function seasonPts(r){return Object.values(r.h||{}).reduce((a,e)=>a+num(e.pts),0)}
-function untilNext(){const ms=(dayNum()+1)*DAY-Date.now();return t("hm",{h:Math.floor(ms/36e5),m:Math.floor(ms%36e5/6e4)})}
+function untilNext(){const ms=(dayNum()+1)*DAY-TZ_OFF-Date.now();return t("hm",{h:Math.floor(ms/36e5),m:Math.floor(ms%36e5/6e4)})}
 const recKey=lg=>lg==="ar"?"hr-daily-ar":"hr-daily";
 function loadLocalRec(lg="en"){try{const r=JSON.parse(localStorage.getItem(recKey(lg))||"null");if(r&&typeof r==="object")return clean(r)}catch(e){}return clean({})}
 function clean(r){const h={};const src=r.h&&typeof r.h==="object"?r.h:{};

@@ -15,6 +15,7 @@
 const crypto = require("crypto");
 const store = require("./store");
 const limits = require("./limits");
+const R = require("./site/shared/rules");
 
 const ADMIN_KEY = process.env.ADMIN_KEY || "";
 const PERMS = ["view", "review", "players", "settings", "team"];
@@ -26,7 +27,7 @@ const ROLES = {
 };
 const AUDIT_DAYS = 90;
 const sha = s => crypto.createHash("sha256").update(String(s)).digest("hex");
-const dayKey = t => new Date(t).toISOString().slice(0, 10);
+const dayKey = R.keyAt;
 const nm = (s, n = 40) => String(s == null ? "" : s).replace(/\s+/g, " ").trim().slice(0, n);
 
 class Fail extends Error { constructor(code, msg, extra) { super(msg); this.code = code; this.extra = extra; } }
@@ -70,7 +71,7 @@ function auth(req, res, send, perm = "view") {
 }
 
 /* ---------- the audit log ----------
-   One list per UTC day ("audit:2026-10-19"), newest last, kept 90 days. Entries:
+   One list per day (Saudi date) ("audit:2026-10-19"), newest last, kept 90 days. Entries:
    {id, t, by: {id, name, role}, act, args, why, sum (one line), undo: {act, args} | null, undone, ok (by: who approved)} */
 const auditMem = new Map();
 let auditSave = Promise.resolve();
