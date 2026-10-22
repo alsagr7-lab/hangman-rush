@@ -122,6 +122,9 @@ async function view(game, lg, tab) {
 // Once a week has closed (Friday 00:00 Saudi time), its top 3 on each of the five boards and overall are saved for
 // good under meta "awards:<the week's Friday>". Each row on every board then carries its player's medals from the
 // latest saved week ("aw": [{k, p}], k = "overall", "hangman-en", "trivia", ...), until the next week's are saved.
+// Medals belong to the player's id, never their name (the saved name is only what they were called that week), so
+// a new name keeps them. When a device's player is merged into another (signing in to an account that already has
+// progress, merges.js), meta "awlink:<old id>" points at the new id and the medals follow it.
 // A week waits until Harf has added the rarity bonuses for its last day (or two days have passed), so the medals
 // match the final points. Players are kept by their base id, with the name and colour they had that week.
 const AW_BOARDS = [["hangman", "en"], ["hangman", "ar"], ["trivia", ""], ["harf", "ar"], ["harf", "en"]];
@@ -173,9 +176,20 @@ async function decideWeek(ws) {
   return out;
 }
 // the medals now on show: the latest saved week, deciding any closed week that isn't saved yet (at most every 5 min)
-let shown = null, deciding = null, decideTry = 0;
+let shown = null, deciding = null, decideTry = 0, links = null;
+async function loadLinks() {
+  if (!links) links = new Map((await store.metaSince("awlink:", "awlink:").catch(() => [])).map(x => [x.k.slice(7), String(x.v)]));
+  return links;
+}
+// the id a player has now, following merges (a few steps at most, and never round in a circle)
+function current(id) {
+  const seen = new Set([id]);
+  while (links && links.has(id) && seen.size < 10) { id = links.get(id); if (seen.has(id)) break; seen.add(id); }
+  return id;
+}
+function forgetAwards() { shown = null; links = null; decideTry = 0; }
 function medalMap(a) {
-  const m = new Map(), add = (id, k, p) => { if (!m.has(id)) m.set(id, []); m.get(id).push({ k, p }); };
+  const m = new Map(), add = (id, k, p) => { id = current(id); if (!m.has(id)) m.set(id, []); const l = m.get(id); if (!l.some(x => x.k === k && x.p === p)) l.push({ k, p }); };
   (a.overall || []).forEach((x, i) => add(x.id, "overall", i + 1));
   for (const [k, rows] of Object.entries(a.boards || {})) rows.forEach((x, i) => add(x.id, k, i + 1));
   for (const l of m.values()) l.sort((x, y) => (y.k === "overall") - (x.k === "overall") || x.p - y.p);
@@ -187,6 +201,7 @@ async function awardsNow() {
   if (!deciding && Date.now() - decideTry > 5 * 60000) {
     decideTry = Date.now();
     deciding = (async () => {
+      await loadLinks();
       const saved = await store.metaSince("awards:", "awards:" + R.dayKey(AW_FIRST)).catch(() => []);
       const have = new Set(saved.map(x => x.k));
       for (let ws = Math.max(AW_FIRST, last - 7 * 6); ws <= last; ws += 7) {
@@ -206,9 +221,10 @@ async function awardsNow() {
 const medalsOf = (aw, id) => (aw && aw.map.get(id)) || null;
 const awInfo = aw => (aw ? { wk: aw.a.wk, from: aw.a.from, to: aw.a.to } : null);
 async function history(me) {
+  await loadLinks();
   const all = (await store.metaSince("awards:", "awards:" + R.dayKey(AW_FIRST)).catch(() => [])).sort((a, b) => (a.k < b.k ? 1 : -1)).map(x => x.v);
   if (!me) return { weeks: all };
-  const mb = base(me), won = [];
+  const mb = current(base(me)), won = [];
   for (const a of all) { const l = medalMap(a).get(mb); if (l) l.forEach(x => won.push(Object.assign({ wk: a.wk, from: a.from, to: a.to }, x))); }
   return { won };
 }
@@ -352,4 +368,4 @@ async function handle(req, res, url, { send, readJson, ip }, limits) {
   return false;
 }
 
-module.exports = { handle, board, hub, mine, profile, awardsNow, decideWeek };
+module.exports = { handle, board, hub, mine, profile, awardsNow, decideWeek, forgetAwards };
