@@ -24,6 +24,11 @@ try { const { decrypt, FILE } = require("./scripts/daily-words"); LISTS.en = dec
 catch (e) { console.warn("Daily words unavailable (set DAILY_KEY):", e.message); }
 try { const { decrypt, FILE_AR } = require("./scripts/daily-words"); LISTS.ar = decrypt(fs.readFileSync(FILE_AR, "utf8"), "DAILY_AR_KEY"); console.log(`Arabic daily words loaded: ${LISTS.ar.length}`); }
 catch (e) { console.warn("Arabic daily words unavailable (set DAILY_AR_KEY):", e.message); }
+// room and practice words must never include a daily word (it would let anyone practise a daily); count only, never the words
+try {
+  const o = require("./scripts/check-room-words").overlaps(LISTS);
+  console.log(`Room word check: ${o.en.length} English and ${o.ar.length} Arabic room words are also daily words` + (o.en.length || o.ar.length ? ". Run scripts/check-room-words.js with the keys to list them." : ""));
+} catch (e) { console.warn("Room word check failed:", e.message); }
 // -> [category, word, English clue, Arabic clue, meaning] for daily n, or null
 function wordFor(n, lg) {
   const L = LISTS[lg]; if (!L.length) return null;
