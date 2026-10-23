@@ -22,10 +22,11 @@ function roomWords(html = fs.readFileSync(PAGE, "utf8")) {
   return { en: grab("ROOM_WORDS"), ar: grab("ROOM_WORDS_AR") };
 }
 
-// lists: {en: [[cat, word, ...]], ar: [...]} -> {en: [words in both], ar: [...]}
-function overlaps(lists, rooms = roomWords()) {
+// lists: {en: [[cat, word, ...]], ar: [...]} -> {en: [words in both], ar: [...]}; from: the first list index to
+// check (days already played don't matter: their words are out)
+function overlaps(lists, rooms = roomWords(), from = 0) {
   const out = { en: [], ar: [] };
-  for (const lg of ["en", "ar"]) for (const e of lists[lg] || []) if (rooms[lg].has(norm(e[1]))) out[lg].push(e[1]);
+  for (const lg of ["en", "ar"]) (lists[lg] || []).forEach((e, i) => { if (i >= from && rooms[lg].has(norm(e[1]))) out[lg].push(e[1]); });
   return out;
 }
 module.exports = { roomWords, overlaps };
