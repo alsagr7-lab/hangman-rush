@@ -239,7 +239,7 @@ en:{
   catSub_name:"a person",catSub_animal:"any creature",catSub_plant:"fruit, veg, tree…",catSub_object:"a thing",catSub_place:"country or city",
   letterLine:"Words starting with {L}",letterWait:"The letter appears when the clock starts",getReady:"Get ready…",
   inArabic:"Answer in Arabic",inEnglish:"Answer in English",
-  submit:"Submit",done:"I'm done",stop:"STOP",stopHelp:"Fill all five, then press STOP: everyone else gets 5 seconds.",
+  submit:"Submit",done:"I'm done",stop:"STOP",stopHelp:"Fill all five, then press STOP: everyone else gets 5 seconds.",fullHelp:"No STOP this game: write until the time is up.",byHost:"host",
   stopped:"{name} pressed STOP!",stoppedMe:"You pressed STOP!",checking:"Checking answers…",waitingOthers:"Waiting for everyone's answers…",
   wrongLetter:"doesn't start with {L}",notAccepted:"not accepted for this category",notChecked:"not checked",checkingLater:"being checked: the points are added once it's confirmed",blank:"—",
   onlyYou:"only you",nOf:"{c} of {n} players",
@@ -295,7 +295,7 @@ ar:{
   catSub_name:"اسم شخص",catSub_animal:"أي كائن",catSub_plant:"فاكهة، خضار، شجر…",catSub_object:"شيء",catSub_place:"دولة أو مدينة",
   letterLine:"كلمات تبدأ بحرف {L}",letterWait:"يظهر الحرف عندما يبدأ الوقت",getReady:"استعد…",
   inArabic:"أجب بالعربية",inEnglish:"أجب بالإنجليزية",
-  submit:"أرسل",done:"انتهيت",stop:"ستوب",stopHelp:"املأ الخمس ثم اضغط ستوب: يحصل الباقون على 5 ثوانٍ.",
+  submit:"أرسل",done:"انتهيت",stop:"ستوب",stopHelp:"املأ الخمس ثم اضغط ستوب: يحصل الباقون على 5 ثوانٍ.",fullHelp:"بدون ستوب في هذه اللعبة: اكتب حتى ينتهي الوقت.",byHost:"المضيف",
   stopped:"{name} ضغط ستوب!",stoppedMe:"ضغطت ستوب!",checking:"نتحقق من الإجابات…",waitingOthers:"بانتظار إجابات الجميع…",
   wrongLetter:"لا تبدأ بحرف {L}",notAccepted:"غير مقبولة في هذه الفئة",notChecked:"لم يُتحقق منها",checkingLater:"قيد التحقق: تُضاف النقاط عند التأكيد",blank:"—",
   onlyYou:"أنت فقط",nOf:"{c} من {n} لاعبين",
@@ -607,6 +607,16 @@ function others(){return peers().filter(p=>!p.sameTab)}
 let leftForParty=false;
 // this tab came here from a party (rushgames.cc/party): the big screen runs the room, never a phone
 function inParty(){try{return!!code&&sessionStorage.getItem("rush-party")===code}catch(e){return false}}
+function noStop(){const hp=mode==="room"&&hostPeer();return!!(hp&&hp.presence.scr&&hp.presence.ns)}
+function hostOv(){const hp=cur&&mode==="room"&&hostPeer();if(!hp||!hp.presence.scr)return null;const P=hp.presence;
+  return num(P.ovr)===cur.round&&P.ov&&typeof P.ov==="object"&&!Array.isArray(P.ov)?P.ov:null}
+// the host changed its call on an answer after I scored: count my round again
+function rescoreOv(){
+  if(!cur||!cur.scored)return;const k=JSON.stringify(hostOv()||{});if(k===cur.ovKey)return;cur.ovKey=k;
+  const rows=roundRows().filter(r=>r.a&&r.v),A={},V={};rows.forEach(r=>{A[r.id]=r.a;V[r.id]=r.v});
+  const np=R.harfRoomPoints(A,V,cur.lg)[uid]||H.CATS.map(()=>0),sum=a=>a.reduce((x,y)=>x+y,0);
+  score+=sum(np)-sum(cur.pts||[]);cur.pts=np;pushPresence();lastPanelKey="";render();
+}
 function tvWait(){const a=el("a","btn",t("backParty"));a.href=(lang==="ar"?"/ar":"")+"/party/#p="+code;
   return[el("h2",null,t("tvWait")),el("p","note",t("tvWaitHelp")),a]}
 function hostPeer(){return Rush.hostOf(others())}
@@ -659,7 +669,7 @@ function hostStart(){
 function pressStop(){
   if(!cur||cur.locked)return;
   if(mode==="solo"){cur.sa=Date.now()-H.STOP_MS;tick();return}
-  if(words().some(w=>!w))return;
+  if(words().some(w=>!w)||noStop())return;
   cur.stopSent=true;
   if(host&&!hs.sa&&hs.hr===cur.round){hs.sa=Date.now();hs.sn=me.nick;cur.sa=hs.sa;cur.sn=hs.sn}
   pushPresence();render();
@@ -688,7 +698,10 @@ function roundRows(){
   const list=others().filter(p=>p.presence.r===cur.round).map(p=>{const P=p.presence;
     return{me:false,id:P.u||p.peer,n:nm16(P.n),c:R.safeColor(P.c),a:Array.isArray(P.a)?P.a.slice(0,N).map(x=>String(x||"").slice(0,H.MAXLEN)):null,
       v:Array.isArray(P.v)?P.v.slice(0,N).map(x=>x?1:0):null,rp:P.rp==null?null:num(P.rp),f:num(P.f),dn:P.dn?1:0}});
-  list.push(mine);return list;
+  list.push(mine);
+  const ov=hostOv();
+  if(ov)list.forEach(r=>{if(!r.v)return;r.ovd=[];r.v=r.v.map((x,i)=>{const k=r.id+":"+i;if(!(k in ov))return x;r.ovd.push(i);return ov[k]?1:0})});
+  return list;
 }
 function resultsReady(){
   if(!cur||!cur.v)return false;
@@ -700,7 +713,7 @@ function resultsReady(){
 function scoreRound(){
   if(!cur||cur.scored||!resultsReady())return;
   const rows=roundRows().filter(r=>r.a&&r.v),A={},V={};rows.forEach(r=>{A[r.id]=r.a;V[r.id]=r.v});
-  cur.pts=R.harfRoomPoints(A,V,cur.lg)[uid]||H.CATS.map(()=>0);cur.scored=true;
+  cur.pts=R.harfRoomPoints(A,V,cur.lg)[uid]||H.CATS.map(()=>0);cur.scored=true;cur.ovKey=JSON.stringify(hostOv()||{});
   score+=cur.pts.reduce((x,y)=>x+y,0);pushPresence();lastPanelKey="";render();
 }
 // rooms and practice: a won appeal makes the answer valid and recounts my points for the round
@@ -748,6 +761,7 @@ function tick(){
   if(!partyScoreRead&&hp&&hp.presence.scr)keepPartyScore();
   if(hp&&hp.presence.scr&&hp.presence.back===1){let pc=null;try{pc=sessionStorage.getItem("rush-party")}catch(e){}
     if(pc===code&&!leftForParty){leftForParty=true;location.href=(lang==="ar"?"/ar":"")+"/party/#p="+code;return}}
+  rescoreOv();
   if(cur&&h.hr===cur.round){const sa=h.sa?h.sa+cur.shift:0;if(sa!==cur.sa){cur.sa=sa;cur.sn=h.sn;lastPanelKey="";render()}}
   if(h.hr>lastRound&&h.st==="playing"&&h.L){
     lastRound=h.hr;
@@ -786,7 +800,7 @@ function renderPlay(){
   const writing=mode==="daily"?!!(drun&&drun.L):!!(cur&&!waitNext&&phaseOf(cur,Date.now()).ph!=="count");
   le.className="letter"+(lg==="en"?" en":"")+(writing&&L?"":" wait");le.textContent=writing&&L?L:"?";
   $("#letLine").textContent=writing&&L?t("letterLine",{L}):t("getReady");
-  $("#letSub").textContent=writing&&L?t(lg==="ar"?"inArabic":"inEnglish")+(mode==="room"?" · "+t("stopHelp"):""):t("letterWait");
+  $("#letSub").textContent=writing&&L?t(lg==="ar"?"inArabic":"inEnglish")+(mode==="room"?" · "+t(noStop()?"fullHelp":"stopHelp"):""):t("letterWait");
   renderActions();renderTimer();
 }
 let actKey="";
@@ -800,7 +814,7 @@ function renderActions(){
     const P=phaseOf(cur,Date.now()),full=words().every(Boolean);
     if(P.ph==="write"&&!cur.locked){
       if(mode==="solo"){dShow=true;dTxt=t("done")}
-      else sShow=full&&!cur.sa&&!cur.stopSent;
+      else sShow=full&&!cur.sa&&!cur.stopSent&&!noStop();
     }
     if(cur.sa&&mode==="room"){fb=cur.stopSent&&(!cur.sn||cur.sn===me.nick)?t("stoppedMe"):t("stopped",{name:cur.sn||"?"});cls="no"}
     if(cur.locked&&!cur.v)fb=t("checking");
@@ -909,7 +923,7 @@ function renderOverlay(){
         rh.append(dot,el("span","nm",r.n+(r.me?" ("+t("you")+")":"")),el("span","ps","+"+r.pts.reduce((x,y)=>x+y,0)));
         const rw=el("div","rw");rw.dir=cur.lg==="ar"?"rtl":"ltr";
         H.CATS.forEach((c,i)=>{const w=r.a[i]||"",p=r.pts[i],fx=r.me&&cur.res&&cur.res[i]&&cur.res[i].f;
-          const s=el("span",w?"p"+p:"p0 blank",(w||t("blank"))+(fx?" ✎":"")+(w&&p?" +"+p:""));s.title=catName(c)+(fx?" · "+t("fixMark")+" ("+cur.res[i].w+")":"");rw.appendChild(s)});
+          const s=el("span",w?"p"+p:"p0 blank",(w||t("blank"))+(fx?" ✎":"")+(w&&p?" +"+p:"")+(r.ovd&&r.ovd.includes(i)?" · "+t("byHost"):""));s.title=catName(c)+(fx?" · "+t("fixMark")+" ("+cur.res[i].w+")":"");rw.appendChild(s)});
         li.append(rh,rw);ol.appendChild(li)});
       out.push(ol,el("p","note",t(mode==="solo"?"soloScoring":"roomScoring")));
       // my answers turned down for their category can be appealed
