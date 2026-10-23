@@ -224,6 +224,23 @@
   const joined = new Map(); // name -> state
   function sendRaw(obj) { if (open) ws.send(JSON.stringify(obj)); }
   function setOpen(v) { open = v; joined.forEach(s => s.conn.forEach(f => { try { f(v); } catch {} })); }
+  // this tab's place in a room went to the same player somewhere newer (another tab, or a rescanned party code)
+  function showReplaced() {
+    if (document.getElementById("rushReplaced")) return;
+    const ar = document.documentElement.lang === "ar", d = document.createElement("div");
+    d.id = "rushReplaced"; d.setAttribute("role", "alertdialog"); d.setAttribute("aria-modal", "true");
+    d.style.cssText = "position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.72)";
+    const box = document.createElement("div");
+    box.style.cssText = "max-width:420px;background:#fff;color:#1B1240;border-radius:20px;padding:24px;display:grid;gap:12px;font:16px/1.45 system-ui,sans-serif";
+    const h = document.createElement("b"); h.style.fontSize = "20px";
+    h.textContent = ar ? "أنت تلعب في نافذة أخرى" : "You're playing in another tab";
+    const p = document.createElement("p"); p.style.margin = "0";
+    p.textContent = ar ? "دخلت نفس الغرفة من نافذة أو تبويب آخر، فأُغلق مكانك هنا. أكمل اللعب هناك." : "You joined the same room from another tab or window, so your place here was closed. Carry on there.";
+    const b = document.createElement("button"); b.type = "button"; b.textContent = ar ? "حسناً" : "OK";
+    b.style.cssText = "justify-self:start;min-height:44px;padding:0 22px;border:0;border-radius:999px;background:#1B1240;color:#fff;font-weight:700;cursor:pointer";
+    b.onclick = () => { try { window.close(); } catch {} location.href = "/" + (ar ? "ar/" : ""); };
+    box.append(h, p, b); d.append(box); document.body.append(d); b.focus();
+  }
   function connect() {
     ws = new WebSocket(wsUrl);
     ws.onopen = () => { setOpen(true); setServer("up"); joined.forEach((s, name) => sendRaw({ t: "join", room: name, presence: s.presence })); };
@@ -232,6 +249,11 @@
     ws.onmessage = ev => {
       let m; try { m = JSON.parse(ev.data); } catch { return; }
       const s = joined.get(m.room); if (!s) return;
+      if (m.t === "error" && m.code === "replaced" && !s.pending) {
+        joined.delete(m.room); s.peers = Object.freeze([]);
+        s.listeners.forEach(f => { try { f({ peers: s.peers, joined: [], left: [], updated: [], replaced: true }); } catch (e) { console.error(e); } });
+        onBody(showReplaced); return;
+      }
       if (m.t === "error") { if (s.pending) { s.pending.reject({ code: m.code, message: "Room limit reached" }); s.pending = null; joined.delete(m.room); } return; }
       if (m.t !== "peers") return;
       const now = Date.now(), prev = new Map(s.peers.map(p => [p.peer, p]));
