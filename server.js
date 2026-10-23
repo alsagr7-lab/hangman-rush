@@ -161,7 +161,12 @@ function leave(ws, name) {
 
 // limits that keep one visitor from overloading the rooms: connections per address, rooms per connection,
 // players per room, and messages per second (each message is re-sent to everyone in the room)
-const WS_PER_IP = 12, ROOMS_PER_WS = 4, ROOM_MAX = 20, MSG_PER_SEC = 10, MSG_BURST = 20;
+// party rooms ("pt-<code>", rushgames.cc/party): PARTY_MAX players plus the TV that hosts them; a party that's full
+// answers "party_full". (Raise PARTY_MAX for supporters later.) A party's game room holds them all too, and a whole
+// family on one home connection shares one address, so that limit leaves room for a full party.
+const PARTY_MAX = Math.max(2, Number(process.env.PARTY_MAX) || 15);
+const WS_PER_IP = Math.max(12, 2 * (PARTY_MAX + 1) + 8), ROOMS_PER_WS = 4, ROOM_MAX = Math.max(20, PARTY_MAX + 1), MSG_PER_SEC = 10, MSG_BURST = 20;
+const roomCap = name => (name.startsWith("pt-") ? PARTY_MAX + 1 : ROOM_MAX);
 const wsByIp = new Map(); // ip -> open connections
 const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 16 * 1024 });
 wss.on("connection", (ws, req) => {
@@ -190,7 +195,7 @@ wss.on("connection", (ws, req) => {
       if (!ws.rooms.has(name)) {
         if (ws.rooms.size >= ROOMS_PER_WS) return ws.send(JSON.stringify({ t: "error", room: name, code: "limit_reached" }));
         const room = rooms.get(name) || new Map();
-        if (room.size >= ROOM_MAX) return ws.send(JSON.stringify({ t: "error", room: name, code: "limit_reached" }));
+        if (room.size >= roomCap(name)) return ws.send(JSON.stringify({ t: "error", room: name, code: name.startsWith("pt-") ? "party_full" : "limit_reached" }));
         rooms.set(name, room);
         room.set(ws.peerId, { ws, presence: {} });
         ws.rooms.add(name);

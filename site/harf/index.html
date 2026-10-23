@@ -597,6 +597,7 @@ function myPresence(){
 function pushPresence(){if(roomApi)roomApi.presence(myPresence()).catch(()=>{})}
 function peers(){return roomApi?roomApi.peers().filter(p=>p.presence&&p.presence.n):[]}
 function others(){return peers().filter(p=>!p.sameTab)}
+let leftForParty=false;
 function hostPeer(){return Rush.hostOf(others())}
 function myPeer(){return Rush.mePeer(roomApi)}
 function hostInfo(){
@@ -731,6 +732,10 @@ function tick(){
     return;
   }
   const h=hostInfo();if(!h)return;
+  // in party mode the big screen sends everyone back to the party's lobby
+  const hp=hostPeer();
+  if(hp&&hp.presence.scr&&hp.presence.back===1){let pc=null;try{pc=sessionStorage.getItem("rush-party")}catch(e){}
+    if(pc===code&&!leftForParty){leftForParty=true;location.href=(lang==="ar"?"/ar":"")+"/party/#p="+code;return}}
   if(cur&&h.hr===cur.round){const sa=h.sa?h.sa+cur.shift:0;if(sa!==cur.sa){cur.sa=sa;cur.sn=h.sn;lastPanelKey="";render()}}
   if(h.hr>lastRound&&h.st==="playing"&&h.L){
     lastRound=h.hr;
@@ -798,7 +803,8 @@ $("#stopBtn").onclick=pressStop;
 /* boards */
 let boardKey="";
 function roomRowsAll(){
-  const list=others().map(p=>{const P=p.presence;return{me:false,id:P.u||p.peer,n:nm16(P.n),c:R.safeColor(P.c),s:num(P.s),r:num(P.r),f:num(P.f),dn:P.dn?1:0,rp:P.rp,h:P.h===1}});
+  // a party's big screen (scr: 1) hosts the room but doesn't play
+  const list=others().filter(p=>!p.presence.scr).map(p=>{const P=p.presence;return{me:false,id:P.u||p.peer,n:nm16(P.n),c:R.safeColor(P.c),s:num(P.s),r:num(P.r),f:num(P.f),dn:P.dn?1:0,rp:P.rp,h:P.h===1}});
   list.push({me:true,id:uid,n:me.nick,c:me.color,s:score,r:cur?cur.round:0,f:cur&&!cur.locked?words().filter(Boolean).length:N,dn:cur&&cur.locked?1:0,rp:cur&&cur.pts?cur.pts.reduce((x,y)=>x+y,0):null,h:host});
   return list.sort((a,b)=>b.s-a.s);
 }
