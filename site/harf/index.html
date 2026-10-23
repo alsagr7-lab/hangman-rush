@@ -250,7 +250,7 @@ en:{
   shareHead:"Harf Rush · daily #{n} · {lg}",backLobby:"Back to the lobby",
   shareStart:"Share the code, then start",roomCodeLine:"Room code: ",readyPractise:"Ready to practise?",startRound1:"Start round 1",nextRound:"Next round",
   waitingFor:"Waiting for {name}",startsAtOnce:"The round starts for everyone at once.",noHost:"No host in room {c}",noHostHelp:"Check the code with your friend, or run the room yourself.",
-  takeOver:"Run the room",hostLeft:"The host left. Anyone can take over.",waitingHostNext:"Waiting for {name} to start the next round.",
+  takeOver:"Run the room",tvWait:"Waiting for the big screen…",tvWaitHelp:"It lost its connection for a moment. The game carries on here as soon as it's back.",backParty:"Back to the party",hostLeft:"The host left. Anyone can take over.",waitingHostNext:"Waiting for {name} to start the next round.",
   roundInProgress:"Round in progress",jumpIn:"You'll jump in when the next round starts.",roundOver:"Round {n} · letter {L}",
   roomScoring:"10 for a valid answer nobody else wrote, 5 if someone else wrote it too.",soloScoring:"10 for every valid answer.",
   langLbl:"Letters",timeLbl:"Time",
@@ -306,7 +306,7 @@ ar:{
   shareHead:"سباق الحروف · حرف اليوم #{n} · {lg}",backLobby:"العودة للبداية",
   shareStart:"شارك الرمز ثم ابدأ",roomCodeLine:"رمز الغرفة: ",readyPractise:"جاهز للتدريب؟",startRound1:"ابدأ الجولة 1",nextRound:"الجولة التالية",
   waitingFor:"بانتظار {name}",startsAtOnce:"تبدأ الجولة للجميع في نفس اللحظة.",noHost:"لا يوجد مضيف في الغرفة {c}",noHostHelp:"تأكّد من الرمز مع صديقك، أو أدِر الغرفة بنفسك.",
-  takeOver:"أدِر الغرفة",hostLeft:"غادر المضيف. يستطيع أي لاعب أن يتولى الإدارة.",waitingHostNext:"بانتظار {name} ليبدأ الجولة التالية.",
+  takeOver:"أدِر الغرفة",tvWait:"بانتظار الشاشة الكبيرة…",tvWaitHelp:"انقطع اتصالها للحظة. تكمل اللعبة هنا بمجرد رجوعها.",backParty:"العودة للحفلة",hostLeft:"غادر المضيف. يستطيع أي لاعب أن يتولى الإدارة.",waitingHostNext:"بانتظار {name} ليبدأ الجولة التالية.",
   roundInProgress:"جولة جارية",jumpIn:"ستنضم مع بداية الجولة التالية.",roundOver:"الجولة {n} · حرف {L}",
   roomScoring:"10 للإجابة الصحيحة التي لم يكتبها غيرك، و5 إذا كتبها غيرك أيضاً.",soloScoring:"10 لكل إجابة صحيحة.",
   langLbl:"الحروف",timeLbl:"الوقت",
@@ -533,7 +533,7 @@ function backToLobby(){
   unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];
   if(roomApi){try{roomApi.leave()}catch(e){}}
   clearTimeout(saveTimer);
-  roomApi=null;code=null;mode=null;host=false;cur=null;drun=null;score=0;lastRound=0;waitNext=false;hs=freshHost();
+  roomApi=null;code=null;mode=null;host=false;cur=null;drun=null;score=0;partyScoreRead=false;lastRound=0;waitNext=false;hs=freshHost();
   setInputs(null,false,lang);
   $("#game").hidden=true;$("#lobby").hidden=false;renderLobbyDaily();loadDaily(true);render();
 }
@@ -594,10 +594,21 @@ function myPresence(){
   else Object.assign(p,{hr:null,st:null,at:null,L:null,lg:null,ms:null,sa:null,sn:null});
   return p;
 }
-function pushPresence(){if(roomApi)roomApi.presence(myPresence()).catch(()=>{})}
+function pushPresence(){if(roomApi)roomApi.presence(myPresence()).catch(()=>{});keepPartyScore()}
+// a party's score survives the phone opening the game again (a rescanned code, a reloaded page): kept per party game
+let partyScoreRead=false;
+function partyGame(){const hp=inParty()&&hostPeer();return hp&&hp.presence.scr?num(hp.presence.gid):0}
+function keepPartyScore(){const g=partyGame();if(!g)return;
+  if(!partyScoreRead){partyScoreRead=true;try{const o=JSON.parse(localStorage.getItem("rush-party-score")||"null");
+    if(o&&o.c===code&&o.g===g&&num(o.s)>score){score=num(o.s);if(roomApi)roomApi.presence({s:score}).catch(()=>{})}}catch(e){}}
+  try{localStorage.setItem("rush-party-score",JSON.stringify({c:code,g,s:score}))}catch(e){}}
 function peers(){return roomApi?roomApi.peers().filter(p=>p.presence&&p.presence.n):[]}
 function others(){return peers().filter(p=>!p.sameTab)}
 let leftForParty=false;
+// this tab came here from a party (rushgames.cc/party): the big screen runs the room, never a phone
+function inParty(){try{return!!code&&sessionStorage.getItem("rush-party")===code}catch(e){return false}}
+function tvWait(){const a=el("a","btn",t("backParty"));a.href=(lang==="ar"?"/ar":"")+"/party/#p="+code;
+  return[el("h2",null,t("tvWait")),el("p","note",t("tvWaitHelp")),a]}
 function hostPeer(){return Rush.hostOf(others())}
 function myPeer(){return Rush.mePeer(roomApi)}
 function hostInfo(){
@@ -734,6 +745,7 @@ function tick(){
   const h=hostInfo();if(!h)return;
   // in party mode the big screen sends everyone back to the party's lobby
   const hp=hostPeer();
+  if(!partyScoreRead&&hp&&hp.presence.scr)keepPartyScore();
   if(hp&&hp.presence.scr&&hp.presence.back===1){let pc=null;try{pc=sessionStorage.getItem("rush-party")}catch(e){}
     if(pc===code&&!leftForParty){leftForParty=true;location.href=(lang==="ar"?"/ar":"")+"/party/#p="+code;return}}
   if(cur&&h.hr===cur.round){const sa=h.sa?h.sa+cur.shift:0;if(sa!==cur.sa){cur.sa=sa;cur.sn=h.sn;lastPanelKey="";render()}}
@@ -885,6 +897,7 @@ function renderOverlay(){
       if(host){out.push(el("h2",null,mode==="solo"?t("readyPractise"):t("shareStart")));
         if(mode==="room"){const p=el("p",null,t("roomCodeLine"));const c=ltr(code);c.style.cssText="font-family:var(--f-mono);font-weight:700;letter-spacing:.2em";p.appendChild(c);out.push(p,el("p","note",t("startsAtOnce")))}}
       else if(hp)out.push(el("h2",null,t("waitingFor",{name:nm16(hp.presence.n)})),el("p",null,t("startsAtOnce")));
+      else if(inParty()){out.push(...tvWait());return out}
       else{out.push(el("h2",null,t("noHost",{c:code})),el("p",null,t("noHostHelp")));const b=el("button","btn",t("takeOver"));b.onclick=takeOver;out.push(b);return out}
     }else{
       out.push(el("h2",null,t("roundOver",{n:cur.round,L:cur.L})));
@@ -918,6 +931,7 @@ function renderOverlay(){
       out.push(el("p","lbl",t("timeLbl")),seg(H.ROOM_MS.map(ms=>[ms,t("secs",{n:ms/1000})]),hs.ms,setRoomTime));
       const b=el("button","btn primary",cur?t("nextRound"):t("startRound1"));b.onclick=hostStart;out.push(b);
     }else if(hp){out.push(el("p","diffhelp",(H0.lg==="ar"?"عربي":"English")+" · "+t("secs",{n:H0.ms/1000})),el("p","note",t("waitingHostNext",{name:nm16(hp.presence.n)})))}
+    else if(cur&&inParty())out.push(...tvWait());
     else if(cur){out.push(el("p","note",t("hostLeft")));const b=el("button","btn primary",t("takeOver"));b.onclick=takeOver;out.push(b)}
     return out;
   });

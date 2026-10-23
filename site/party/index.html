@@ -475,11 +475,11 @@ function backToLobby(){
 /* ---------- Harf on the TV: this screen hosts the room and doesn't play ----------
    It speaks the Harf page's room protocol (site/harf/index.html): host fields in its presence, scr: 1 so the phones
    leave it out of the players. Each phone checks its own answers and posts them with its points. */
-let leaving=null,hApi=null,hUnsub=[],hs=null,hfView="wait",hfTimer=null,hfPaused=false,hfNextAt=0,hfRound=null;
+let hfLastHr=0,leaving=null,hApi=null,hUnsub=[],hs=null,hfView="wait",hfTimer=null,hfPaused=false,hfNextAt=0,hfRound=null;
 const NEXT_MS=20000;
-function hfPresence(){return{n:lang==="ar"?"الشاشة":"TV",c:R.COLORS[0],u:"tv_"+Rush.uid,scr:1,h:1,s:0,r:0,f:0,dn:0,hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn,back:hs.back||0}}
+function hfPresence(){return{n:lang==="ar"?"الشاشة":"TV",c:R.COLORS[0],u:"tv_"+Rush.uid,scr:1,h:1,s:0,r:0,f:0,dn:0,hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn,back:hs.back||0,gid:roomCount}}
 async function hfEnter(){
-  hs={hr:0,st:"waiting",at:0,L:"",lg:tvGame.lg,ms:tvGame.ms,sa:0,sn:"",used:[],back:0};hfView="wait";hfRound=null;draw();
+  hs={hr:hfLastHr,st:"waiting",at:0,L:"",lg:tvGame.lg,ms:tvGame.ms,sa:0,sn:"",used:[],back:0};hfView="wait";hfRound=null;draw();
   if(leaving){clearTimeout(leaving.tm);hApi=leaving.api;leaving=null}
   else try{hApi=await Rush.room.join("hf-"+code.toLowerCase())}catch(e){hApi=null;tvErr=t("noParty");backToLobby();return}
   hApi.presence(hfPresence());
@@ -497,7 +497,7 @@ function hfStartRound(){
   const lg=hs.lg,all=H.LETTERS[lg];let pool=all.filter(l=>!hs.used.includes(lg+l));
   if(!pool.length){hs.used=hs.used.filter(x=>!x.startsWith(lg));pool=all}
   const L=pool[Math.floor(Math.random()*pool.length)];hs.used.push(lg+L);
-  hs.hr++;hs.st="playing";hs.at=Date.now();hs.L=L;hs.sa=0;hs.sn="";
+  hs.hr=++hfLastHr;hs.st="playing";hs.at=Date.now();hs.L=L;hs.sa=0;hs.sn="";
   hfRound={r:hs.hr,L,lg,ms:hs.ms,at:hs.at,endAt:0};hfView="round";hApi.presence(hfPresence());draw();
 }
 function hfPhase(now){

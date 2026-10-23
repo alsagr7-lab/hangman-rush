@@ -36,3 +36,16 @@ test("a whole party fits on one home connection", async () => {
   assert.ok(socks.every(s => s.ws.readyState === WebSocket.OPEN));
   socks.forEach(s => s.ws.close());
 });
+
+test("a player who joins a room again replaces their older place", async () => {
+  await wait(400); // the last test's connections finish closing (one address has a connection limit)
+  const a = await open(), b = await open(), c = await open();
+  a.ws.send(JSON.stringify({ t: "join", room: "hf-wxyz", presence: { n: "Yousef", u: "p_same" } })); await wait(60);
+  c.ws.send(JSON.stringify({ t: "join", room: "hf-wxyz", presence: { n: "Mona", u: "p_other" } })); await wait(60);
+  b.ws.send(JSON.stringify({ t: "join", room: "hf-wxyz", presence: { n: "Yousef", u: "p_same" } })); await wait(150);
+  assert.ok(a.msgs.some(m => m.t === "error" && m.code === "replaced"));
+  const last = c.msgs.filter(m => m.t === "peers").pop();
+  assert.deepStrictEqual(last.peers.map(p => p.presence.n).sort(), ["Mona", "Yousef"]);
+  assert.ok(!b.msgs.some(m => m.code === "replaced") && !c.msgs.some(m => m.code === "replaced"));
+  [a, b, c].forEach(s => s.ws.close());
+});

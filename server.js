@@ -151,6 +151,18 @@ function broadcast(name) {
   }
 }
 
+// one place per player in a room: a player who joins again (another tab, or a phone that rescanned the party's QR
+// code) replaces their older place, which is told so and doesn't come back by itself
+function dropOlder(name, ws) {
+  const room = rooms.get(name), me = room && room.get(ws.peerId), u = me && me.presence.u;
+  if (typeof u !== "string" || !u) return;
+  for (const [peer, v] of room) {
+    if (peer === ws.peerId || v.presence.u !== u) continue;
+    room.delete(peer); v.ws.rooms.delete(name);
+    if (v.ws.readyState === 1) v.ws.send(JSON.stringify({ t: "error", room: name, code: "replaced" }));
+  }
+}
+
 function leave(ws, name) {
   const room = rooms.get(name);
   if (!room) return;
@@ -202,6 +214,7 @@ wss.on("connection", (ws, req) => {
       }
       const p = msg.presence;
       if (p && typeof p === "object" && !Array.isArray(p) && JSON.stringify(p).length <= MAX_PRESENCE) rooms.get(name).get(ws.peerId).presence = p;
+      dropOlder(name, ws);
       broadcast(name);
     } else if (msg.t === "presence") {
       const entry = rooms.get(name) && rooms.get(name).get(ws.peerId);
@@ -210,6 +223,7 @@ wss.on("connection", (ws, req) => {
       for (const [k, v] of Object.entries(msg.patch)) { if (v === null) delete next[k]; else next[k] = v; }
       if (JSON.stringify(next).length > MAX_PRESENCE) return;
       entry.presence = next;
+      if ("u" in msg.patch) dropOlder(name, ws);
       broadcast(name);
     } else if (msg.t === "leave") {
       leave(ws, name);
