@@ -679,7 +679,9 @@ async function lockAndCheck(){
   cur.locked=true;cur.words=words();inputs.forEach(i=>i.disabled=true);pushPresence();lastPanelKey="";render();
   const c=cur;
   for(;;){
-    try{const r=await Rush.harf.check(c.lg,c.L,c.words);if(cur!==c)return;c.res=r.a;c.v=r.a.map(x=>x.ok?1:0);
+    // a check that never answers (a bad connection) falls back to the first-letter rule after 12 seconds, so the
+    // round's results never wait on one phone
+    try{const r=await Promise.race([Rush.harf.check(c.lg,c.L,c.words),new Promise((_,no)=>setTimeout(()=>no({status:0,timeout:1}),12000))]);if(cur!==c)return;c.res=r.a;c.v=r.a.map(x=>x.ok?1:0);
       c.words=r.a.map((x,i)=>x.ok&&x.f?x.f:c.words[i]);/* a misspelt answer counts as its correct spelling */if(apiOn==null){apiOn=!!r.api;renderCheckNote()}break}
     catch(e){
       if(cur!==c)return;
