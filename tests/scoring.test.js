@@ -139,3 +139,11 @@ test("days change at midnight Saudi time (21:00 UTC), not midnight UTC", () => {
   assert.ok(left > 0 && left <= R.DAY);
   assert.equal(new Date(next).getUTCHours(), 21); assert.notEqual(R.keyAt(next), R.todayKey());
 });
+
+test("Harf rooms: a misspelling of someone else's answer is shared, not rare", () => {
+  const v = [0, 1, 0, 0, 0], pts = (a, b, lg) => R.harfRoomPoints({ a: ["", a, "", "", ""], b: ["", b, "", "", ""] }, { a: v, b: v }, lg);
+  for (const [a, b, lg] of [["زرفة", "زرافة", "ar"], ["ذيب", "ذئب", "ar"], ["Elefant", "Elephant", "en"], ["Lion", "Lions", "en"]])
+    assert.deepStrictEqual(pts(a, b, lg), { a: [0, 5, 0, 0, 0], b: [0, 5, 0, 0, 0] }, a + " / " + b);
+  for (const [a, b, lg] of [["أسد", "أسر", "ar"], ["نمر", "نمل", "ar"], ["Cat", "Cow", "en"], ["Bear", "Beaver", "en"]])
+    assert.deepStrictEqual(pts(a, b, lg), { a: [0, 10, 0, 0, 0], b: [0, 10, 0, 0, 0] }, a + " / " + b);
+});

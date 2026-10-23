@@ -205,16 +205,29 @@
     if (words.length) words[words.length - 1] = singular(words[words.length - 1], lg);
     return words.join("");
   }
+  // one letter apart (two for long words): a misspelling of the same answer, e.g. one the host or the referee
+  // accepted without a corrected spelling
+  function harfNear(a, b) {
+    if (a === b) return true;
+    const x = [...a], y = [...b], m = x.length, n = y.length, lim = Math.min(m, n) >= 7 ? 2 : 1;
+    if (Math.min(m, n) < 3 || Math.max(m, n) < 4 || Math.abs(m - n) > lim) return false;
+    let prev = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) {
+      const cur = [i];
+      for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+      if (Math.min(...cur) > lim) return false;
+      prev = cur;
+    }
+    return prev[n] <= lim;
+  }
   // a room round: answers {player: [5 words]}, valid {player: [1/0 x5]} -> points {player: [pts x5]}
+  // An answer is shared when another player gave the same answer, counting plurals and near-misspellings as the same.
   function harfRoomPoints(answers, valid, lg) {
-    const counts = HARF.CATS.map(() => new Map()), out = {};
-    for (const p of Object.keys(answers)) HARF.CATS.forEach((c, i) => {
-      if (!(valid[p] && valid[p][i])) return;
-      const k = harfGroup(answers[p][i], lg, c); counts[i].set(k, (counts[i].get(k) || 0) + 1);
-    });
-    for (const p of Object.keys(answers)) out[p] = HARF.CATS.map((c, i) => {
-      if (!(valid[p] && valid[p][i])) return 0;
-      return counts[i].get(harfGroup(answers[p][i], lg, c)) > 1 ? HARF.ROOM_SHARED : HARF.ROOM_UNIQUE;
+    const ps = Object.keys(answers), out = {};
+    for (const p of ps) out[p] = HARF.CATS.map(() => 0);
+    HARF.CATS.forEach((c, i) => {
+      const ks = ps.filter(p => valid[p] && valid[p][i]).map(p => [p, harfGroup(answers[p][i], lg, c)]);
+      for (const [p, k] of ks) out[p][i] = ks.some(([q, k2]) => q !== p && harfNear(k, k2)) ? HARF.ROOM_SHARED : HARF.ROOM_UNIQUE;
     });
     return out;
   }
@@ -237,6 +250,6 @@
     num, DAY, TZ_OFF, EPOCH_DAY, keyAt, hourKey, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight, weekStart, weekStartKey, weekDay, weekDaysLeft, weekNo, weekNoOf, weekEntries,
     COLORS, safeColor, nm16, badName, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
-    HARF, harfNorm, harfStem, harfKey, harfGroup, harfLetterOk, harfRoomPoints,
+    HARF, harfNorm, harfStem, harfKey, harfGroup, harfNear, harfLetterOk, harfRoomPoints,
   };
 });
