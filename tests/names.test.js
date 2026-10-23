@@ -19,3 +19,16 @@ test("a turned-down name shows as Player", () => {
   assert.equal(R.nm16("Yousef"), "Yousef");
   assert.equal(R.nm16("admin"), "Player");
 });
+
+test("more insults: pronoun endings, Arabizi, look-alike letters and hidden characters", () => {
+  for (const n of ["كسك", "زبه", "طيزها", "کلب", "ك​س امك", "kosomak", "sharmoota", "ya kalb", "f4ck", "idiot", "انقلع", "يا خنزير", "ابن الحرام"])
+    assert.ok(R.badName(n), n);
+  for (const n of ["زبده", "كسره", "Kosta", "Zebra", "Fakhri", "Ata", "Hoeness"]) assert.ok(!R.badName(n), n);
+});
+
+test("party chat: spam never shows, ordinary lines and the quick phrases do", () => {
+  for (const m of ["asdfghjk", "qwrtzxcvbn", "سشيبلاتنمكطظزرؤ", "visit www.x.com", "0551234567", "heyمرحبا", "!!!!", "يا كلب"]) assert.equal(R.cleanChat(m), "", m);
+  for (const m of ["هلا!", "جاهز", "يلا!", "كفو", "Hi!", "Ready", "Let's go!", "GG", "حلوة الجولة", "2 more rounds", "😂😂"]) assert.equal(R.cleanChat(m), m, m);
+  assert.equal(R.cleanChat("ههههههههه"), "ههه");
+  assert.ok(R.junkText("asdfghjkl")); assert.ok(!R.junkText("Sara"));
+});
