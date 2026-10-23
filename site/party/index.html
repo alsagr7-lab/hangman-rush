@@ -44,7 +44,7 @@
 html.party,html.party body,:root.party[data-theme] body{background:var(--pv)!important;color:var(--ptext)}
 .party body{font-family:var(--fb)}
 .party .wrap{max-width:none;padding:0}
-.party-tv .rbar{display:none!important}
+.party-tv .rbar,.party-tv .rfoot{display:none!important} /* the big screen shows only the party */
 #pty{min-height:100dvh;position:relative;overflow:hidden;font-family:var(--fb)}
 #pty *{font-family:inherit}
 /* soft floating blobs behind everything */
@@ -149,14 +149,14 @@ html.party,html.party body,:root.party[data-theme] body{background:var(--pv)!imp
 .quick button{min-height:44px;border-radius:999px;border:0;padding:0 16px;font-weight:800;font-size:16px;background:#EFEAFF;color:var(--pdark);cursor:pointer}
 .pstatus{text-align:center;font-size:20px;font-weight:800}
 /* ---------- Harf on the TV ---------- */
-.hf{min-height:100dvh;display:grid;grid-template-rows:auto 1fr auto;gap:18px;padding:24px 28px;box-sizing:border-box;position:relative}
+.hf{height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:18px;padding:24px 28px;box-sizing:border-box;position:relative}
 .hfhead{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .hfhead .mini{display:flex;align-items:center;gap:14px}
 .hfhead .mini svg{width:76px;height:76px;background:#fff;border-radius:14px;padding:6px}
 .hfhead .mini .code{font-family:"Saira",sans-serif;font-weight:800;font-size:30px;letter-spacing:.16em;color:var(--yel)}
 .hfbody{display:grid;grid-template-columns:1fr minmax(260px,24%);gap:24px;min-height:0}
 @media (max-width:900px){.hfbody{grid-template-columns:1fr}}
-.hfcenter{display:grid;align-content:center;justify-items:center;gap:20px;text-align:center;min-width:0}
+.hfcenter{display:grid;align-content:safe center;overflow:auto;min-height:0;justify-items:center;gap:20px;text-align:center;min-width:0}
 .letter{font-weight:800;font-size:clamp(160px,22vw,300px);line-height:1;color:var(--yel);text-shadow:0 12px 0 rgba(0,0,0,.25);animation:pop .4s cubic-bezier(.3,1.6,.6,1)}
 .letter.latin{font-family:"Saira","Baloo Bhaijaan 2",sans-serif}
 .cats{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
@@ -167,7 +167,7 @@ html.party,html.party body,:root.party[data-theme] body{background:var(--pv)!imp
 .secs{font-family:"Saira",sans-serif;font-weight:800;font-size:44px}
 .stopban{background:var(--pink);color:var(--pink-ink);font-weight:800;font-size:34px;border-radius:999px;padding:8px 30px;box-shadow:0 6px 0 var(--pink2);animation:pop .3s cubic-bezier(.3,1.6,.6,1)}
 .bigmsg{font-size:clamp(36px,5vw,64px);font-weight:800}
-.plist{display:grid;gap:10px;align-content:start}
+.plist{display:grid;gap:10px;align-content:start;overflow:auto;min-height:0}
 .prow{display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:12px;background:rgba(255,255,255,.1);border-radius:24px;padding:8px 14px}
 .prow svg{width:52px;height:52px;overflow:visible}
 .prow b{font-size:22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -183,11 +183,19 @@ html.party,html.party body,:root.party[data-theme] body{background:var(--pv)!imp
 .hres td:last-child{border-start-end-radius:18px;border-end-end-radius:18px;font-family:"Saira",sans-serif;font-weight:800;font-size:24px;text-align:end;white-space:nowrap}
 .hres .hwho{display:flex;align-items:center;gap:10px;font-weight:800;white-space:nowrap}
 .hres .hwho svg{width:40px;height:40px;overflow:visible}
+/* a big party: smaller rows so the whole table, the scores and the buttons fit on the screen */
+.hf.many .plist{gap:6px}.hf.many .prow{grid-template-columns:34px minmax(0,1fr) auto;padding:3px 12px;border-radius:16px}.hf.many .prow svg{width:34px;height:34px}
+.hf.many .prow b{font-size:17px}.hf.many .prow .sc{font-size:19px}.hf.many .pips i{width:9px;height:9px}
+.hf.many .hres{font-size:16px;border-spacing:0 4px}.hf.many .hres td{padding:4px 8px}.hf.many .hres td:last-child{font-size:18px}
+.hf.many .hres .hwho svg{width:26px;height:26px}.hf.many .ans small{font-size:12px}.hf.many .hfcenter .bigmsg{font-size:clamp(26px,3vw,40px)}
+.hf.many .hfcenter{gap:10px}
+.hf.many .ans{flex-direction:row;align-items:baseline;gap:5px}.hf.many .hres th{font-size:15px}
 .ans{display:inline-flex;flex-direction:column;line-height:1.15}
 .ans small{font-size:14px;font-weight:800}
 button.ans{appearance:none;background:none;border:0;padding:4px 8px;margin:-4px -8px;border-radius:12px;color:inherit;font:inherit;cursor:pointer;text-align:inherit}
 button.ans:hover{background:rgba(255,255,255,.12)}button.ans:focus-visible{outline:3px solid var(--yel)}
 .ans.ov{box-shadow:inset 0 0 0 2px var(--yel)}
+.unchk td{opacity:.6}.unchk td:last-child{font-size:16px;font-family:inherit}
 .ans.u small{color:var(--mint)}.ans.s small{color:var(--yel)}.ans.x{opacity:.5;text-decoration:line-through}.ans.x small{text-decoration:none}
 .hffoot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
 .hffoot .nx{font-size:22px;font-weight:800;margin-inline-end:auto}
@@ -220,7 +228,7 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   rules:"10 points for an answer nobody else wrote, 5 if someone wrote the same. First to fill all five can press STOP.",
   full2:"Party full",wake:"Keep this screen on",ends:"Round ends",endStop:"STOP",endFull:"Full time",
   rulesFull:"10 points for an answer nobody else wrote, 5 if someone wrote the same. No STOP: everyone writes until the time is up.",
-  fullOn:"No STOP this game: the round runs the full time",ovHint:"Tap an answer to accept or reject it",ovMark:"host",accept:"Accept",reject:"Reject"},
+  fullOn:"No STOP this game: the round runs the full time",ovHint:"Tap an answer to accept or reject it",ovMark:"host",notChecked:"not checked",accept:"Accept",reject:"Reject"},
 ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب؟",tagline:"شاشة كبيرة واحدة، والكل بجواله.",host:"استضف على هذه الشاشة",hostSub:"شغّلها على التلفزيون أو اللابتوب، والكل ينضم بمسح الرمز بجواله.",
   joinTitle:"انضم لحفلة",codePh:"ABCD",join:"انضم",codeBad:"رمز الحفلة 4 أحرف إنجليزية.",langBtn:"English",
   scan:"امسح للانضمام",orGo:"أو افتح {u} واكتب",players:"{n}/{m} لاعب",waiting:"بانتظار اللاعبين… امسح الرمز بجوالك",
@@ -236,7 +244,7 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   rules:"10 نقاط للإجابة التي لم يكتبها غيرك، و5 إذا كتبها أحد غيرك. أول من يملأ الخانات الخمس يقدر يضغط ستوب.",
   full2:"الحفلة ممتلئة",wake:"أبقِ الشاشة مضاءة",ends:"نهاية الجولة",endStop:"ستوب",endFull:"الوقت كامل",
   rulesFull:"10 نقاط للإجابة التي لم يكتبها غيرك، و5 إذا كتبها أحد غيرك. بدون ستوب: الكل يكتب حتى ينتهي الوقت.",
-  fullOn:"بدون ستوب في هذه اللعبة: الجولة تكمل وقتها كاملاً",ovHint:"اضغط على أي إجابة لقبولها أو رفضها",ovMark:"المضيف",accept:"اقبل",reject:"ارفض"}};
+  fullOn:"بدون ستوب في هذه اللعبة: الجولة تكمل وقتها كاملاً",ovHint:"اضغط على أي إجابة لقبولها أو رفضها",ovMark:"المضيف",notChecked:"لم تُصحَّح",accept:"اقبل",reject:"ارفض"}};
 let lang;try{lang=localStorage.getItem("hr-lang")}catch(e){}
 if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en";
 const t=(k,v)=>{let s=I18N[lang][k]!=null?I18N[lang][k]:I18N.en[k]!=null?I18N.en[k]:k;if(v)s=s.replace(/\{(\w+)\}/g,(_,n)=>v[n]!=null?v[n]:"");return s};
@@ -382,12 +390,12 @@ function drawStage(){
 }
 setInterval(()=>{if(role==="tv"&&tvMode==="lobby")drawStage()},150);
 document.addEventListener("keydown",e=>{
-  if(role!=="tv"||e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))return;
+  if(role!=="tv"||e.target&&/INPUT|TEXTAREA|BUTTON|SELECT|A/.test(e.target.tagName))return; // a focused control handles its own Enter
   if(e.key==="Enter"){if(tvMode==="lobby"){const g=$("#tvGo");if(g&&!g.disabled)tvStart()}else if(tvMode==="harf"&&hfView==="results")hfNext()}
 });
 
 /* ---------- phone: controller ---------- */
-let pos={x:.2+Math.random()*.6,y:.3+Math.random()*.5},held=new Set(),msgId=0,jumpId=0,lastSent="",phoneJoined=false,followRc=-1;
+let pos={x:.06+Math.random()*.88,y:.1+Math.random()*.8},held=new Set(),msgId=0,jumpId=0,lastSent="",phoneJoined=false,followRc=-1;
 async function bootPhone(c){
   role="phone";code=c;let back=null;try{back=sessionStorage.getItem("rush-party")}catch(e){}
   if(back===c&&goodName(me.nick))return phoneJoin();
@@ -397,6 +405,9 @@ async function phoneJoin(){
   joinMsg="connecting";draw();
   try{await Rush.ready;pApi=await Rush.room.join("pt-"+code.toLowerCase())}
   catch(e){pApi=null;joinMsg=e&&e.code==="party_full"?"full":"noParty";draw();return}
+  // nobody is hosting this code: say so instead of standing alone in an empty room
+  for(let i=0;i<25&&!tvPeer();i++)await new Promise(r=>setTimeout(r,100));
+  if(!tvPeer()){try{pApi.leave()}catch(e){}pApi=null;joinMsg="noParty";draw();return}
   phoneJoined=true;joinMsg="";
   pApi.presence(phonePresence());
   pUnsub.push(pApi.onPeers(()=>phoneFollow()));
@@ -460,9 +471,14 @@ const KEYS={ArrowUp:"u",ArrowDown:"d",ArrowLeft:"l",ArrowRight:"r"};
 document.addEventListener("keydown",e=>{if(role==="phone"&&phoneJoined&&KEYS[e.key]&&!(e.target&&e.target.tagName==="INPUT")){held.add(KEYS[e.key]);e.preventDefault()}});
 document.addEventListener("keyup",e=>{if(KEYS[e.key])held.delete(KEYS[e.key])});
 let lastMove=Date.now(),lastSendAt=0;
-function send(now){
-  if(!pApi)return;const p=phonePresence(),k=JSON.stringify(p);
-  if(k===lastSent)return;if(!now&&Date.now()-lastSendAt<160)return;
+// the server allows 10 messages a second per phone: send at most one every 150ms, and always send the latest state
+// (mashing Jump or chat can't get a phone cut off, and the character never stops short of where it really is)
+let sendTimer=0;
+function send(){
+  if(!pApi||sendTimer)return;
+  const wait=150-(Date.now()-lastSendAt);
+  if(wait>0){sendTimer=setTimeout(()=>{sendTimer=0;send()},wait);return}
+  const p=phonePresence(),k=JSON.stringify(p);if(k===lastSent)return;
   lastSent=k;lastSendAt=Date.now();pApi.presence(p).catch(()=>{});
 }
 setInterval(()=>{
@@ -561,6 +577,7 @@ let lastCenter="",lastFoot="",lastSide="";
 function drawHarfLive(){
   const center=$("#hfCenter");if(!center)return;
   const now=Date.now(),P=hfPhase(now),rows=hfRows(),c=hfRound;
+  const hfEl=center.closest(".hf");if(hfEl)hfEl.classList.toggle("many",rows.length>7);
   const rl=$("#hfRound");if(rl)rl.textContent=c?t("round",{r:c.r}):t("harf");
   // centre
   let key=hfView+"|"+(c?c.r:0)+"|"+P.ph+"|"+(hs.sa?1:0);
@@ -611,6 +628,8 @@ function hfOverride(id,i,orig,val){const k=id+":"+i;if(val===(orig?1:0))delete h
   if(hApi)hApi.presence({ov:hs.ov,ovr:hs.hr});lastCenter="";drawHarfLive()}
 // round results: every player's five answers, marked like the phones mark them
 function resultsTable(rows){
+  // a phone that hasn't sent its checked answers yet still shows what it wrote, greyed out
+  const unchecked=rows.filter(r=>r.inRound&&r.a&&!r.v);
   const inR=rows.filter(r=>r.inRound&&r.a&&r.v).map(r=>Object.assign({},r,{v0:r.v,v:r.v.map((x,i)=>{const k=r.id+":"+i;return k in hs.ov?hs.ov[k]:x})})),A={},V={};
   inR.forEach(r=>{A[r.id]=r.a;V[r.id]=r.v});
   const pts=R.harfRoomPoints(A,V,hfRound.lg);
@@ -623,11 +642,14 @@ function resultsTable(rows){
     H.CATS.forEach((k,i)=>{const td=el("td"),w=r.a[i]||"—",ok=r.v[i],ch=(r.id+":"+i) in hs.ov;
       const sp=el(r.a[i]?"button":"span","ans "+(ok?(p[i]>=H.ROOM_UNIQUE?"u":"s"):"x")+(ch?" ov":""));sp.dir="auto";
       sp.append(document.createTextNode(w));
-      if(ok||ch){const sm=el("small",null,ok?(p[i]>=H.ROOM_UNIQUE?t("unique"):t("shared")):"✗");if(ch)sm.append(document.createTextNode(" · "+t("ovMark")));sp.append(sm)}
+      if(ok||ch){const sm=el("small","ltrx",ok?(p[i]>=H.ROOM_UNIQUE?t("unique"):t("shared")):"✗");if(ch)sm.append(document.createTextNode(" · "+t("ovMark")));sp.append(sm)}
       if(r.a[i]){sp.type="button";sp.title=t(ok?"reject":"accept");sp.setAttribute("aria-label",r.n+" · "+t("cat_"+k)+": "+w+" · "+t(ok?"reject":"accept"));
         sp.onclick=()=>hfOverride(r.id,i,r.v0[i],ok?0:1)}
       td.append(sp);tr.append(td)});
-    tr.append(el("td",null,"+"+p.reduce((a,b)=>a+b,0)));tb.append(tr)});
+    const tot=el("td");tot.append(el("span","ltrx","+"+p.reduce((a,b)=>a+b,0)));tr.append(tot);tb.append(tr)});
+  unchecked.forEach(r=>{const tr=el("tr","unchk"),who=el("td"),wd=el("div","hwho");wd.append(blob(r.c),el("span",null,r.n));who.append(wd);tr.append(who);
+    H.CATS.forEach((k,i)=>{const td=el("td"),sp=el("span","ans x");sp.dir="auto";sp.append(document.createTextNode(r.a[i]||"—"));td.append(sp);tr.append(td)});
+    tr.append(el("td",null,t("notChecked")));tb.append(tr)});
   tbl.append(tb);wrap.append(tbl);return wrap;
 }
 
