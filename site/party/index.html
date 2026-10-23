@@ -220,7 +220,7 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   startHint:"Press Enter to start",yourName:"Your name",namePh:"e.g. Yousef",colour:"Your colour",joinParty:"Join the party",nameShort:"Pick a name (2+ letters).",
   full:"This party is full ({m} players).",noParty:"Couldn't reach that party. Check the code and try again.",connecting:"Joining…",
   inLobby:"You're in! Move around and say hi while you wait.",say:"Say something…",send:"Send",jump:"Jump",
-  q1:"Hi!",q2:"Ready",q3:"Let's go!",q4:"GG",starting:"Starting {g}…",tvGone:"The big screen left the party.",
+  q1:"Hi!",q2:"Ready",q3:"Let's go!",q4:"GG",chat:"Chat",chatOn:"Typing on",chatQuick:"Quick only",chatOff:"The big screen turned typing off. Quick messages still work.",chatNo:"That message isn't allowed.",chatSlow:"Slow down a little.",starting:"Starting {g}…",tvGone:"The big screen left the party.",
   round:"Round {r}",get:"Get ready…",write:"Write!",stopBy:"{n} pressed STOP!",checking:"Checking answers…",results:"Round {r}",
   total:"Score",nextIn:"Next round in {s}",nextNow:"Next round",pause:"Pause",resume:"Resume",lobby:"Back to lobby",
   noPlayers:"Nobody's in the room yet.",waitPlayers:"Waiting for {n} more to finish…",writing:"writing",done:"done",
@@ -236,7 +236,7 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   startHint:"اضغط Enter للبدء",yourName:"اسمك",namePh:"مثلاً: يوسف",colour:"لونك",joinParty:"ادخل الحفلة",nameShort:"اختر اسماً (حرفان على الأقل).",
   full:"الحفلة ممتلئة ({m} لاعباً).",noParty:"تعذّر الوصول للحفلة. تأكد من الرمز وحاول مرة أخرى.",connecting:"جارٍ الدخول…",
   inLobby:"دخلت! تحرّك وسلّم على الكل وأنت تنتظر.",say:"قل شيئاً…",send:"أرسل",jump:"نط",
-  q1:"هلا!",q2:"جاهز",q3:"يلا!",q4:"كفو",starting:"جارٍ بدء {g}…",tvGone:"الشاشة الكبيرة غادرت الحفلة.",
+  q1:"هلا!",q2:"جاهز",q3:"يلا!",q4:"كفو",chat:"الدردشة",chatOn:"الكتابة مفعّلة",chatQuick:"السريعة فقط",chatOff:"الشاشة الكبيرة أوقفت الكتابة. الرسائل السريعة متاحة.",chatNo:"هذه الرسالة غير مسموحة.",chatSlow:"على مهلك شوي.",starting:"جارٍ بدء {g}…",tvGone:"الشاشة الكبيرة غادرت الحفلة.",
   round:"الجولة {r}",get:"استعدوا…",write:"اكتبوا!",stopBy:"{n} ضغط ستوب!",checking:"جارٍ تصحيح الإجابات…",results:"الجولة {r}",
   total:"النقاط",nextIn:"الجولة التالية بعد {s}",nextNow:"الجولة التالية",pause:"إيقاف مؤقت",resume:"استئناف",lobby:"العودة للردهة",
   noPlayers:"لا يوجد أحد في الغرفة بعد.",waitPlayers:"بانتظار {n} لإنهاء الإجابات…",writing:"يكتب",done:"انتهى",
@@ -277,8 +277,11 @@ function qrSvg(text){
   let d="";for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+="M"+c+" "+r+"h1v1h-1z";
   const p=document.createElementNS(SVGNS,"path");p.setAttribute("d",d);p.setAttribute("fill","#1B1240");s.appendChild(p);return s;
 }
-const goodName=v=>{v=String(v||"").trim();return v.length>=2&&v.toLowerCase()!=="player"&&!R.badName(v)};
-const cleanMsg=v=>{v=String(v||"").replace(/\s+/g," ").trim().slice(0,40);return v&&!R.badName(v)?v:""};
+const goodName=v=>{v=String(v||"").trim();return v.length>=2&&v.toLowerCase()!=="player"&&!R.badName(v)&&!R.junkText(v)};
+// chat lines: insults and spam (links, numbers, keyboard mashing) never show (rules.js cleanChat)
+const cleanMsg=v=>R.cleanChat(v);
+// with typing off, only the quick phrases (in either language) show
+const QUICK=new Set(["q1","q2","q3","q4"].flatMap(k=>[I18N.en[k],I18N.ar[k]]));
 let wakeLock=null;async function keepAwake(){try{if("wakeLock" in navigator&&!wakeLock){wakeLock=await navigator.wakeLock.request("screen");wakeLock.addEventListener("release",()=>{wakeLock=null})}}catch(e){}}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&role==="tv")keepAwake()});
 
@@ -286,7 +289,8 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 let role=null;          // "tv" | "phone" | null (landing)
 let code=null,pApi=null,pUnsub=[],connected=true,joinMsg="";
 let savedNs="1";try{savedNs=localStorage.getItem("rush-party-ns")||"1"}catch(e){}
-let tvGame={g:"harf",lg:lang,ms:H.ROOM_MS[1],ns:savedNs==="0"?0:1}; // ns: 1 = no STOP, the round runs its full time
+let savedCh="1";try{savedCh=localStorage.getItem("rush-party-chat")||"1"}catch(e){}
+let tvGame={g:"harf",lg:lang,ms:H.ROOM_MS[1],ns:savedNs==="0"?0:1,ch:savedCh==="0"?0:1}; // ns: 1 = no STOP, the round runs its full time; ch: 0 = quick phrases only
 let seen=new Map();     // peer -> {x,y,lx,mt,mi,ji,dir,walkUntil,jumpAt}
 let me=null;try{me=JSON.parse(localStorage.getItem("hr-me")||"null")}catch(e){}
 if(!me||typeof me!=="object")me={nick:"",color:R.COLORS[Math.floor(Math.random()*R.COLORS.length)]};
@@ -327,7 +331,7 @@ async function startTv(){
   pUnsub.push(pApi.onConnection(v=>{connected=v}));
   draw();
 }
-const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":"lobby",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount});
+const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":"lobby",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch});
 let roomCount=0; // how many games this party has started (phones only follow a new one)
 const players=()=>pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv):[];
 function track(){
@@ -337,7 +341,10 @@ function track(){
     const x=Math.min(1,Math.max(0,num(P.x)||s.x)),y=Math.min(1,Math.max(0,num(P.y)||s.y));
     if(Math.abs(x-s.lx)>.001||Math.abs(y-s.ly)>.001){s.walkUntil=now+300;if(Math.abs(x-s.lx)>.001)s.dir=x>s.lx?1:-1}
     s.lx=x;s.ly=y;s.x=x;s.y=y;
-    if(num(P.mi)!==s.mi){s.mi=num(P.mi);if(s.mi>0){s.msg=cleanMsg(P.m);s.mt=now}}
+    // a new message: shown if it passes the filter (only quick phrases with typing off), at most one every 1.5 s
+    // per player, and not the same line again within 8 s
+    if(num(P.mi)!==s.mi){s.mi=num(P.mi);const m=s.mi>0?cleanMsg(P.m):"";
+      if(m&&(tvGame.ch||QUICK.has(m))&&now-s.mt>=1500&&!(m===s.msg&&now-s.mt<8000)){s.msg=m;s.mt=now}}
     if(num(P.ji)!==s.ji){if(s.ji>=0)s.jumpAt=now;s.ji=num(P.ji)}
     seen.set(p.peer,s);
   }
@@ -364,8 +371,11 @@ function drawTv(){
   const g4=el("div","grp"),es=el("div","seg2");g4.append(el("span","lbl2",t("ends")),es);
   [[0,t("endStop")],[1,t("endFull")]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(tvGame.ns===v));
     b.onclick=()=>{tvGame.ns=v;try{localStorage.setItem("rush-party-ns",String(v))}catch(e){}draw()};es.append(b)});
+  const g5=el("div","grp"),cs=el("div","seg2");g5.append(el("span","lbl2",t("chat")),cs);
+  [[1,t("chatOn")],[0,t("chatQuick")]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(tvGame.ch===v));
+    b.onclick=()=>{tvGame.ch=v;try{localStorage.setItem("rush-party-chat",String(v))}catch(e){}pApi&&pApi.presence(tvPresence());draw()};cs.append(b)});
   const go=el("button","pbtn pink go",t("start"));go.type="button";go.id="tvGo";go.onclick=tvStart;
-  bar.append(g1,g2,g3,g4,go);
+  bar.append(g1,g2,g3,g4,g5,go);
   main.append(head,stage,bar);w.append(side,main);view.append(w);drawStage();
 }
 function drawStage(){
@@ -379,8 +389,8 @@ function drawStage(){
   for(const p of list){
     const s=seen.get(p.peer);if(!s)continue;const P=p.presence;
     let n=st.querySelector('.chr[data-peer="'+p.peer+'"]');
-    const key=nm16(P.n)+"|"+R.safeColor(P.c);
-    if(!n||n.dataset.key!==key){if(n)n.remove();n=el("div","chr");n.dataset.peer=p.peer;n.dataset.key=key;n.append(el("span","tag",nm16(P.n)),blob(P.c));st.append(n)}
+    const key=shownName(P.n)+"|"+R.safeColor(P.c);
+    if(!n||n.dataset.key!==key){if(n)n.remove();n=el("div","chr");n.dataset.peer=p.peer;n.dataset.key=key;n.append(el("span","tag",shownName(P.n)),blob(P.c));st.append(n)}
     n.style.left=(6+s.x*88)+"%";n.style.top=(16+s.y*76)+"%";n.style.zIndex=String(Math.round(s.y*100)+10);
     n.classList.toggle("walk",now<s.walkUntil);n.classList.toggle("left",s.dir<0);
     if(s.jumpAt&&now-s.jumpAt<600){if(!n.classList.contains("jump")){n.classList.add("jump");setTimeout(()=>n.classList.remove("jump"),560)}}
@@ -414,12 +424,17 @@ async function phoneJoin(){
   draw();phoneFollow();
 }
 const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId});
-let lastMsg="";
+let lastMsg="",lastSayAt=0;
+// names on the big screen: an insult or spam shows as Player
+const shownName=v=>R.junkText(String(v||""))?"Player":nm16(v);
 function tvPeer(){return pApi?pApi.peers().find(p=>p.presence&&p.presence.tv===1&&!p.sameTab):null}
 function phoneFollow(){
   const tv=tvPeer(),st=$("#phStatus");
   if(!tv){if(st)st.textContent=t("tvGone");return}
   const P=tv.presence;
+  // the big screen can turn typing off: quick phrases still work
+  const cr=$("#chatRow"),cn=$("#chatNote"),typing=P.ch!==0;
+  if(cr&&cr.hidden===typing){cr.hidden=!typing;if(cn)cn.textContent=typing?"":t("chatOff")}
   if(followRc<0)followRc=num(P.rc)-(P.st==="play"?1:0); // joined while a game was on: follow it straight away
   if(P.st==="play"&&num(P.rc)>followRc&&P.g==="harf"){
     followRc=num(P.rc);
@@ -444,7 +459,7 @@ function drawPhone(){
     const msg=el("p","pnote pwarn");msg.style.color="#C2185B";msg.setAttribute("aria-live","polite");
     if(joinMsg==="full")msg.textContent=t("full",{m:MAX});else if(joinMsg==="noParty")msg.textContent=t("noParty");else if(joinMsg==="connecting")msg.textContent=t("connecting");
     const jb=el("button","pbtn pink",t("joinParty"));jb.type="button";jb.disabled=joinMsg==="connecting";
-    const go=()=>{const v=inp.value.trim();if(!goodName(v)){msg.textContent=R.badName(v)?Rush.badNameMsg():t("nameShort");return}me.nick=v.slice(0,16);saveMe();phoneJoin()};
+    const go=()=>{const v=inp.value.trim();if(!goodName(v)){msg.textContent=R.badName(v)||R.junkText(v)?Rush.badNameMsg():t("nameShort");return}me.nick=v.slice(0,16);saveMe();phoneJoin()};
     jb.onclick=go;inp.addEventListener("keydown",e=>{if(e.key==="Enter")go()});
     card.append(prev,lab,inp,sl,sw,jb,msg);w.append(card);view.append(w);
     if(!me.nick)setTimeout(()=>{try{inp.focus()}catch(e){}},50);
@@ -461,10 +476,15 @@ function drawPhone(){
   const jb=el("button","j",t("jump"));jb.type="button";jb.onclick=()=>{jumpId++;send(true)};pad.append(jb);
   const chat=el("div","chat"),ci=el("input");ci.placeholder=t("say");ci.maxLength=40;ci.setAttribute("aria-label",t("say"));ci.enterKeyHint="send";
   const cb=el("button","pbtn sky",t("send"));cb.type="button";cb.style.minHeight="52px";cb.style.fontSize="17px";cb.style.padding="0 18px";
-  const say=v=>{const m=cleanMsg(v);if(!m)return;lastMsg=m;msgId++;send(true);ci.value=""};
+  const say=v=>{const m=cleanMsg(v),now=Date.now();
+    if(!m){if(ci.value.trim())chatNote(t("chatNo"));return}
+    if(now-lastSayAt<1500||(m===lastMsg&&now-lastSayAt<8000)){chatNote(t("chatSlow"));return}
+    lastSayAt=now;lastMsg=m;msgId++;send(true);ci.value="";chatNote("")};
+  const cn=el("p","pnote");cn.id="chatNote";cn.setAttribute("aria-live","polite");
+  const chatNote=v=>{cn.textContent=v};chat.id="chatRow";
   cb.onclick=()=>say(ci.value);ci.addEventListener("keydown",e=>{if(e.key==="Enter")say(ci.value)});chat.append(ci,cb);
   const quick=el("div","quick");["q1","q2","q3","q4"].forEach(k=>{const b=el("button",null,t(k));b.type="button";b.onclick=()=>say(t(k));quick.append(b)});
-  card.append(prev,pad,chat,quick);w.append(st,card);view.append(w);phoneFollow();
+  card.append(prev,pad,chat,quick,cn);w.append(st,card);view.append(w);phoneFollow();
 }
 // moving: arrows on the pad (or the keyboard on a laptop), sent a few times a second
 const KEYS={ArrowUp:"u",ArrowDown:"d",ArrowLeft:"l",ArrowRight:"r"};
@@ -537,7 +557,7 @@ function hfPhase(now){
 // the players in this round and how far along they are
 function hfRows(){
   const r=hfRound?hfRound.r:-1;
-  return hfPlayers().map(p=>{const P=p.presence;return{peer:p.peer,id:P.u||p.peer,n:nm16(P.n),c:R.safeColor(P.c),inRound:P.r===r,
+  return hfPlayers().map(p=>{const P=p.presence;return{peer:p.peer,id:P.u||p.peer,n:shownName(P.n),c:R.safeColor(P.c),inRound:P.r===r,
     f:Math.min(N,num(P.f)),dn:!!P.dn,a:Array.isArray(P.a)?P.a.slice(0,N).map(x=>String(x||"").slice(0,H.MAXLEN)):null,
     v:Array.isArray(P.v)?P.v.slice(0,N).map(x=>x?1:0):null,rp:P.rp==null?null:num(P.rp),s:num(P.s),stop:P.sp===r}});
 }

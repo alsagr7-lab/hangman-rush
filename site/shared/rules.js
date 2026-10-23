@@ -46,14 +46,20 @@
      $hit), Arabic letter forms joined (أ إ آ -> ا, ة -> ه, ى -> ي, no tashkeel or tatweel), and repeated letters
      squeezed (fuuuck). PART words are caught anywhere in the name; WORD words only on their own, so names like
      Dickson, Essex, Grape or كسرى stay fine. */
-  const PART = ["fuck", "fuk", "fck", "shit", "cunt", "bitch", "whore", "porn", "pussy", "asshole", "motherf", "wank", "twat", "retard", "hitler", "nazi", "faggot", "dildo", "blowjob",
-    "شرموط", "قحبه", "منيوك", "متناك", "منيك", "معرص", "ديوث", "عاهره", "نيكني", "انيكك", "يلعن", "لعنه", "زبي", "كسمك", "كسختك", "كس امك", "طيزك"];
+  const PART = ["fuck", "fuk", "fck", "fack", "phuck", "shit", "cunt", "bitch", "whore", "porn", "pussy", "asshole", "motherf", "wank", "twat", "retard", "hitler", "nazi", "faggot", "dildo", "blowjob",
+    "bastard", "dumbass", "jackass", "killyourself", "killurself", "pedo", "kosomak", "kosomk", "ksomak", "ksomk", "kosokht", "sharmoot", "sharmut", "manyook", "manyok", "metnak", "neekak",
+    "شرموط", "قحبه", "منيوك", "متناك", "منيك", "معرص", "ديوث", "عاهر", "نيكني", "انيكك", "يلعن", "لعنه", "زبي", "كسمك", "كسختك", "كس امك", "كس اختك", "طيزك",
+    "نياك", "ينيك", "تنيك", "قواد", "مخنث", "مخانيث", "ممحون", "بعبص", "ابن الحرام", "ولد الحرام", "ابن القحبه"];
   const RAW = ["nigger", "nigga"]; // not squeezed: "niger" would catch Niger and Nigeria
   const WORD = ["dick", "cock", "slut", "rape", "rapist", "fag", "ass", "sex", "sexy", "penis", "vagina", "boobs", "tits", "cum", "kys", "anal", "nude", "nudes", "horny",
-    "كس", "زب", "نيك", "خول", "لوطي", "زاني", "زانيه", "كلب", "حمار", "حيوان", "خرا", "طيز", "عرص", "بزاز", "سكس", "حقير", "تافه", "غبي"];
+    "idiot", "stupid", "moron", "dumb", "loser", "stfu", "wtf", "suck", "sucks", "hoe", "thot", "kos", "zeb", "zib", "teez", "kalb", "hmar", "khara",
+    "كس", "زب", "نيك", "خول", "لوطي", "زاني", "زانيه", "كلب", "حمار", "حيوان", "خرا", "طيز", "عرص", "بزاز", "سكس", "حقير", "تافه", "غبي",
+    "خنزير", "شاذ", "اير", "تفو", "انقلع", "زق", "وسخ", "منحط", "اهبل", "هبل", "دلخ", "خايس"];
   const LEET = { "0": "o", "1": "i", "!": "i", "3": "e", "4": "a", "@": "a", "5": "s", "$": "s", "7": "t", "8": "b" };
-  const fold = s => String(s).toLowerCase().normalize("NFKC").replace(/[\u064B-\u065F\u0670\u0640]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي")
-    .replace(/[0134578!@$]/g, c => LEET[c]);
+  // also: invisible characters someone slips between letters, and the Persian look-alikes of ك ي ه
+  const fold0 = s => String(s).toLowerCase().normalize("NFKC").replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF\u00AD]/g, "")
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[کڪ]/g, "ك").replace(/[یۍې]/g, "ي").replace(/[ہھۀ]/g, "ه");
+  const fold = s => fold0(s).replace(/[0134578!@$]/g, c => LEET[c]);
   const squeeze = s => s.replace(/(.)\1+/gu, "$1");
   const letters = s => s.replace(/[^a-zء-ي]+/g, "");
   const PART_K = PART.map(w => squeeze(letters(fold(w)))), WORD_K = new Set(WORD.map(w => letters(fold(w))));
@@ -64,10 +70,32 @@
     // whole words, as typed and squeezed (asss), and the name run together when it's one short word spaced out (d i c k)
     const words = f.split(/[^a-zء-ي]+/).filter(Boolean);
     // Arabic words also without a leading ال or يا (الكلب, ياكلب)
-    const forms = w => [w, squeeze(w), w.replace(/^(ال|يا|وال)(?=..)/, "")];
+    // ... and without a pronoun ending (كسك, زبه, طيزها)
+    const forms = w => { const a = w.replace(/^(ال|يا|وال)(?=..)/, ""); return [w, squeeze(w), a, a.replace(/(كم|ها|ك|ه)$/, ""), squeeze(a.replace(/(كم|ها|ك|ه)$/, ""))].filter(x => x.length > 1); };
     if (words.some(w => forms(w).some(x => WORD_K.has(x)))) return true;
     if (words.length > 1 && words.every(w => w.length === 1) && (WORD_K.has(all) || WORD_K.has(sq))) return true;
     return false;
+  }
+  /* Party chat and names: junk that isn't an insult but is spam. Links, phone numbers, keyboard mashing (a long
+     Latin run with no vowels, or a word far longer than any real one), and Latin and Arabic mixed inside one word. */
+  function junkText(v) {
+    const s = fold0(v);
+    if (/https?:|www\.|\.(com|net|org|io|gg|xyz|ly|me|tv|co)\b|@\w/.test(s)) return true;
+    if (/\d{6,}/.test(String(v).replace(/[\s-]/g, ""))) return true;
+    for (const w of s.split(/[^a-zء-ي]+/).filter(Boolean)) {
+      if (/[a-z]/.test(w) && /[ء-ي]/.test(w)) return true;
+      const q = squeeze(w);
+      if (q.length > (/[a-z]/.test(q) ? 15 : 12)) return true;
+      if (/[a-z]/.test(q) && (/[bcdfghjklmnpqrstvwxz]{5}/.test(q) || (q.length >= 6 && !/[aeiouy]/.test(q)))) return true;
+    }
+    return false;
+  }
+  // a chat line as shown: spaces tidied, long letter runs cut to three (هههههه -> ههه), at most 40 characters, or ""
+  // when it's an insult or spam
+  function cleanChat(v) {
+    const s = String(v || "").replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "").replace(/\s+/g, " ")
+      .replace(/(.)\1{3,}/gu, "$1$1$1").trim().slice(0, 40);
+    return s && /[\p{L}\p{N}\p{Extended_Pictographic}]/u.test(s) && !badName(s) && !junkText(s) ? s : "";
   }
   const nm16 = v => { const s = String(v || "Player").slice(0, 16); return RESERVED.test(nameKey(s)) || badName(s) ? "Player" : s; };
   const seasonOfRec = r => num(r.se) || curSeason();
@@ -248,7 +276,7 @@
 
   return {
     num, DAY, TZ_OFF, EPOCH_DAY, keyAt, hourKey, SEASON_LEN, dayNum, dayKey, todayKey, ydayKey, dailyNo, keyOfDaily, seasonOf, curSeason, seasonDay, seasonDaysLeft, msToMidnight, weekStart, weekStartKey, weekDay, weekDaysLeft, weekNo, weekNoOf, weekEntries,
-    COLORS, safeColor, nm16, badName, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
+    COLORS, safeColor, nm16, badName, junkText, cleanChat, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
     HARF, harfNorm, harfStem, harfKey, harfGroup, harfNear, harfLetterOk, harfRoomPoints,
   };
