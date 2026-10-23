@@ -5,7 +5,8 @@
 //
 // <new-words.json> is a list of replacement entries in the daily format: [category, Arabic word, English clue,
 // Arabic clue, English meaning]. It's private: it holds future daily words, so it never goes into git.
-// Dailies #1 .. #N stay exactly as they are (N = --keep, at least tomorrow's daily, so today and tomorrow never change).
+// Dailies #1 .. #N stay exactly as they are (N = --keep, at least today's daily: a day already being played never changes;
+// tomorrow's can, as long as the new list is live before it starts).
 // Each later daily whose word is a room word (read from site/hangman/index.html) gets the next replacement that is
 // neither a room word nor already a daily word. Writes daily-words-ar.enc and prints counts only, never words.
 const fs = require("fs");
@@ -58,8 +59,8 @@ if (require.main === module) {
   const args = process.argv.slice(2), ki = args.indexOf("--keep");
   const poolFile = args.find((a, i) => !a.startsWith("--") && (ki < 0 || i !== ki + 1));
   if (!poolFile) { console.error("usage: node scripts/swap-daily-words.js <new-words.json> [--keep N]"); process.exit(1); }
-  // never change today's or tomorrow's daily (by Saudi date)
-  const keep = Math.max(ki >= 0 ? Number(args[ki + 1]) || 0 : 0, R.dailyNo() + 1);
+  // never change a daily that has started (today's, by Saudi date)
+  const keep = Math.max(ki >= 0 ? Number(args[ki + 1]) || 0 : 0, R.dailyNo());
   const key = keyBuf(), list = decrypt(fs.readFileSync(FILE_AR, "utf8"), key);
   const rooms = roomWords().ar;
   if (!rooms.size) throw new Error("no Arabic room words in site/hangman/index.html: put them back first");

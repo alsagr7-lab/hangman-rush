@@ -205,7 +205,10 @@ tech:[["حاسوب","Computer","جهاز للعمل والبرمجة","computer"
 const WORDS=[];for(const c of CATS)for(const [w,en,ar,m] of ROOM_WORDS[c])WORDS.push({w,c,en,ar,m,lg:"en",i:WORDS.length});
 for(const c of CATS)for(const [w,en,ar,m] of (ROOM_WORDS_AR[c]||[]))WORDS.push({w,c,en,ar,m,lg:"ar",i:WORDS.length});
 const wlg=x=>x.lg==="ar"?"ar":"en";
-const HAS_AR=WORDS.some(x=>x.lg==="ar"),roomLg=lg=>HAS_AR&&lg==="ar"?"ar":"en"; // no Arabic room words yet: English
+// Arabic room words start with daily #11 (midnight Saudi time, 24 Oct 2026): the daily being played before then is
+// one of them, so rooms stay English until it's over (a page opened earlier switches on when reloaded)
+const AR_ROOMS_FROM=Date.UTC(2026,9,23,21);
+const HAS_AR=WORDS.some(x=>x.lg==="ar")&&Date.now()>=AR_ROOMS_FROM,roomLg=lg=>HAS_AR&&lg==="ar"?"ar":"en";
 /* daily words, never used in rooms or practice: [category, word, English clue, Arabic clue, Arabic meaning].
    Daily #n uses entry n-1. The hosted version strips this list and asks its server for today's word only. */
 /* difficulty: Easy = short words, 8 misses, 90 s; Normal = everything as before; Hard = long words, no help */

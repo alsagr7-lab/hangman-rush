@@ -30,7 +30,7 @@ test("swap: bad entries in the pool are skipped, and running out is an error", (
   assert.throws(() => swap([e(roomList[0]), e(roomList[1])], [e("ثور")], rooms, 0), /not enough/);
 });
 
-test("the command: rewrites the encrypted list, keeps today and tomorrow, prints no words", () => {
+test("the command: rewrites the encrypted list, keeps every day up to today, prints no words", () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "swap-")), key = crypto.randomBytes(32).toString("hex"), file = path.join(tmp, "ar.enc");
   const n = R.dailyNo() + 6, list = Array.from({ length: n }, (_, i) => e(roomList[i]));
   const iv = crypto.randomBytes(12), c = crypto.createCipheriv("aes-256-gcm", Buffer.from(key, "hex"), iv);
@@ -41,8 +41,8 @@ test("the command: rewrites the encrypted list, keeps today and tomorrow, prints
   const run = spawnSync(process.execPath, [path.join(__dirname, "..", "scripts", "swap-daily-words.js"), path.join(tmp, "pool.json")],
     { env: { ...process.env, DAILY_AR_KEY: "", DAILY_AR_KEY_FILE: path.join(tmp, "key.txt"), DAILY_WORDS_AR_FILE: file }, encoding: "utf8" });
   assert.equal(run.status, 0, run.stderr);
-  const keep = R.dailyNo() + 1;
-  assert.match(run.stdout, new RegExp(`#1-#${keep} unchanged; 5 later days replaced`));
+  const keep = R.dailyNo();
+  assert.match(run.stdout, new RegExp(`#1-#${keep} unchanged; 6 later days replaced`));
   for (const w of [...fresh.map(x => x[1]), ...roomList.slice(0, n)]) assert.ok(!run.stdout.includes(w), "printed a word");
   process.env.DAILY_AR_KEY = key;
   const out = require("../scripts/daily-words").decrypt(fs.readFileSync(file, "utf8"), "DAILY_AR_KEY");

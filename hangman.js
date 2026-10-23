@@ -26,9 +26,9 @@ try { const { decrypt, FILE_AR } = require("./scripts/daily-words"); LISTS.ar = 
 catch (e) { console.warn("Arabic daily words unavailable (set DAILY_AR_KEY):", e.message); }
 // room and practice words must never include a daily word (it would let anyone practise a daily); count only, never the words
 try {
-  // from today's daily on (entry n-1 is daily #n); past days' words are already out
-  const o = require("./scripts/check-room-words").overlaps(LISTS, undefined, Math.max(0, R.dailyNo() - 1));
-  console.log(`Room word check: ${o.en.length} English and ${o.ar.length} Arabic room words are also upcoming daily words` + (o.en.length || o.ar.length ? ". Run scripts/check-room-words.js with the keys to list them." : ""));
+  // from tomorrow's daily on (entry n-1 is daily #n): past days are out, and today's can't change once it's started
+  const o = require("./scripts/check-room-words").overlaps(LISTS, undefined, Math.max(0, R.dailyNo()));
+  console.log(`Room word check: ${o.en.length} English and ${o.ar.length} Arabic room words are also daily words from tomorrow on` + (o.en.length || o.ar.length ? ". Run scripts/check-room-words.js with the keys to list them." : ""));
 } catch (e) { console.warn("Room word check failed:", e.message); }
 // -> [category, word, English clue, Arabic clue, meaning] for daily n, or null
 function wordFor(n, lg) {
