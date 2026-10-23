@@ -443,7 +443,7 @@ async function settings(){
   f.style=h("select",{disabled:!edit},[["lenient","Lenient"],["normal","Normal"],["strict","Strict"]].map(([v,l])=>h("option",{value:v,selected:S.style===v},l)));
   f.notes={ar:h("textarea",{dir:"rtl",value:S.notes.ar||"",disabled:!edit,placeholder:"مثال: اقبل أسماء الأماكن في الخليج وأسماء الأكلات الشعبية تحت جماد."}),en:h("textarea",{value:S.notes.en||"",disabled:!edit,placeholder:"e.g. Accept brand names as objects."})};
   f.cats={};CATS.forEach(c=>f.cats[c]=h("textarea",{value:S.cats[c]||"",placeholder:r.catRules[c],disabled:!edit}));
-  const save=async btn=>{const v={ai:f.ai.checked,aiRooms:f.aiRooms.checked,second:f.second.checked,appeals:f.appeals.checked,appealsPerDay:+f.appealsPerDay.value,perHour:+f.perHour.value,roomPerIp:+f.roomPerIp.value,
+  const save=async btn=>{const v={ai:f.ai.checked,aiRooms:f.aiRooms.checked,second:f.second.checked,appeals:f.appeals.checked,appealsPerDay:+f.appealsPerDay.value,perHour:+f.perHour.value,roomPerIp:+f.roomPerIp.value,partyPerHour:+f.partyPerHour.value,partyPerDay:+f.partyPerDay.value,sonnetPerHour:+f.sonnetPerHour.value,roomSonnet:+f.roomSonnet.value,roomAppealsPerDay:+f.roomAppealsPerDay.value,
     model:f.model.value.trim(),appealModel:f.appealModel.value.trim(),style:f.style.value,notes:{ar:f.notes.ar.value,en:f.notes.en.value},cats:Object.fromEntries(CATS.map(c=>[c,f.cats[c].value]))};
     await act("harf.settings",v,"Settings saved",btn)};
   const D=r.daily;
@@ -460,7 +460,12 @@ async function settings(){
       tx("appealModel","Second look and appeals model","Stronger; used only for doubts"),
       h("datalist",{id:"models"},["claude-haiku-5-5","claude-sonnet-5-5","claude-opus-5-5"].map(m=>h("option",{value:m}))),
       nm("perHour","AI calls an hour, at most","A ceiling against runaway bills; rooms get half",1,2000),
-      nm("roomPerIp","Room checks per network a day","",0,1000)),
+      nm("roomPerIp","Room checks per network a day","",0,1000),
+      nm("partyPerHour","Party checks an hour (checking model)","Party games' own allowance, on top of the above; no per-network cap",0,5000),
+      nm("partyPerDay","Checks per party a day","",0,20000),
+      nm("sonnetPerHour","Stronger-model calls an hour, at most","Second looks and appeals",0,500),
+      nm("roomSonnet","…of which rooms and parties","The rest is kept for the dailies",0,500),
+      nm("roomAppealsPerDay","Room and party appeals per player a day","",0,20)),
     h("div",{class:"card"},h("h2",null,"Extra guidance for the referee"),h("p",{class:"note"},"Plain instructions added to every check, in your own words, for things it keeps getting wrong."),
       h("b",null,"Arabic"),f.notes.ar,h("b",null,"English"),f.notes.en),
     h("details",{class:"card"},h("summary",null,"What each category accepts (leave empty for the default shown)"),CATS.map(c=>h("div",null,h("b",null,CAT[c]),f.cats[c]))),

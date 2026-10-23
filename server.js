@@ -84,7 +84,9 @@ const server = http.createServer(async (req, res) => {
     // pages served from here talk to this same server; SITE_URL points players at the static copy
     if (url.pathname === "/shared/config.js")
       return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)},home:${JSON.stringify(require("./scripts/build-site").HOME)}};`, "text/javascript; charset=utf-8");
-    const ctx = { send, readJson, ip };
+    // a party is live while its big screen is in the party's lobby room (Harf gives party games their own AI allowance)
+    const partyLive = code => { const r = rooms.get("pt-" + String(code).toLowerCase()); return !!r && [...r.values()].some(v => v.presence && v.presence.tv === 1); };
+    const ctx = { send, readJson, ip, partyLive };
     if (await boards.handle(req, res, url, ctx, limits)) return;
     if (await trivia.handle(req, res, url, ctx)) return;
     if (await hangman.handle(req, res, url, ctx)) return;
