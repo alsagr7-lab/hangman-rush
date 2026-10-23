@@ -52,6 +52,15 @@ const DEFAULTS = {
   perHour: Math.max(1, Number(process.env.HARF_API_PER_HOUR) || 60),
   // rooms and practice: AI calls one network (IP address) may use a day; past that, rooms check the first letter only
   roomPerIp: Math.max(1, Number(process.env.HARF_ROOM_AI_PER_IP_DAY) || 40),
+  // party games (a big screen hosting phones): their own checking-model allowance an hour, on top of perHour, and
+  // no per-network cap (a family on one Wi-Fi); a ceiling per party a day instead
+  partyPerHour: Math.max(0, Number(process.env.HARF_PARTY_PER_HOUR) || 600),
+  partyPerDay: Math.max(0, Number(process.env.HARF_PARTY_PER_DAY) || 1500),
+  // the stronger model (second looks and appeals) has its own, smaller ceiling an hour; rooms and party appeals may
+  // use only roomSonnet of it, so the dailies' second looks come first
+  sonnetPerHour: Math.max(0, Number(process.env.HARF_SONNET_PER_HOUR) || 30),
+  roomSonnet: Math.max(0, Number(process.env.HARF_ROOM_SONNET_PER_HOUR) || 5),
+  roomAppealsPerDay: Math.max(0, Number(process.env.HARF_ROOM_APPEALS_PER_DAY) || 1),
   style: "normal",     // lenient | normal | strict
   notes: { ar: "", en: "" }, // extra guidance for the referee, per language
   cats: {},            // replacement category descriptions, {category: text}
@@ -66,6 +75,7 @@ function mergeSettings(cur, v) {
   for (const k of ["model", "appealModel"]) if (typeof v[k] === "string" && MODEL_RE.test(v[k])) o[k] = v[k];
   const int = (k, lo, hi) => { if (v[k] != null && Number.isFinite(Number(v[k]))) o[k] = Math.max(lo, Math.min(hi, Math.round(Number(v[k])))); };
   int("appealsPerDay", 0, 50); int("perHour", 1, 2000); int("roomPerIp", 0, 1000);
+  int("partyPerHour", 0, 5000); int("partyPerDay", 0, 20000); int("sonnetPerHour", 0, 500); int("roomSonnet", 0, 500); int("roomAppealsPerDay", 0, 20);
   if (["lenient", "normal", "strict"].includes(v.style)) o.style = v.style;
   if (v.notes && typeof v.notes === "object") for (const lg of LANGS) if (typeof v.notes[lg] === "string") o.notes[lg] = v.notes[lg].slice(0, 1500);
   if (v.cats && typeof v.cats === "object") for (const c of H.CATS) if (typeof v.cats[c] === "string") { if (v.cats[c].trim()) o.cats[c] = v.cats[c].trim().slice(0, 400); else delete o.cats[c]; }
@@ -102,27 +112,40 @@ for (const lg of ["ar", "en"]) {
 }
 console.log(`Harf word list: ${KNOWN.size} words`);
 /* the hourly ceiling, counted per clock hour and saved, so a restart or a wake-up doesn't reset it */
-// pool: "room" (rooms and practice, capped at ROOM_SHARE an hour) or "daily" (the dailies and the nightly pass)
-let hour = { k: "", n: 0, r: 0 };
-async function takeCall(pool = "daily") {
+// pool: "daily" (the dailies and the nightly pass), "room" (rooms and practice, at most half of perHour) or "party"
+// (party games, their own partyPerHour). The stronger model's calls (strong) count apart, against sonnetPerHour,
+// with rooms and parties held to roomSonnet of it.
+// n: checking-model calls (daily + room), r: room ones, p: party ones, s: stronger-model calls, sr: room/party ones
+let hour = { k: "", n: 0, r: 0, p: 0, s: 0, sr: 0 };
+async function takeCall(pool = "daily", strong = false) {
   const k = new Date().toISOString().slice(0, 13);
   if (hour.k !== k) {
-    const saved = await store.metaGet("api_hour").catch(() => null);
-    hour = saved && saved.k === k ? { k, n: Number(saved.n) || 0, r: Number(saved.r) || 0 } : { k, n: 0, r: 0 };
+    const saved = await store.metaGet("api_hour").catch(() => null), g = f => (saved && saved.k === k ? Number(saved[f]) || 0 : 0);
+    hour = { k, n: g("n"), r: g("r"), p: g("p"), s: g("s"), sr: g("sr") };
   }
-  if (hour.n >= S.perHour) return false;
-  if (pool === "room" && hour.r >= roomShare()) return false;
-  hour.n++; if (pool === "room") hour.r++;
-  store.metaPut("api_hour", { k, n: hour.n, r: hour.r }).catch(e => console.error("Harf: saving the hourly count", e.message));
+  const shared = pool === "room" || pool === "party";
+  if (strong) {
+    if (hour.s >= S.sonnetPerHour || (shared && hour.sr >= S.roomSonnet)) return false;
+    hour.s++; if (shared) hour.sr++;
+  } else if (pool === "party") {
+    if (hour.p >= S.partyPerHour) return false;
+    hour.p++;
+  } else {
+    if (hour.n >= S.perHour || (pool === "room" && hour.r >= roomShare())) return false;
+    hour.n++; if (pool === "room") hour.r++;
+  }
+  store.metaPut("api_hour", hour).catch(e => console.error("Harf: saving the hourly count", e.message));
   return true;
 }
 // ai options for judge(): false (no AI), or {pool, ip}; a room check also spends its network's daily allowance
 const DAILY_AI = { pool: "daily" };
 const roomAI = ip => ({ pool: "room", ip });
+const partyAI = code => ({ pool: "party", party: code });
 function spendAI(ai) {
   if (!ai || !S.ai) return false;
-  if (ai.pool === "room" && !S.aiRooms) return false;
+  if ((ai.pool === "room" || ai.pool === "party") && !S.aiRooms) return false;
   if (ai.pool === "room" && ai.ip) return limits.count("roomai", ai.ip, S.roomPerIp);
+  if (ai.pool === "party") return limits.count("partyai", ai.party, S.partyPerDay);
   return true;
 }
 
@@ -204,7 +227,8 @@ const checkOpts = model => (/^claude-haiku-5/.test(model) ? { thinking: { type: 
 const APPEAL_OPTS = { output_config: { effort: "medium" } };
 async function callModel(model, system, user, maxTokens, kind = "check", pool = "daily", opts = {}) {
   if (!API_KEY) return null;
-  if (!(await takeCall(pool))) { console.warn(`Harf: hourly API ceiling reached (${pool})`); return null; }
+  const strong = model === S.appealModel && model !== S.model;
+  if (!(await takeCall(pool, strong))) { console.warn(`Harf: hourly API ceiling reached (${pool}${strong ? ", stronger model" : ""})`); return null; }
   try {
     const r = await fetch(API_URL, {
       method: "POST",
@@ -745,7 +769,8 @@ async function roomPlayer(body) {
   if (!own.ok) return { error: [403, "This player belongs to another device"] };
   return { uid };
 }
-async function handle(req, res, url, { send, readJson, ip }) {
+async function handle(req, res, url, { send, readJson, ip, partyLive }) {
+  const ctxParty = code => (typeof partyLive === "function" ? partyLive(code) : false);
   const p = url.pathname;
   if (!p.startsWith("/api/harf/")) return false;
   await loadSettings();
@@ -771,12 +796,14 @@ async function handle(req, res, url, { send, readJson, ip }) {
     if (who.error) { send(res, who.error[0], { error: who.error[1] }); return true; }
     const uid = who.uid, lg = lgOf(body.lg), letter = String(body.L || "");
     if (!H.LETTERS[lg].includes(letter)) { send(res, 400, { error: "Unknown letter" }); return true; }
+    // a party game (its big screen is live): the party's own allowance, and a family on one Wi-Fi isn't held up
+    const party = typeof body.party === "string" && /^[A-Z]{4}$/.test(body.party) && ctxParty(body.party) ? body.party : "";
     const last = checkCalls.get(uid) || 0;
-    if (Date.now() - last < 3000 || !limits.take("chk|" + ip, 20, 10)) { send(res, 429, { error: "Too fast" }); return true; }
+    if (Date.now() - last < 3000 || !limits.take((party ? "chkp|" + party : "chk|" + ip), party ? 60 : 20, party ? 30 : 10)) { send(res, 429, { error: "Too fast" }); return true; }
     checkCalls.set(uid, Date.now());
     if (checkCalls.size > 5000) checkCalls.clear();
     // signed-in players have their own allowance; everyone else shares their network's
-    const ai = roomAI((await auth.isSignedIn(uid)) ? "u:" + uid : ip);
+    const ai = party ? partyAI(party) : roomAI((await auth.isSignedIn(uid)) ? "u:" + uid : ip);
     send(res, 200, { a: await check(lg, letter, body.answers, ai), api: !!API_KEY });
     return true;
   }
@@ -788,14 +815,15 @@ async function handle(req, res, url, { send, readJson, ip }) {
     const uid = who.uid;
     const lg = lgOf(body.lg), letter = String(body.L || ""), cat = H.CATS[Number(body.i)], w = clean(body.w);
     if (!H.LETTERS[lg].includes(letter) || !cat || !w) { send(res, 400, { error: "Expected {lg, L, i, w}" }); return true; }
+    // rooms and parties get fewer appeals than the daily: the stronger model is kept for the dailies
     const key = R.todayKey() + "|" + uid, used = appealsToday.get(key) || 0;
-    if (used >= S.appealsPerDay) { send(res, 429, { error: "No appeals left today", left: 0 }); return true; }
+    if (used >= S.roomAppealsPerDay) { send(res, 429, { error: "No appeals left today", left: 0 }); return true; }
     if (!spendAI(roomAI((await auth.isSignedIn(uid)) ? "u:" + uid : ip))) { send(res, 503, { error: "Appeals aren't available right now" }); return true; }
     const r = await appealWord(lg, cat, w, letter, "room");
     if (!r) { send(res, 503, { error: "Appeals aren't available right now" }); return true; }
     appealsToday.set(key, used + 1);
     if (appealsToday.size > 5000) appealsToday.clear();
-    send(res, 200, { ok: r.ok, why: r.why, left: S.appealsPerDay - used - 1 });
+    send(res, 200, { ok: r.ok, why: r.why, left: S.roomAppealsPerDay - used - 1 });
     return true;
   }
 
@@ -1278,7 +1306,7 @@ async function admin(req, res, p, { send, readJson }, url) {
     const qs = q("q"), o = { lg: LANGS.includes(q("lg")) ? q("lg") : "", cat: H.CATS.includes(q("cat")) ? q("cat") : "", src: ["ai", "ai2", "appeal", "mod"].includes(q("src")) ? q("src") : "",
       ok: q("ok") === "1" ? 1 : q("ok") === "0" ? 0 : null, limit: Math.min(2000, Number(q("limit")) || 400) };
     if (qs) o.q = R.harfKey(qs, /[؀-ۿ]/.test(qs) ? "ar" : "en") || qs.toLowerCase();
-    send(res, 200, { hour: hour.k ? hour : null, perHour: S.perHour, roomShare: roomShare(), roomPerIp: S.roomPerIp, list: await store.wordsSearch(o), usage: await usageSummary(), known: KNOWN.size });
+    send(res, 200, { hour: hour.k ? hour : null, perHour: S.perHour, roomShare: roomShare(), roomPerIp: S.roomPerIp, partyPerHour: S.partyPerHour, sonnetPerHour: S.sonnetPerHour, roomSonnet: S.roomSonnet, list: await store.wordsSearch(o), usage: await usageSummary(), known: KNOWN.size });
     return true;
   }
   if (p === "/api/harf/admin/answers") {
@@ -1301,4 +1329,4 @@ async function admin(req, res, p, { send, readJson }, url) {
   return true;
 }
 
-module.exports = { whenFinal, handle, letterFor, check, prompt, alRoot, LANG_RULE, ensureMigrated, init: loadSettings, tidy, publicRec, withLock, ensureFinal };
+module.exports = { whenFinal, handle, letterFor, check, prompt, alRoot, LANG_RULE, ensureMigrated, init: loadSettings, tidy, publicRec, withLock, ensureFinal, _budget: { takeCall, settings: () => S } };
