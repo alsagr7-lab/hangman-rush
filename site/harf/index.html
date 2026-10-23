@@ -221,7 +221,7 @@ en:{
   nameNeeded:"Add a name (2+ letters) before playing online or the daily.",
   dailyTitle:"Daily letter #{n}",streakN:"🔥 {n}",bestN:"best {n}",
   seasonLine:"Season {s} · {left} · standings reset every 30 days",lastDay:"last day",daysLeft:"{n} days left",
-  dailyIntroLobby:"An Arabic letter and an English letter each day: play one or both, 90 seconds each. New letters in {t}.",playToday:"Play today's letter",
+  dailyIntroLobby:"An Arabic letter and an English letter each day: play one or both, 90 seconds each. New letters in {t}.",playToday:"Play today's letter",lateTitle:"{c} of 5 · {p} pts, counted for yesterday",lateLine:"You started before midnight Saudi time, so this game counts for yesterday's letter. Today's letter is new.",
   playOther:"Play the other letter",lgDone:"{c}/5 · {p} pts",lgOpen:"started",lgWait:"not played",resume:"Carry on",seeBoard:"See the leaderboard",
   doneLine:"{c} of 5 valid · {p} pts so far · rarity bonus tomorrow",loadingDaily:"Loading today's letter…",dailyErr:"Couldn't load the daily. Trying again shortly.",
   perfectHint:"Get all five valid tomorrow for +{n}.",
@@ -277,7 +277,7 @@ ar:{
   nameNeeded:"أضف اسماً (حرفان على الأقل) قبل اللعب أونلاين أو حرف اليوم.",
   dailyTitle:"حرف اليوم #{n}",streakN:"🔥 {n}",bestN:"الأفضل {n}",
   seasonLine:"الموسم {s} · {left} · الترتيب يبدأ من جديد كل 30 يوماً",lastDay:"اليوم الأخير",daysLeft:"باقي {n} أيام",
-  dailyIntroLobby:"حرف عربي وحرف إنجليزي كل يوم: العب أحدهما أو كليهما، 90 ثانية لكل منهما. حروف جديدة بعد {t}.",playToday:"العب حرف اليوم",
+  dailyIntroLobby:"حرف عربي وحرف إنجليزي كل يوم: العب أحدهما أو كليهما، 90 ثانية لكل منهما. حروف جديدة بعد {t}.",playToday:"العب حرف اليوم",lateTitle:"{c} من 5 · {p} نقطة، احتُسبت لأمس",lateLine:"بدأت قبل منتصف الليل بتوقيت السعودية، فاحتُسبت هذه الجولة لحرف أمس. حرف اليوم جديد.",
   playOther:"العب الحرف الآخر",lgDone:"{c}/5 · {p} نقطة",lgOpen:"بدأت",lgWait:"لم تلعب",resume:"أكمل",seeBoard:"اعرض الترتيب",
   doneLine:"{c} من 5 صحيحة · {p} نقطة حتى الآن · مكافأة الندرة غداً",loadingDaily:"جارٍ تحميل حرف اليوم…",dailyErr:"تعذّر تحميل التحدي. سنحاول مجدداً بعد قليل.",
   perfectHint:"أجب الخمس كلها صحيحة غداً لتحصل على +{n}.",
@@ -540,7 +540,10 @@ function backToLobby(){
 $("#leaveBtn").onclick=backToLobby;
 
 /* ---------- the daily ---------- */
+// a state fetched on an earlier day (a page left open overnight) is never used: fetch today's first
+function staleDaily(){if(LGS.some(lg=>dstates[lg]&&dstates[lg].n!==R.dailyNo())){dstates={ar:null,en:null};renderLobbyDaily();return true}return!dstates.ar||!dstates.en}
 $("#dailyBtn").onclick=()=>{
+  if(staleDaily())return;
   if(!requireName())return;saveMe();
   mode="daily";Rush.board.reset();
   // a language still in progress first, then the page language if it's not played yet, then the other one
@@ -551,6 +554,7 @@ $("#dailyBtn").onclick=()=>{
 // switch the daily to one language: its result if played, its run if started, otherwise the start screen
 function setDailyLang(lg){
   if(!drun||drun.phase==="count"||drun.phase==="write"||drun.phase==="checking")return;
+  if(staleDaily()){backToLobby();return}
   drun.lg=lg;appealMsg="";Rush.board.reset();
   const x=ds(lg),e=todayEntry(lg);
   if(e){drun.phase="done";drun.L=e.L;setInputs(e.a.map(a=>a.w),false,lg);marksFor(e.a)}
@@ -581,6 +585,7 @@ async function submitDaily(){
   clearTimeout(saveTimer);
   drun.phase="checking";inputs.forEach(i=>i.disabled=true);render();
   try{const s=await Rush.harf.submit(words(),drun.lg);setDs(s);
+    if(s.late&&!s.entry){marksFor(s.late.a);drun.phase="late";drun.late=s.late;lastPanelKey="";render();Rush.board.refresh();return}
     const e=s.entry;if(e){marksFor(e.a)}drun.phase="done";lastPanelKey="";render();Rush.board.refresh();Rush.dailyDone()}
   catch(e){if(e.data&&e.data.state){setDs(e.data.state);const x=ds();if(x.entry)marksFor(x.entry.a);drun.phase="done";lastPanelKey="";render();return}
     drun.phase="error";lastPanelKey="";render()}
@@ -884,6 +889,10 @@ function renderOverlay(){
         el("p","lbl",t("playIn")),langSeg(),
         el("p","streak",s?t("curStreak",{n:s,b:Math.min(H.STREAK_MAX,s+1)}):t("noStreak"))];
       const b=el("button","btn primary",t("start"));b.onclick=startDaily;out.push(b);return out});
+    if(drun.phase==="late")return setPanel(ov,panel,"late"+drun.lg,()=>{
+      const e=drun.late,ul=el("ol","alist");H.CATS.forEach((c,i)=>ul.appendChild(answerRow(c,e.a[i],e.L,e.lg,0,{base:true,rare:false,appeal:false},i)));
+      const b=el("button","btn primary",t("playToday"));b.onclick=()=>{drun.phase="intro";setDailyLang(drun.lg)};
+      return[el("h2",null,t("lateTitle",{c:e.c,p:e.pts})),el("p","note",t("lateLine")),ul,b]});
     if(drun.phase==="error")return setPanel(ov,panel,"err",()=>{const b=el("button","btn primary",t("backLobby"));b.onclick=backToLobby;return[el("h2",null,t("dailyErr")),b]});
     if(drun.phase==="done"&&todayEntry())return setPanel(ov,panel,"done"+drun.lg+JSON.stringify(todayEntry())+appealMsg,()=>{
       const e=todayEntry(),s=ds()?num(ds().streak):0,best=ds()?num(ds().best):0;

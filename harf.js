@@ -574,17 +574,19 @@ async function finish(rec, run, raw, usedMs) {
   const a = await check(run.lg, run.L, raw, DAILY_AI, true);
   const c = a.filter(x => x.ok).length, perfect = c === N;
   const before = { ls: rec.ls, streak: rec.streak, best: rec.best, wins: rec.wins };
-  R.countDaily(rec, perfect); // a perfect day extends the streak; an imperfect or missed one resets it
+  R.countDaily(rec, perfect, run.d); // a perfect day extends the streak; an imperfect or missed one resets it
   const b = c * H.BASE, sb = perfect ? Math.min(H.STREAK_MAX, rec.streak) : 0;
   rec.h[run.d] = { lg: run.lg, L: run.L, a, c, b, sb, rb: null, pts: b + sb, ok: perfect ? 1 : 0, t: Math.min(H.DAILY_MS, Math.max(0, usedMs)), pre: before, at: run.at };
   rec.run = null;
 }
 // a run whose time ran out (the player closed the page) is scored with its last saved draft
+// A run that began before midnight belongs to the day it began on: it keeps its time, and is scored for that day.
 async function expire(rec) {
   const run = rec.run;
-  if (!run || run.d !== R.todayKey()) { if (run) rec.run = null; return !!run; }
-  if (Date.now() <= deadline(run)) return false;
+  if (!run || Date.now() <= deadline(run)) return false;
+  if (rec.h[run.d] || !H.LETTERS[run.lg]) { rec.run = null; return true; }
   await finish(rec, run, run.dr || [], H.DAILY_MS);
+  if (run.d !== R.todayKey()) refinalize(); // that day's rarity is counted again with this entry in it
   return true;
 }
 // today's entry after an answer changed (a won appeal, a late check, an admin's verdict): count its points again,
@@ -656,6 +658,8 @@ function stateOut(rec) {
 // It runs in the background (requests never wait for it). A day with answers still unchecked waits for a later
 // try, up to two days; tries are at least 10 minutes apart.
 let finalDone = "", finalizing = null, finalTry = 0;
+// a past day got a new entry (a run that crossed midnight): count its rarity again on the next request
+function refinalize() { finalDone = ""; finalTry = 0; }
 function ensureFinal() {
   const today = R.todayKey();
   if (finalDone === today || finalizing || Date.now() - finalTry < 10 * 60000) return;
@@ -817,7 +821,9 @@ async function handle(req, res, url, { send, readJson, ip }) {
     if (p === "/api/harf/daily/start") {
       await expire(rec);
       if (rec.h[today]) { await save(); send(res, 409, { error: "Today's daily is finished", state: stateOut(rec) }); return true; }
-      if (!rec.run || rec.run.d !== today) rec.run = { d: today, n, lg, L: letterFor(n, lg), at: Date.now(), dr: [] };
+      // a run from before midnight still going: score it with its last draft first, for its own day
+      if (rec.run && rec.run.d !== today) { if (!rec.h[rec.run.d]) { await finish(rec, rec.run, rec.run.dr || [], Date.now() - rec.run.at); refinalize(); } rec.run = null; }
+      if (!rec.run) rec.run = { d: today, n, lg, L: letterFor(n, lg), at: Date.now(), dr: [] };
       await save();
       send(res, 200, stateOut(rec));
       return true;
@@ -825,7 +831,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
 
     if (p === "/api/harf/daily/save") {
       const run = rec.run;
-      if (!run || run.d !== today || Date.now() > deadline(run)) { send(res, 409, { error: "No daily in progress" }); return true; }
+      if (!run || rec.h[run.d] || Date.now() > deadline(run)) { send(res, 409, { error: "No daily in progress" }); return true; }
       run.dr = H.CATS.map((_, i) => clean(Array.isArray(body.dr) ? body.dr[i] : ""));
       // a draft changes nothing the boards show, so it leaves their cache alone (drafts arrive every few seconds)
       await store.hPut(id, th, rec, { quiet: true });
@@ -853,16 +859,19 @@ async function handle(req, res, url, { send, readJson, ip }) {
 
     if (p === "/api/harf/daily/submit") {
       const run = rec.run;
-      if (!run || run.d !== today) {
-        const changed = await expire(rec);
-        if (changed) await save();
+      if (!run || rec.h[run.d]) {
+        if (run) rec.run = null;
+        await save();
         send(res, 409, { error: "No daily in progress", state: stateOut(rec) });
         return true;
       }
       if (Date.now() > deadline(run)) await finish(rec, run, run.dr || [], H.DAILY_MS); // too late: the last saved draft counts
       else await finish(rec, run, body.answers, Date.now() - run.at);
+      // a run that began before midnight is scored for that day: the page shows it as such
+      const late = run.d !== today ? rec.h[run.d] : null;
+      if (late) refinalize();
       await save();
-      send(res, 200, stateOut(rec));
+      send(res, 200, late ? Object.assign(stateOut(rec), { late: Object.assign({ d: run.d }, late) }) : stateOut(rec));
       return true;
     }
 
@@ -1024,6 +1033,53 @@ mod.register("harf.answer", {
       undo: changed.length ? { act: "harf.answerRestore", args: { day, i, items: changed.map(c => ({ id: c.id, a: c.prev })) } } : null, result: { changed: changed.length } };
   },
 });
+mod.register("harf.resetToday", {
+  perm: "review",
+  doc: "let a player play today's daily again (after a bug): removes today's result or run and puts their streak back to what it was before today; optionally give back a streak a bug broke",
+  args: '{"id": "<player id>_<ar|en>", "streak": optional number, their streak going into today}',
+  async run(a) {
+    const id = String(a.id || "");
+    if (!/^[A-Za-z0-9_-]{8,64}_(ar|en)$/.test(id)) fail(400, "id must be <player id>_ar or _en");
+    const today = R.todayKey(), give = a.streak == null || a.streak === "" ? null : Math.max(0, Math.min(999, Math.floor(Number(a.streak)) || 0));
+    let out = null;
+    await withLock(id, async () => {
+      const fresh = await store.hGet(id); if (!fresh) fail(404, "No such player");
+      const d = tidy(fresh.data), e = d.h[today] || null, run = d.run && d.run.d === today ? d.run : null;
+      if (!e && !run && give == null) fail(409, "Nothing to reset: they haven't played today");
+      const prev = { e, run, ls: d.ls, streak: d.streak, best: d.best, wins: d.wins, played: d.played };
+      if (e) {
+        if (e.pre) Object.assign(d, { ls: e.pre.ls, streak: e.pre.streak, best: e.pre.best, wins: e.pre.wins });
+        d.played = Math.max(0, num(d.played) - 1);
+        delete d.h[today];
+      }
+      if (run) d.run = null;
+      if (give != null) { d.streak = give; if (give) d.ls = R.ydayKey(); d.best = Math.max(num(d.best), give); }
+      await store.hSetData(id, d);
+      out = { prev, streak: R.curStreak(d) };
+    });
+    return { sum: `reset today's Harf daily for ${id} (${out.prev.e ? "result removed" : out.prev.run ? "game in progress removed" : "nothing played"}); streak now ${out.streak}`,
+      undo: { act: "harf.restoreToday", args: { id, day: today, prev: out.prev } }, result: { streak: out.streak } };
+  },
+});
+mod.register("harf.restoreToday", {
+  perm: "review",
+  doc: "put back a day that harf.resetToday removed (used by undo)",
+  args: '{"id", "day", "prev"}',
+  async run(a) {
+    const id = String(a.id || ""), day = dayArg(a.day), p = a.prev && typeof a.prev === "object" ? a.prev : {};
+    if (!/^[A-Za-z0-9_-]{8,64}_(ar|en)$/.test(id)) fail(400, "id must be <player id>_ar or _en");
+    await withLock(id, async () => {
+      const fresh = await store.hGet(id); if (!fresh) fail(404, "No such player");
+      const d = tidy(fresh.data);
+      if (d.h[day] || (d.run && d.run.d === day)) fail(409, "They've played that day again since the reset");
+      if (p.e) d.h[day] = p.e;
+      if (p.run) d.run = p.run;
+      for (const k of ["ls", "streak", "best", "wins", "played"]) d[k] = p[k];
+      await store.hSetData(id, d);
+    });
+    return { sum: `put back ${day} for ${id}` };
+  },
+});
 mod.register("harf.answerRestore", {
   perm: "review",
   doc: "put answers back exactly as they were (used by undo)",
@@ -1120,7 +1176,7 @@ async function playerOut(id) {
     const d = tidy(r && r.data), days = Object.assign({}, arch, d.h);
     out.name = out.name || d.n || (Object.values(arch)[0] || {}).n || "";
     out.langs[lg] = {
-      id: rowId(uid, lg), streak: R.curStreak(d), best: num(d.best), played: num(d.played), wins: num(d.wins), appealsToday: d.apd === R.todayKey() ? num(d.ap) : 0,
+      id: rowId(uid, lg), today: R.todayKey(), streak: R.curStreak(d), best: num(d.best), played: num(d.played), wins: num(d.wins), appealsToday: d.apd === R.todayKey() ? num(d.ap) : 0,
       open: d.run && d.run.d === R.todayKey() ? { L: d.run.L, at: d.run.at, left: Math.max(0, d.run.at + H.DAILY_MS - Date.now()) } : null,
       days: Object.keys(days).sort().reverse().map(k => { const e = days[k]; return { day: k, L: e.L, pts: num(e.pts), c: num(e.c), sb: num(e.sb), rb: e.rb, t: num(e.t), perfect: !!e.ok, live: !!d.h[k], a: (e.a || []).map((a, i) => ansOut(e, a, i)) }; }),
     };

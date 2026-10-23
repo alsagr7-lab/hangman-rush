@@ -91,8 +91,9 @@
   function seasonPts(r) { return Object.values(r.h || {}).reduce((a, e) => a + num(e.pts), 0); }
   function curStreak(r) { return r.ls === todayKey() || r.ls === ydayKey() ? num(r.streak) : 0; }
   // count a finished daily: a solved day extends the streak, anything else breaks it
-  function countDaily(r, solved) {
-    const k = todayKey(), y = ydayKey();
+  // k: the day being counted (today, or the day a run that crossed midnight started on)
+  function countDaily(r, solved, k = todayKey()) {
+    const y = dayKey(Math.round(Date.parse(k + "T00:00:00Z") / DAY) - 1);
     r.played = num(r.played) + 1;
     if (solved) { r.wins = num(r.wins) + 1; r.streak = r.ls === y ? num(r.streak) + 1 : (r.ls === k ? num(r.streak) : 1); r.ls = k; r.best = Math.max(num(r.best), r.streak); }
     else r.streak = 0;
