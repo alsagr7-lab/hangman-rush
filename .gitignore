@@ -10,3 +10,6 @@ words-ar.json
 # Impeccable live-preview scratch files
 .impeccable/live/
 .impeccable/config.local.json
+
+# replacement daily words: private, never commit (scripts/swap-daily-words.js)
+new-words-ar.json
