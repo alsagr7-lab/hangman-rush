@@ -223,12 +223,22 @@ async function openPlayer(id){
       inner.append(h("div",{class:"card"},
         h("div",{class:"ph"},h("h3",null,lg==="ar"?"Arabic daily":"English daily"),h("span",{class:"note"},`streak ${L.streak} · best ${L.best} · played ${L.played} · perfect ${L.wins} · appeals today ${L.appealsToday}`)),
         L.open?h("p",{class:"note"},`Playing now: letter ${L.open.L}, ${Math.ceil(L.open.left/1000)}s left`):null,
+        can("review")?h("div",{class:"row"},h("button",{class:"sm",onclick:e=>resetToday(L,draw,e.target)},"Reset today (let them replay)")):null,
         h("div",null,L.days.slice(0,60).map(d=>h("div",{class:"prow"},
           h("div",{class:"ph"},h("b",null,d.day+" · "+(d.L||"?")),h("span",{class:"note"},`${d.pts} pts (${d.c}/5${d.sb?" +"+d.sb+" streak":""}${d.rb!=null?" +"+d.rb+" rare":", rarity pending"}) · ${Math.round(d.t/1000)}s${d.live?"":" · archive"}`)),
           answerChips(d.a,d.live&&can("review")?(a,i)=>toggleAnswer({id:L.id,day:d.day,i},a,draw):null))))));
     }
   };
   draw().catch(e=>{inner.textContent="";inner.append(h("p",{class:"err"},e.message))});
+}
+// a bug spoiled their day: they play today again, with the streak they had going into today (or one given back)
+async function resetToday(L,after,btn){
+  const d=(L.days||[]).find(x=>x.day===L.today&&x.live);
+  if(!confirm((d?`Remove today's result (${d.pts} pts, ${d.c}/5)`:L.open?"Remove today's game in progress":"Nothing played today yet, so only the streak can change")+" so they can play today again?\n\nTheir streak goes back to what it was before today. You can undo it afterwards."))return;
+  const s=prompt("Streak going into today. Leave blank to keep what they had before today, or type a number if a bug broke their streak:","");
+  if(s===null)return;
+  const args={id:L.id};if(s.trim()!=="")args.streak=Number(s);
+  await act("harf.resetToday",args,"Reset: they can play today again",btn);after&&after();
 }
 function chipClass(a){return !a.w?"e":a.ok?"ok":a.u?"u":"no"}
 function chipTitle(a){const t=[];if(a.f)t.push("→ "+a.f);if(a.l)t.push("wrong letter");if(a.u)t.push("not checked yet");if(a.ap===1)t.push("appeal won");if(a.ap===-1)t.push("appeal lost");if(a.mo)t.push("decided by the team");if(a.why)t.push(a.why);if(a.n)t.push(a.n+" gave it");return t.join(" · ")}
