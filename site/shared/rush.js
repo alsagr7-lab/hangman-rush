@@ -1058,7 +1058,7 @@
       "أمامك 90 ثانية. كل إجابة صحيحة تُحتسب فوراً، وفي اليوم التالي تكسب الإجابات النادرة مكافأة.",
       "الحيوان والنبات والجماد يجب أن تكون كلمات من لغة اللعب. ترى أن إجابتك رُفضت خطأً؟ قدّم اعتراضاً."]] },
   };
-  const subPage = () => /^\/history(\/|$)/.test(basePath()); // the hub's other pages: no tour or install tip there
+  const subPage = () => /^\/(history|party)(\/|$)/.test(basePath()); // the hub's other pages: no tour or install tip there
   async function maybeTour() {
     const g = gameKey, k = "rush-tour-" + g;
     if (subPage()) return;

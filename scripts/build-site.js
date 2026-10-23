@@ -8,7 +8,7 @@ const fs = require("fs");
 const path = require("path");
 
 const SITE = path.join(__dirname, "..", "site");
-const PAGES = ["index.html", "hangman/index.html", "trivia/index.html", "harf/index.html", "history/index.html"];
+const PAGES = ["index.html", "hangman/index.html", "trivia/index.html", "harf/index.html", "history/index.html", "party/index.html"];
 
 // Arabic copies of the pages under /ar/. Link previews (WhatsApp, X) read a page's tags without running it, so an
 // Arabic link needs its own page to show the Arabic name, description and preview image. The page itself is the
@@ -18,6 +18,7 @@ const AR = {
   "hangman/index.html": { title: "سباق المشنقة", desc: "نفس الكلمة في نفس اللحظة. خمّن كلمة اليوم بأسرع وقت وبأقل أخطاء، بالعربي أو الإنجليزي." },
   "trivia/index.html": { title: "سباق المعلومات", desc: "خمسة أسئلة، خمس عشرة ثانية لكل سؤال، بالعربي أو الإنجليزي. جاوب بسرعة وصح لتتصدر لوحة اليوم." },
   "history/index.html": { title: "سجل المتصدرين · ألعاب رش", desc: "كيف انتهى كل أسبوع في لوحات ألعاب رش: الترتيب النهائي والنقاط والميداليات في المشنقة والمعلومات والحروف." },
+  "party/index.html": { title: "وضع الحفلة · ألعاب رش", desc: "العبوا ألعاب رش معاً: شاشة كبيرة واحدة، والكل ينضم بجواله." },
   "harf/index.html": { title: "سباق الحروف", desc: "حيوان جماد إنسان: حرف واحد وخمس خانات قبل ما ينتهي الوقت. لعبة كلمات يومية بالعربي والإنجليزي." },
 };
 const attr = s => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
@@ -48,7 +49,7 @@ function arabic(html, page, home) {
   html = html.replace('<link rel="manifest" href="/manifest.webmanifest">', '<link rel="manifest" href="/manifest-ar.webmanifest">');
   html = html.replace('<meta name="apple-mobile-web-app-title" content="Rush Games">', '<meta name="apple-mobile-web-app-title" content="ألعاب رش">');
   // links between the pages stay on the Arabic side
-  html = html.replace(/href="\/((?:hangman|trivia|harf|history)\/)?"/g, (_, g) => `href="/ar/${g || ""}"`);
+  html = html.replace(/href="\/((?:hangman|trivia|harf|history|party)\/)?"/g, (_, g) => `href="/ar/${g || ""}"`);
   return html;
 }
 
