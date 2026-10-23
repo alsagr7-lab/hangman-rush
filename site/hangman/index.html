@@ -45,9 +45,23 @@
 .reveal.ar{font-family:var(--f-ar);letter-spacing:0;direction:rtl;text-align:center}
 .keys.ar .krow{direction:rtl}
 /* the phone's own keyboard: a hidden box that catches what's typed, opened by a small button (touch screens only) */
-.devkb{display:none;justify-content:center;position:relative}
+.devkb{display:none;justify-content:center}
 @media (pointer:coarse){.devkb{display:flex}}
+/* the hidden box sits at the top of the game card, so a phone that scrolls to it while typing lands on the gallows and word */
 #devKey{position:absolute;left:50%;top:0;width:1px;height:1px;opacity:0;border:0;padding:0;font-size:16px;pointer-events:none}
+#play{scroll-margin-top:72px}
+/* while the phone's keyboard is open: no on-screen keyboard, a smaller gallows, so the drawing, the word and the wrong
+   letters all fit above it */
+.play.kbon{min-height:0;gap:10px}
+.play.kbon .keys{display:none}
+.play.kbon .gal svg{width:min(116px,30vw)}
+/* wrong letters beside the gallows: one box per miss allowed, filled as they're used */
+.gal{align-items:center;gap:18px}
+.wrong{display:grid;grid-template-columns:repeat(2,30px);gap:6px;align-content:center}
+.wrong[hidden]{display:none}
+.wrong span{display:grid;place-items:center;height:30px;border-radius:8px;border:1.5px dashed var(--line3);font-family:var(--f-latin-hand);font-weight:800;font-size:16px;color:var(--bad,#d93c30)}
+.wrong span.x{border-style:solid;border-color:currentColor;background:color-mix(in srgb,currentColor 10%,transparent)}
+.wrong.ar span{font-family:var(--f-ar);font-size:17px}
 </style>
 
 </head>
@@ -123,6 +137,7 @@
             <path class="part eye" id="p7" d="M130 51l6 6M136 51l-6 6" stroke-width="3"/>
             <path class="part eye" id="p8" d="M144 51l6 6M150 51l-6 6" stroke-width="3"/>
           </svg>
+          <div class="wrong" id="wrongL" role="img" hidden></div>
         </div>
         <div class="cat"><span class="lbl" id="cat">Category</span><span class="vowels" id="vowels"></span><span class="clue" id="clue" hidden></span><span class="transl" id="transl" hidden></span></div>
         <div class="word" id="word" aria-live="polite"></div>
@@ -224,7 +239,7 @@ en:{
   copy:"Copy",copyLink:"Link",copied:"Copied",copyFail:"Copy failed — select the text",leave:"Leave",gallows:"Gallows",category:"Category",
   boardRace:"Race board",teams:"Teams",boardDaily:"Daily leaderboard",tabToday:"Today",tabYday:"Yesterday",tabSeason:"Season",
   soloPractice:"Solo practice",dailyWord:"Daily word",roomLbl:"Room ",roundN:"Round {n}",secs:"{n}s",
-  missesOf:"{n} of {m} misses",noMisses:"No misses yet",you:"you",hostTag:"host",waitingNext:"Waiting for next round",
+  missesOf:"{n} of {m} misses",wrongAria:"Wrong letters: {l}",noMisses:"No misses yet",you:"you",hostTag:"host",waitingNext:"Waiting for next round",
   solvedRow:"Solved {t} · +{p}",hangedRow:"Hanged · +0",players:"{n} players",player1:"1 player",nobodyYet:"Nobody yet",
   seasonN:"Season {n}",dayOf:"Day {d}/{t}",resetsTonight:"Resets tonight",finalDays:"Final {n} days",
   seasonEmpty:"Season standings show up after the first daily word is played.",solvedOf:"{w}/{p} solved · best streak {b}",
@@ -292,7 +307,7 @@ ar:{
   copy:"نسخ",copyLink:"رابط",copied:"تم النسخ",copyFail:"تعذّر النسخ، حدّد النص يدوياً",leave:"خروج",gallows:"المشنقة",category:"الفئة",
   boardRace:"لوحة السباق",teams:"الفرق",boardDaily:"ترتيب كلمة اليوم",tabToday:"اليوم",tabYday:"أمس",tabSeason:"الموسم",
   soloPractice:"تدريب فردي",dailyWord:"كلمة اليوم",roomLbl:"غرفة ",roundN:"الجولة {n}",secs:"{n} ث",
-  missesOf:"الأخطاء: {n} من {m}",noMisses:"لا أخطاء حتى الآن",you:"أنت",hostTag:"المضيف",waitingNext:"بانتظار الجولة التالية",
+  missesOf:"الأخطاء: {n} من {m}",wrongAria:"الأحرف الخاطئة: {l}",noMisses:"لا أخطاء حتى الآن",you:"أنت",hostTag:"المضيف",waitingNext:"بانتظار الجولة التالية",
   solvedRow:"حلّها في {t} · +{p}",hangedRow:"شُنق · +0",players:"اللاعبون: {n}",player1:"لاعب واحد",nobodyYet:"لا أحد بعد",
   seasonN:"الموسم {n}",dayOf:"اليوم {d} من {t}",resetsTonight:"يبدأ من جديد الليلة",finalDays:"آخر {n} أيام",
   seasonEmpty:"يظهر ترتيب الموسم بعد أول مشاركة في كلمة اليوم.",solvedOf:"حلّ {w} من {p} · أفضل سلسلة {b}",
@@ -878,13 +893,17 @@ function buildKeys(){const k=$("#keys"),lg=cur?cur.lg:mode==="daily"?(dlg==="ar"
 const devKey=$("#devKey"),devKbBtn=$("#devKbBtn");
 function renderDevKb(){devKbBtn.textContent=t(document.activeElement===devKey?"devKbClose":"devKbOpen")}
 devKbBtn.onclick=()=>{if(document.activeElement===devKey)devKey.blur();else{devKey.value="";devKey.focus()}renderDevKb()};
-devKey.addEventListener("focus",renderDevKb);devKey.addEventListener("blur",renderDevKb);renderDevKb();
+// while the phone's keyboard is open the card drops the on-screen keys and stays scrolled to the gallows and word
+const playEl=$("#play"),showPlay=()=>{if(document.activeElement===devKey)try{playEl.scrollIntoView({block:"start"})}catch(e){}};
+devKey.addEventListener("focus",()=>{playEl.classList.add("kbon");renderDevKb();setTimeout(showPlay,50);setTimeout(showPlay,350)});
+devKey.addEventListener("blur",()=>{playEl.classList.remove("kbon");renderDevKb()});renderDevKb();
+if(window.visualViewport)visualViewport.addEventListener("resize",()=>setTimeout(showPlay,30));
 devKey.addEventListener("input",()=>{
   for(const ch of [...devKey.value]){
     if(cur&&cur.lg==="ar"){if(/[\u0621-\u064A]/.test(ch))guess(keyOf(ch))}
     else if(/[a-z]/i.test(ch))guess(ch.toUpperCase());
   }
-  devKey.value="";
+  devKey.value="";requestAnimationFrame(showPlay);
 });
 document.addEventListener("keydown",e=>{
   if($("#game").hidden||e.metaKey||e.ctrlKey||e.altKey)return;
@@ -933,6 +952,11 @@ function renderPlay(){
   if(live){const seen=slotSeen.w===cur.word?slotSeen.k:new Set();[...cur.word].forEach((ch,i)=>{const known=cur.g.has(keyOf(ch));const s=el("span","slot",known||cur.done?ch:"");if(!known&&cur.done)s.classList.add("miss");else if(known&&!seen.has(i)&&slotSeen.w===cur.word)s.classList.add("pop");if(known)seen.add(i);w.appendChild(s)});slotSeen={w:cur.word,k:seen}}
   else for(let i=0;i<6;i++)w.appendChild(el("span","slot",""));
   $("#missTxt").textContent=cur?(cur.miss?t("missesOf",{n:cur.miss,m:cur.maxMiss}):t("noMisses")):"";
+  // the wrong letters so far, beside the gallows: one box per miss allowed
+  const wl=$("#wrongL");wl.textContent="";wl.hidden=!live;
+  if(live){const bad=[...cur.g].filter(L=>![...cur.word].some(ch=>keyOf(ch)===L));
+    wl.classList.toggle("ar",cur.lg==="ar");wl.setAttribute("aria-label",t("wrongAria",{l:bad.join(lang==="ar"?"، ":", ")||"—"}));
+    for(let i=0;i<cur.maxMiss;i++){const b=el("span",bad[i]?"x":null,bad[i]||"");b.setAttribute("aria-hidden","true");wl.appendChild(b)}}
   document.querySelectorAll(".key").forEach(b=>{const L=b.dataset.k;b.classList.remove("hit","bad");
     if(cur&&cur.g.has(L))b.classList.add([...cur.word].some(ch=>keyOf(ch)===L)?"hit":"bad");
     b.disabled=!cur||!!cur.done||cur.g.has(L)});
