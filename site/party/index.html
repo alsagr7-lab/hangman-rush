@@ -185,6 +185,9 @@ html.party,html.party body,:root.party[data-theme] body{background:var(--pv)!imp
 .hres .hwho svg{width:40px;height:40px;overflow:visible}
 .ans{display:inline-flex;flex-direction:column;line-height:1.15}
 .ans small{font-size:14px;font-weight:800}
+button.ans{appearance:none;background:none;border:0;padding:4px 8px;margin:-4px -8px;border-radius:12px;color:inherit;font:inherit;cursor:pointer;text-align:inherit}
+button.ans:hover{background:rgba(255,255,255,.12)}button.ans:focus-visible{outline:3px solid var(--yel)}
+.ans.ov{box-shadow:inset 0 0 0 2px var(--yel)}
 .ans.u small{color:var(--mint)}.ans.s small{color:var(--yel)}.ans.x{opacity:.5;text-decoration:line-through}.ans.x small{text-decoration:none}
 .hffoot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
 .hffoot .nx{font-size:22px;font-weight:800;margin-inline-end:auto}
@@ -215,7 +218,9 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   noPlayers:"Nobody's in the room yet.",waitPlayers:"Waiting for {n} more to finish…",writing:"writing",done:"done",
   unique:"+10",shared:"+5",cat_name:"Name",cat_animal:"Animal",cat_plant:"Plant",cat_object:"Object",cat_place:"Place",
   rules:"10 points for an answer nobody else wrote, 5 if someone wrote the same. First to fill all five can press STOP.",
-  full2:"Party full",wake:"Keep this screen on"},
+  full2:"Party full",wake:"Keep this screen on",ends:"Round ends",endStop:"STOP",endFull:"Full time",
+  rulesFull:"10 points for an answer nobody else wrote, 5 if someone wrote the same. No STOP: everyone writes until the time is up.",
+  fullOn:"No STOP this game: the round runs the full time",ovHint:"Tap an answer to accept or reject it",ovMark:"host",accept:"Accept",reject:"Reject"},
 ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب؟",tagline:"شاشة كبيرة واحدة، والكل بجواله.",host:"استضف على هذه الشاشة",hostSub:"شغّلها على التلفزيون أو اللابتوب، والكل ينضم بمسح الرمز بجواله.",
   joinTitle:"انضم لحفلة",codePh:"ABCD",join:"انضم",codeBad:"رمز الحفلة 4 أحرف إنجليزية.",langBtn:"English",
   scan:"امسح للانضمام",orGo:"أو افتح {u} واكتب",players:"{n}/{m} لاعب",waiting:"بانتظار اللاعبين… امسح الرمز بجوالك",
@@ -229,7 +234,9 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   noPlayers:"لا يوجد أحد في الغرفة بعد.",waitPlayers:"بانتظار {n} لإنهاء الإجابات…",writing:"يكتب",done:"انتهى",
   unique:"+10",shared:"+5",cat_name:"إنسان",cat_animal:"حيوان",cat_plant:"نبات",cat_object:"جماد",cat_place:"بلاد",
   rules:"10 نقاط للإجابة التي لم يكتبها غيرك، و5 إذا كتبها أحد غيرك. أول من يملأ الخانات الخمس يقدر يضغط ستوب.",
-  full2:"الحفلة ممتلئة",wake:"أبقِ الشاشة مضاءة"}};
+  full2:"الحفلة ممتلئة",wake:"أبقِ الشاشة مضاءة",ends:"نهاية الجولة",endStop:"ستوب",endFull:"الوقت كامل",
+  rulesFull:"10 نقاط للإجابة التي لم يكتبها غيرك، و5 إذا كتبها أحد غيرك. بدون ستوب: الكل يكتب حتى ينتهي الوقت.",
+  fullOn:"بدون ستوب في هذه اللعبة: الجولة تكمل وقتها كاملاً",ovHint:"اضغط على أي إجابة لقبولها أو رفضها",ovMark:"المضيف",accept:"اقبل",reject:"ارفض"}};
 let lang;try{lang=localStorage.getItem("hr-lang")}catch(e){}
 if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en";
 const t=(k,v)=>{let s=I18N[lang][k]!=null?I18N[lang][k]:I18N.en[k]!=null?I18N.en[k]:k;if(v)s=s.replace(/\{(\w+)\}/g,(_,n)=>v[n]!=null?v[n]:"");return s};
@@ -270,7 +277,8 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 /* ---------- state ---------- */
 let role=null;          // "tv" | "phone" | null (landing)
 let code=null,pApi=null,pUnsub=[],connected=true,joinMsg="";
-let tvGame={g:"harf",lg:lang,ms:H.ROOM_MS[1]};
+let savedNs="1";try{savedNs=localStorage.getItem("rush-party-ns")||"1"}catch(e){}
+let tvGame={g:"harf",lg:lang,ms:H.ROOM_MS[1],ns:savedNs==="0"?0:1}; // ns: 1 = no STOP, the round runs its full time
 let seen=new Map();     // peer -> {x,y,lx,mt,mi,ji,dir,walkUntil,jumpAt}
 let me=null;try{me=JSON.parse(localStorage.getItem("hr-me")||"null")}catch(e){}
 if(!me||typeof me!=="object")me={nick:"",color:R.COLORS[Math.floor(Math.random()*R.COLORS.length)]};
@@ -345,8 +353,11 @@ function drawTv(){
   [["ar","عربي"],["en","English"]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.lang=v;b.setAttribute("aria-pressed",String(tvGame.lg===v));b.onclick=()=>{tvGame.lg=v;pApi&&pApi.presence(tvPresence());draw()};ls.append(b)});
   const g3=el("div","grp"),ts=el("div","seg2");g3.append(el("span","lbl2",t("time")),ts);
   H.ROOM_MS.forEach(v=>{const b=el("button",null,t("secsN",{n:v/1000}));b.type="button";b.setAttribute("aria-pressed",String(tvGame.ms===v));b.onclick=()=>{tvGame.ms=v;draw()};ts.append(b)});
+  const g4=el("div","grp"),es=el("div","seg2");g4.append(el("span","lbl2",t("ends")),es);
+  [[0,t("endStop")],[1,t("endFull")]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(tvGame.ns===v));
+    b.onclick=()=>{tvGame.ns=v;try{localStorage.setItem("rush-party-ns",String(v))}catch(e){}draw()};es.append(b)});
   const go=el("button","pbtn pink go",t("start"));go.type="button";go.id="tvGo";go.onclick=tvStart;
-  bar.append(g1,g2,g3,go);
+  bar.append(g1,g2,g3,g4,go);
   main.append(head,stage,bar);w.append(side,main);view.append(w);drawStage();
 }
 function drawStage(){
@@ -477,9 +488,9 @@ function backToLobby(){
    leave it out of the players. Each phone checks its own answers and posts them with its points. */
 let hfLastHr=0,leaving=null,hApi=null,hUnsub=[],hs=null,hfView="wait",hfTimer=null,hfPaused=false,hfNextAt=0,hfRound=null;
 const NEXT_MS=20000;
-function hfPresence(){return{n:lang==="ar"?"الشاشة":"TV",c:R.COLORS[0],u:"tv_"+Rush.uid,scr:1,h:1,s:0,r:0,f:0,dn:0,hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn,back:hs.back||0,gid:roomCount}}
+function hfPresence(){return{n:lang==="ar"?"الشاشة":"TV",c:R.COLORS[0],u:"tv_"+Rush.uid,scr:1,h:1,s:0,r:0,f:0,dn:0,hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn,back:hs.back||0,gid:roomCount,ns:hs.ns,ov:hs.ov,ovr:hs.hr}}
 async function hfEnter(){
-  hs={hr:hfLastHr,st:"waiting",at:0,L:"",lg:tvGame.lg,ms:tvGame.ms,sa:0,sn:"",used:[],back:0};hfView="wait";hfRound=null;draw();
+  hs={hr:hfLastHr,st:"waiting",at:0,L:"",lg:tvGame.lg,ms:tvGame.ms,ns:tvGame.ns,ov:{},sa:0,sn:"",used:[],back:0};hfView="wait";hfRound=null;draw();
   if(leaving){clearTimeout(leaving.tm);hApi=leaving.api;leaving=null}
   else try{hApi=await Rush.room.join("hf-"+code.toLowerCase())}catch(e){hApi=null;tvErr=t("noParty");backToLobby();return}
   hApi.presence(hfPresence());
@@ -497,7 +508,7 @@ function hfStartRound(){
   const lg=hs.lg,all=H.LETTERS[lg];let pool=all.filter(l=>!hs.used.includes(lg+l));
   if(!pool.length){hs.used=hs.used.filter(x=>!x.startsWith(lg));pool=all}
   const L=pool[Math.floor(Math.random()*pool.length)];hs.used.push(lg+L);
-  hs.hr=++hfLastHr;hs.st="playing";hs.at=Date.now();hs.L=L;hs.sa=0;hs.sn="";
+  hs.hr=++hfLastHr;hs.st="playing";hs.at=Date.now();hs.L=L;hs.sa=0;hs.sn="";hs.ov={};
   hfRound={r:hs.hr,L,lg,ms:hs.ms,at:hs.at,endAt:0};hfView="round";hApi.presence(hfPresence());draw();
 }
 function hfPhase(now){
@@ -517,13 +528,13 @@ function hfRows(){
 function hfTick(){
   if(!hApi||!hfRound)return;const now=Date.now(),P=hfPhase(now);
   if(hs.st==="playing"){
-    if(!hs.sa&&P.ph==="write"){const by=hfRows().find(x=>x.inRound&&x.stop);if(by){hs.sa=now;hs.sn=by.n;hApi.presence(hfPresence());draw()}}
+    if(!hs.ns&&!hs.sa&&P.ph==="write"){const by=hfRows().find(x=>x.inRound&&x.stop);if(by){hs.sa=now;hs.sn=by.n;hApi.presence(hfPresence());draw()}}
     if(P.ph==="after"){
       const rows=hfRows().filter(x=>x.inRound);
       // everyone's answers are checked (each phone posts its marks and its points), or 20 seconds have passed
       const ready=rows.every(x=>x.v&&x.rp!=null)||now>P.end+20000;
       if(hfView!=="check"&&!ready){hfView="check";draw()}
-      if(ready){hs.st="ended";hApi.presence(hfPresence());hfView="results";hfNextAt=now+NEXT_MS;hfPaused=false;draw()}
+      if(ready){hs.st="ended";hApi.presence(hfPresence());hfView="results";draw()}
     }
   }
 }
@@ -531,7 +542,7 @@ function hfNext(){if(hfView==="results"||hfView==="arrive"){hfPaused=false;hfSta
 setInterval(()=>{
   if(role!=="tv"||tvMode!=="harf")return;
   const now=Date.now();hfTick();
-  if((hfView==="arrive"&&now>=hfNextAt&&hfPlayers().length)||(hfView==="results"&&!hfPaused&&now>=hfNextAt))hfNext();
+  if(hfView==="arrive"&&now>=hfNextAt&&hfPlayers().length)hfNext(); // later rounds wait for Next round, so everyone can compare answers
   drawHarfLive();
 },200);
 // the big screen during Harf
@@ -553,17 +564,17 @@ function drawHarfLive(){
   const rl=$("#hfRound");if(rl)rl.textContent=c?t("round",{r:c.r}):t("harf");
   // centre
   let key=hfView+"|"+(c?c.r:0)+"|"+P.ph+"|"+(hs.sa?1:0);
-  if(hfView==="results")key+="|"+JSON.stringify(rows.map(r=>[r.id,r.a,r.v,r.rp,r.s]));
+  if(hfView==="results")key+="|"+JSON.stringify(rows.map(r=>[r.id,r.a,r.v,r.rp,r.s]))+JSON.stringify(hs.ov);
   if(hfView==="arrive"||hfView==="wait")key+="|"+rows.length;
   if(key!==lastCenter){lastCenter=key;center.textContent="";
-    if(hfView==="arrive"||hfView==="wait"){center.append(el("div","bigmsg",rows.length?t("get"):t("noPlayers")),el("p","pnote",t("rules")))}
+    if(hfView==="arrive"||hfView==="wait"){center.append(el("div","bigmsg",rows.length?t("get"):t("noPlayers")),el("p","pnote",t(hs.ns?"rulesFull":"rules")))}
     else if(hfView==="results")center.append(resultsTable(rows));
     else if(P.ph==="count"){center.append(el("div","bigmsg",t("get")),el("div","secs",""));center.lastChild.id="hfSecs"}
     else if(P.ph==="write"||P.ph==="after"){
       const L=el("div","letter"+(c.lg==="en"?" latin":""),c.L);center.append(L);
       const cats=el("div","cats");H.CATS.forEach(k=>cats.append(el("span",null,t("cat_"+k))));center.append(cats);
       if(P.ph==="write"){const bar=el("div","tbar"+(P.stop?" stop":""));bar.append(el("i"));bar.id="hfBar";const s=el("div","secs");s.id="hfSecs";center.append(bar,s);
-        if(hs.sa)center.append(el("div","stopban",t("stopBy",{n:hs.sn||"?"})))}
+        if(hs.sa)center.append(el("div","stopban",t("stopBy",{n:hs.sn||"?"})));else if(hs.ns)center.append(el("p","pnote",t("fullOn")))}
       else center.append(el("div","bigmsg",t("checking")));
     }
   }
@@ -586,19 +597,22 @@ function drawHarfLive(){
   }
   // foot: next round countdown, pause, back to lobby
   const foot=$("#hfFoot"),left=Math.max(0,Math.ceil((hfNextAt-now)/1000));
-  const fkey=hfView+"|"+hfPaused+"|"+(hfView==="results"?left:"")+"|"+(hfView==="check"?rows.filter(x=>x.inRound&&!(x.v&&x.rp!=null)).length:"");
+  const fkey=hfView+"|"+lang+"|"+(hfView==="check"?rows.filter(x=>x.inRound&&!(x.v&&x.rp!=null)).length:"");
   if(foot&&fkey!==lastFoot){lastFoot=fkey;foot.textContent="";
-    if(hfView==="results"){foot.append(el("span","nx",hfPaused?"":t("nextIn",{s:left})));
-      const pb=el("button","pbtn ghost",hfPaused?t("resume"):t("pause"));pb.type="button";pb.onclick=()=>{hfPaused=!hfPaused;if(!hfPaused)hfNextAt=Date.now()+NEXT_MS;lastFoot=""};
-      const nb=el("button","pbtn",t("nextNow"));nb.type="button";nb.onclick=hfNext;foot.append(pb,nb)}
+    if(hfView==="results"){foot.append(el("span","nx",t("ovHint")));
+      const nb=el("button","pbtn",t("nextNow"));nb.type="button";nb.onclick=hfNext;foot.append(nb)}
     else if(hfView==="check"){const n=rows.filter(x=>x.inRound&&!(x.v&&x.rp!=null)).length;foot.append(el("span","nx",n?t("waitPlayers",{n}):""))}
     else foot.append(el("span","nx"));
     const lb=el("button","pbtn ghost",t("lobby"));lb.type="button";lb.onclick=backToLobby;foot.append(lb);
   }
 }
+// the host's call on an answer: 1 accepts it, 0 rejects it; back to the checker's own verdict clears it
+function hfOverride(id,i,orig,val){const k=id+":"+i;if(val===(orig?1:0))delete hs.ov[k];else hs.ov[k]=val;hs.ov=Object.assign({},hs.ov);
+  if(hApi)hApi.presence({ov:hs.ov,ovr:hs.hr});lastCenter="";drawHarfLive()}
 // round results: every player's five answers, marked like the phones mark them
 function resultsTable(rows){
-  const inR=rows.filter(r=>r.inRound&&r.a&&r.v),A={},V={};inR.forEach(r=>{A[r.id]=r.a;V[r.id]=r.v});
+  const inR=rows.filter(r=>r.inRound&&r.a&&r.v).map(r=>Object.assign({},r,{v0:r.v,v:r.v.map((x,i)=>{const k=r.id+":"+i;return k in hs.ov?hs.ov[k]:x})})),A={},V={};
+  inR.forEach(r=>{A[r.id]=r.a;V[r.id]=r.v});
   const pts=R.harfRoomPoints(A,V,hfRound.lg);
   const wrap=el("div");wrap.style.cssText="width:100%;display:grid;gap:12px";
   wrap.append(el("div","bigmsg",t("results",{r:hfRound.r})+" · "+hfRound.L));
@@ -606,8 +620,13 @@ function resultsTable(rows){
   const thead=el("thead");thead.append(th);tbl.append(thead);const tb=el("tbody");
   inR.map(r=>({r,p:pts[r.id]||H.CATS.map(()=>0)})).sort((x,y)=>y.p.reduce((a,b)=>a+b,0)-x.p.reduce((a,b)=>a+b,0)).forEach(({r,p})=>{
     const tr=el("tr"),who=el("td"),wd=el("div","hwho");wd.append(blob(r.c),el("span",null,r.n));who.append(wd);tr.append(who);
-    H.CATS.forEach((k,i)=>{const td=el("td"),w=r.a[i]||"—",ok=r.v[i],sp=el("span","ans "+(ok?(p[i]>=H.ROOM_UNIQUE?"u":"s"):"x"));sp.dir="auto";
-      sp.append(document.createTextNode(w));if(ok)sp.append(el("small",null,p[i]>=H.ROOM_UNIQUE?t("unique"):t("shared")));td.append(sp);tr.append(td)});
+    H.CATS.forEach((k,i)=>{const td=el("td"),w=r.a[i]||"—",ok=r.v[i],ch=(r.id+":"+i) in hs.ov;
+      const sp=el(r.a[i]?"button":"span","ans "+(ok?(p[i]>=H.ROOM_UNIQUE?"u":"s"):"x")+(ch?" ov":""));sp.dir="auto";
+      sp.append(document.createTextNode(w));
+      if(ok||ch){const sm=el("small",null,ok?(p[i]>=H.ROOM_UNIQUE?t("unique"):t("shared")):"✗");if(ch)sm.append(document.createTextNode(" · "+t("ovMark")));sp.append(sm)}
+      if(r.a[i]){sp.type="button";sp.title=t(ok?"reject":"accept");sp.setAttribute("aria-label",r.n+" · "+t("cat_"+k)+": "+w+" · "+t(ok?"reject":"accept"));
+        sp.onclick=()=>hfOverride(r.id,i,r.v0[i],ok?0:1)}
+      td.append(sp);tr.append(td)});
     tr.append(el("td",null,"+"+p.reduce((a,b)=>a+b,0)));tb.append(tr)});
   tbl.append(tb);wrap.append(tbl);return wrap;
 }
