@@ -83,6 +83,12 @@
 .apbtn{grid-column:2/4;justify-self:start;border:1px solid var(--line3);background:transparent;border-radius:999px;padding:6px 14px;min-height:36px;font-size:12.5px;font-weight:700;color:var(--ink)}
 .apbtn:disabled{opacity:.5;cursor:default}
 .aprow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.capban{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:min(560px,calc(100vw - 16px));box-sizing:border-box;z-index:9000;
+  background:#FFF4C8;color:#2B2100;border:2px solid #E0B400;border-radius:16px;padding:10px 12px;display:grid;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-height:45vh;overflow:auto}
+.capban>b{font-size:15px}
+.cbrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cbrow span{flex:1;min-width:0;font-size:14px}
+.cby,.cbn{min-height:40px;padding:0 14px;border-radius:999px;font-weight:800;font-size:14px;cursor:pointer;border:0}
+.cby{background:#178a5c;color:#fff}.cbn{background:#fff;color:#2B2100;border:1px solid #C9A400}
 .aprow .apbtn{grid-column:auto}
 .apnote{font-size:12.5px;color:var(--muted)}
 .apnote.won{color:var(--good);font-weight:600}
@@ -530,6 +536,7 @@ const curLang=()=>mode==="daily"?(drun&&drun.lg)||lang:cur?cur.lg:lang;
 
 function showGame(){$("#lobby").hidden=true;$("#game").hidden=false;lastPanelKey="";window.scrollTo(0,0);render()}
 function backToLobby(){
+  const cb=$("#capBan");if(cb)cb.remove();capBanKey="";
   unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];
   if(roomApi){try{roomApi.leave()}catch(e){}}
   clearTimeout(saveTimer);
@@ -827,7 +834,26 @@ setInterval(()=>{if(!$("#game").hidden){tick();renderLive()}},200);
 
 /* ---------- render ---------- */
 function render(){if($("#game").hidden){if(!$("#lobby").hidden)renderBoard();return}renderTop();renderPlay();renderBoard();renderOverlay()}
-function renderLive(){renderTimer();renderActions();renderOverlay();if(mode==="room")renderBoardLight()}
+function renderLive(){renderTimer();renderActions();renderOverlay();if(mode==="room")renderBoardLight();capBanner()}
+/* party host: appeals waiting for a decision, pinned to the top of the screen (whatever else is showing), with
+   Accept / Reject on each, and a short buzz when a new one arrives. The host's own appeals are left to the big screen. */
+let capBanKey="",capBanSeen=new Set();
+function capBanner(){
+  let box=$("#capBan");
+  const pend=cur&&isCap()?roundRows().filter(r=>!r.me&&r.apl&&r.a).flatMap(r=>r.apl.filter(i=>r.a[i]&&!((r.id+":"+i) in (hostOv()||{}))).map(i=>({r,i}))):[];
+  const key=JSON.stringify([lang,cur&&cur.round,pend.map(x=>[x.r.id,x.r.n,x.i,x.r.a[x.i]])]);
+  if(key===capBanKey)return;capBanKey=key;
+  if(!pend.length){if(box)box.remove();return}
+  if(!box){box=el("div","capban");box.id="capBan";box.setAttribute("role","region");box.setAttribute("aria-live","polite");document.body.append(box)}
+  box.textContent="";box.append(el("b",null,t("appealsTitle")+" ("+pend.length+")"));
+  let fresh=false;
+  pend.forEach(({r,i})=>{const k=cur.round+"|"+r.id+":"+i;if(!capBanSeen.has(k)){capBanSeen.add(k);fresh=true}
+    const row=el("div","cbrow"),w=el("span",null,r.n+" · "+catName(H.CATS[i])+": "),ww=el("b",null,r.a[i]);ww.dir="auto";w.append(ww);
+    const y=el("button","cby",t("accept"));y.type="button";y.onclick=()=>{hostCmd({k:"ov",id:r.id,i,v:1,r:cur.round});row.style.opacity=".4"};
+    const n=el("button","cbn",t("reject"));n.type="button";n.onclick=()=>{hostCmd({k:"ov",id:r.id,i,v:0,r:cur.round});row.style.opacity=".4"};
+    row.append(w,y,n);box.append(row)});
+  if(fresh)try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){}
+}
 function renderTop(){
   const r=$("#roomTxt");r.textContent="";
   $("#copyBtn").hidden=mode!=="room";$("#linkBtn").hidden=mode!=="room";$("#netDot").hidden=mode!=="room";
