@@ -202,6 +202,9 @@ wss.on("connection", (ws, req) => {
     ws.tokens -= 1;
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
+    // the shared clock: a page sends its own time and gets the server's back, to work out how far apart they are
+    // (round schedules use the server's clock, so a phone and the big screen agree whatever their clocks say)
+    if (msg && msg.t === "time") { ws.send(JSON.stringify({ t: "time", c: Number(msg.c) || 0, s: Date.now() })); return; }
     if (!msg || typeof msg.room !== "string" || !ROOM_RE.test(msg.room)) return;
     const name = msg.room;
 
