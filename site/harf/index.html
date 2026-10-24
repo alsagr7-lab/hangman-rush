@@ -254,7 +254,7 @@ en:{
   start:"Start",doneTitle:"{c} of 5 valid",statPoints:"points",statValid:"valid",statStreak:"streak",statBest:"best",copyResult:"Copy result",
   streakBonus:"Perfect streak bonus",rareSoon:"Rare-answer bonus",rareSoonV:"tomorrow",nextLetter:"Next letter in {t}. It changes at midnight Saudi time.",
   shareHead:"Harf Rush · daily #{n} · {lg}",backLobby:"Back to the lobby",
-  shareStart:"Share the code, then start",roomCodeLine:"Room code: ",readyPractise:"Ready to practise?",startRound1:"Start round 1",nextRound:"Next round",youHost:"👑 You're the host. You play too.",hostRuns:"👑 {name} is the host.",startNow:"Start now",partyLobby:"Back to the party lobby",appealsTitle:"Appeals to decide",accept:"Accept",reject:"Reject",capTap:"Tap anyone's answer to accept or reject it.",appealSent:"Sent to the host to decide.",
+  shareStart:"Share the code, then start",roomCodeLine:"Room code: ",readyPractise:"Ready to practise?",startRound1:"Start round 1",nextRound:"Next round",youHost:"👑 You're the host. You play too.",hostRuns:"👑 {name} is the host.",startNow:"Start now",hostReady:"You're the host: start when everyone's in",hostReadyHelp:"Press Start now when everyone has joined.",autoStartIn:"The first round starts by itself in {s}s.",partyGetReady:"Get ready, the round is about to start",hostWillStart:"👑 {name} will start the round.",partyLobby:"Back to the party lobby",appealsTitle:"Appeals to decide",accept:"Accept",reject:"Reject",capTap:"Tap anyone's answer to accept or reject it.",appealSent:"Sent to the host to decide.",
   waitingFor:"Waiting for {name}",startsAtOnce:"The round starts for everyone at once.",noHost:"No host in room {c}",noHostHelp:"Check the code with your friend, or run the room yourself.",
   takeOver:"Run the room",tvWait:"Waiting for the big screen…",tvWaitHelp:"It lost its connection for a moment. The game carries on here as soon as it's back.",backParty:"Back to the party",hostLeft:"The host left. Anyone can take over.",waitingHostNext:"Waiting for {name} to start the next round.",
   roundInProgress:"Round in progress",jumpIn:"You'll jump in when the next round starts.",roundOver:"Round {n} · letter {L}",
@@ -310,7 +310,7 @@ ar:{
   start:"ابدأ",doneTitle:"{c} من 5 صحيحة",statPoints:"النقاط",statValid:"صحيحة",statStreak:"السلسلة",statBest:"الأفضل",copyResult:"انسخ النتيجة",
   streakBonus:"مكافأة سلسلة الكمال",rareSoon:"مكافأة الإجابات النادرة",rareSoonV:"غداً",nextLetter:"الحرف التالي بعد {t}. يتغيّر عند منتصف الليل بتوقيت UTC.",
   shareHead:"سباق الحروف · حرف اليوم #{n} · {lg}",backLobby:"العودة للبداية",
-  shareStart:"شارك الرمز ثم ابدأ",roomCodeLine:"رمز الغرفة: ",readyPractise:"جاهز للتدريب؟",startRound1:"ابدأ الجولة 1",nextRound:"الجولة التالية",youHost:"👑 أنت المضيف، وتلعب أيضاً.",hostRuns:"👑 المضيف: {name}",startNow:"ابدأ الآن",partyLobby:"العودة لردهة الحفلة",appealsTitle:"اعتراضات بانتظار قرارك",accept:"اقبل",reject:"ارفض",capTap:"اضغط على أي إجابة لقبولها أو رفضها.",appealSent:"أُرسل للمضيف ليقرر.",
+  shareStart:"شارك الرمز ثم ابدأ",roomCodeLine:"رمز الغرفة: ",readyPractise:"جاهز للتدريب؟",startRound1:"ابدأ الجولة 1",nextRound:"الجولة التالية",youHost:"👑 أنت المضيف، وتلعب أيضاً.",hostRuns:"👑 المضيف: {name}",startNow:"ابدأ الآن",hostReady:"أنت المضيف: ابدأ عندما يدخل الجميع",hostReadyHelp:"اضغط ابدأ الآن عندما ينضم الجميع.",autoStartIn:"الجولة الأولى تبدأ تلقائياً بعد {s} ث.",partyGetReady:"استعد، الجولة على وشك البدء",hostWillStart:"👑 {name} سيبدأ الجولة.",partyLobby:"العودة لردهة الحفلة",appealsTitle:"اعتراضات بانتظار قرارك",accept:"اقبل",reject:"ارفض",capTap:"اضغط على أي إجابة لقبولها أو رفضها.",appealSent:"أُرسل للمضيف ليقرر.",
   waitingFor:"بانتظار {name}",startsAtOnce:"تبدأ الجولة للجميع في نفس اللحظة.",noHost:"لا يوجد مضيف في الغرفة {c}",noHostHelp:"تأكّد من الرمز مع صديقك، أو أدِر الغرفة بنفسك.",
   takeOver:"أدِر الغرفة",tvWait:"بانتظار الشاشة الكبيرة…",tvWaitHelp:"انقطع اتصالها للحظة. تكمل اللعبة هنا بمجرد رجوعها.",backParty:"العودة للحفلة",hostLeft:"غادر المضيف. يستطيع أي لاعب أن يتولى الإدارة.",waitingHostNext:"بانتظار {name} ليبدأ الجولة التالية.",
   roundInProgress:"جولة جارية",jumpIn:"ستنضم مع بداية الجولة التالية.",roundOver:"الجولة {n} · حرف {L}",
@@ -643,12 +643,12 @@ function partyAppeals(){
 function partyScore(){const tv=partyTv(),T=tv&&tv.presence.tot;if(!T||typeof T!=="object"||!(uid in T))return;const s=num(T[uid]);if(s!==score){score=s;pushPresence();lastPanelKey="";render()}}
 // the host player's controls, shown under the round's results (or before the first round)
 function capControls(){
-  const out=[el("p","lbl",t("youHost"))];
+  const out=cur?[el("p","lbl",t("youHost"))]:[];
   const tv=partyTv(),P=tv.presence;
   if(cur){
-    const pend=roundRows().filter(r=>!r.me&&r.apl&&r.a).flatMap(r=>r.apl.filter(i=>r.a[i]&&!((r.id+":"+i) in (hostOv()||{}))).map(i=>({r,i})));
+    const pend=roundRows().filter(r=>r.apl&&r.a).flatMap(r=>r.apl.filter(i=>r.a[i]&&!((r.id+":"+i) in (hostOv()||{}))).map(i=>({r,i})));
     if(pend.length){out.push(el("p","lbl",t("appealsTitle")));
-      pend.forEach(({r,i})=>{const row=el("div","aprow");row.append(el("span","apnote",r.n+" · "+catName(H.CATS[i])+": "+r.a[i]));
+      pend.forEach(({r,i})=>{const row=el("div","aprow");row.append(el("span","apnote",r.n+(r.me?" ("+t("you")+")":"")+" · "+catName(H.CATS[i])+": "+r.a[i]));
         const y=el("button","apbtn",t("accept"));y.type="button";y.onclick=()=>hostCmd({k:"ov",id:r.id,i,v:1,r:cur.round});
         const n=el("button","apbtn",t("reject"));n.type="button";n.onclick=()=>hostCmd({k:"ov",id:r.id,i,v:0,r:cur.round});
         row.append(y,n);out.push(row)})}
@@ -750,7 +750,7 @@ async function lockAndCheck(){
 // players in this round, with their answers once they're in
 function roundRows(){
   if(!cur)return[];
-  const mine={me:true,id:uid,n:me.nick,c:me.color,a:cur.words,v:cur.v,rp:cur.pts?cur.pts.reduce((x,y)=>x+y,0):null,f:cur.locked?N:words().filter(Boolean).length,dn:cur.locked?1:0};
+  const mine={me:true,id:uid,n:me.nick,c:me.color,a:cur.words,v:cur.v,apl:cur.apl||[],rp:cur.pts?cur.pts.reduce((x,y)=>x+y,0):null,f:cur.locked?N:words().filter(Boolean).length,dn:cur.locked?1:0};
   if(mode!=="room")return[mine];
   const list=others().filter(p=>p.presence.r===cur.round).map(p=>{const P=p.presence;
     return{me:false,id:P.u||p.peer,n:nm16(P.n),c:R.safeColor(P.c),a:Array.isArray(P.a)?P.a.slice(0,N).map(x=>String(x||"").slice(0,H.MAXLEN)):null,
@@ -835,12 +835,12 @@ setInterval(()=>{if(!$("#game").hidden){tick();renderLive()}},200);
 /* ---------- render ---------- */
 function render(){if($("#game").hidden){if(!$("#lobby").hidden)renderBoard();return}renderTop();renderPlay();renderBoard();renderOverlay()}
 function renderLive(){renderTimer();renderActions();renderOverlay();if(mode==="room")renderBoardLight();capBanner()}
-/* party host: appeals waiting for a decision, pinned to the top of the screen (whatever else is showing), with
-   Accept / Reject on each, and a short buzz when a new one arrives. The host's own appeals are left to the big screen. */
+/* party host: appeals waiting for a decision (the host's own too), pinned to the top of the screen whatever else is
+   showing, with Accept / Reject on each, and a short buzz when a new one arrives. */
 let capBanKey="",capBanSeen=new Set();
 function capBanner(){
   let box=$("#capBan");
-  const pend=cur&&isCap()?roundRows().filter(r=>!r.me&&r.apl&&r.a).flatMap(r=>r.apl.filter(i=>r.a[i]&&!((r.id+":"+i) in (hostOv()||{}))).map(i=>({r,i}))):[];
+  const pend=cur&&isCap()?roundRows().filter(r=>r.apl&&r.a).flatMap(r=>r.apl.filter(i=>r.a[i]&&!((r.id+":"+i) in (hostOv()||{}))).map(i=>({r,i}))):[];
   const key=JSON.stringify([lang,cur&&cur.round,pend.map(x=>[x.r.id,x.r.n,x.i,x.r.a[x.i]])]);
   if(key===capBanKey)return;capBanKey=key;
   if(!pend.length){if(box)box.remove();return}
@@ -848,7 +848,7 @@ function capBanner(){
   box.textContent="";box.append(el("b",null,t("appealsTitle")+" ("+pend.length+")"));
   let fresh=false;
   pend.forEach(({r,i})=>{const k=cur.round+"|"+r.id+":"+i;if(!capBanSeen.has(k)){capBanSeen.add(k);fresh=true}
-    const row=el("div","cbrow"),w=el("span",null,r.n+" · "+catName(H.CATS[i])+": "),ww=el("b",null,r.a[i]);ww.dir="auto";w.append(ww);
+    const row=el("div","cbrow"),w=el("span",null,r.n+(r.me?" ("+t("you")+")":"")+" · "+catName(H.CATS[i])+": "),ww=el("b",null,r.a[i]);ww.dir="auto";w.append(ww);
     const y=el("button","cby",t("accept"));y.type="button";y.onclick=()=>{hostCmd({k:"ov",id:r.id,i,v:1,r:cur.round});row.style.opacity=".4"};
     const n=el("button","cbn",t("reject"));n.type="button";n.onclick=()=>{hostCmd({k:"ov",id:r.id,i,v:0,r:cur.round});row.style.opacity=".4"};
     row.append(w,y,n);box.append(row)});
@@ -986,13 +986,18 @@ function renderOverlay(){
   if(cur){const P=phaseOf(cur,now);if(P.ph==="count")return showCount(ov,panel,Math.max(1,Math.ceil(P.left/1000)));if(P.ph==="write"||!cur.scored)return hideOverlay(ov)}
   const h=hostInfo(),hp=hostPeer();
   const rows=cur?roundRows():[];
-  const key=[mode,cur?cur.round:0,cur&&cur.scored,host,!!hp,h&&h.lg,h&&h.ms,h&&h.st,rows.map(r=>r.n+r.rp+(r.v||[]).join("")).join(),cur?JSON.stringify(cur.ap)+cur.apMsg:"",isCap(),capName(),JSON.stringify(rows.map(r=>r.apl||[])),JSON.stringify(hostOv()||{}),partyTv()?partyTv().presence.lg+partyTv().presence.ms:""].join("|");
+  const key=[mode,cur?cur.round:0,cur&&cur.scored,host,!!hp,h&&h.lg,h&&h.ms,h&&h.st,rows.map(r=>r.n+r.rp+(r.v||[]).join("")).join(),cur?JSON.stringify(cur.ap)+cur.apMsg:"",isCap(),capName(),!cur&&partyTv()&&num(partyTv().presence.nx)?Math.ceil((num(partyTv().presence.nx)-RN())/1000):"",JSON.stringify(rows.map(r=>r.apl||[])),JSON.stringify(hostOv()||{}),partyTv()?partyTv().presence.lg+partyTv().presence.ms:""].join("|");
   setPanel(ov,panel,key,()=>{
     const out=[];
     if(!cur){
       if(host){out.push(el("h2",null,mode==="solo"?t("readyPractise"):t("shareStart")));
         if(mode==="room"){const p=el("p",null,t("roomCodeLine"));const c=ltr(code);c.style.cssText="font-family:var(--f-mono);font-weight:700;letter-spacing:.2em";p.appendChild(c);out.push(p,el("p","note",t("startsAtOnce")))}}
-      else if(partyTv()){out.push(el("h2",null,t("tvWait")));if(isCap())out.push(...capControls());else{const n=capName();if(n)out.push(el("p","note",t("hostRuns",{name:n})))}return out}
+      else if(partyTv()){
+        // the big screen starts the first round by itself a few seconds after the game opens (nx, on the shared clock)
+        const nx=num(partyTv().presence.nx),secs=nx?Math.max(0,Math.ceil((nx-RN())/1000)):0;
+        if(isCap()){out.push(el("h2",null,t("hostReady")),el("p","note",secs?t("autoStartIn",{s:secs}):t("hostReadyHelp")));out.push(...capControls())}
+        else{out.push(el("h2",null,t("partyGetReady")));const n=capName();out.push(el("p","note",secs?t("autoStartIn",{s:secs}):n?t("hostWillStart",{name:n}):t("tvWait")))}
+        return out}
       else if(hp)out.push(el("h2",null,t("waitingFor",{name:nm16(hp.presence.n)})),el("p",null,t("startsAtOnce")));
       else if(inParty()){out.push(...tvWait());return out}
       else{out.push(el("h2",null,t("noHost",{c:code})),el("p",null,t("noHostHelp")));const b=el("button","btn",t("takeOver"));b.onclick=takeOver;out.push(b);return out}
@@ -1021,7 +1026,7 @@ function renderOverlay(){
           else if(st===-1)row.appendChild(el("span","apnote",a.w+" ✗"));
           else{const b=el("button","apbtn",t("appeal")+": "+a.w);b.type="button";b.disabled=st===0;b.onclick=()=>appealRoom(i);row.appendChild(b)}});
         out.push(row);
-        if(cur.apMsg)out.push(el("p","note warn",cur.apMsg));
+        if(cur.apMsg)out.push(el("p",cur.apMsg===t("appealSent")?"note":"note warn",cur.apMsg));
       }
       const won=Object.keys(cur.ap).filter(i=>cur.ap[i]===1).length;if(won)out.push(el("p","apnote won",t("appealWon")+" ×"+won));
     }
