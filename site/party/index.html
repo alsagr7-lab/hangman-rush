@@ -610,7 +610,7 @@ function backToLobby(){
    leave it out of the players. Each phone checks its own answers and posts them with its points. */
 let hfLastHr=0,leaving=null,hApi=null,hUnsub=[],hs=null,hfView="wait",hfTimer=null,hfPaused=false,hfNextAt=0,hfRound=null;
 const NEXT_MS=20000;
-function hfPresence(){return{n:lang==="ar"?"الشاشة":"TV",c:R.COLORS[0],u:"tv_"+Rush.uid,scr:1,h:1,s:0,r:0,f:0,dn:0,hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn,back:hs.back||0,gid:roomCount,ns:hs.ns,ov:hs.ov,ovr:hs.hr,cap,tot:hs.tot||{}}}
+function hfPresence(){return{n:lang==="ar"?"الشاشة":"TV",c:R.COLORS[0],u:"tv_"+Rush.uid,scr:1,h:1,s:0,r:0,f:0,dn:0,hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn,back:hs.back||0,gid:roomCount,ns:hs.ns,ov:hs.ov,ovr:hs.hr,cap,tot:hs.tot||{},nx:hfView==="arrive"?hfNextAt:0}}
 async function hfEnter(){
   hs={hr:hfLastHr,st:"waiting",at:0,L:"",lg:tvGame.lg,ms:tvGame.ms,ns:tvGame.ns,ov:{},sa:0,sn:"",used:[],back:0,tot:{}};hfView="wait";hfRound=null;roundPts={};draw();
   if(leaving){clearTimeout(leaving.tm);hApi=leaving.api;leaving=null}
@@ -618,7 +618,7 @@ async function hfEnter(){
   hApi.presence(hfPresence());
   hUnsub.push(hApi.onPeers(()=>{ensureCap();runCmds(hfPlayers());hfTick();drawHarfLive()}));
   // give the phones a moment to arrive, then start the first round
-  hfNextAt=Rush.now()+8000;hfView="arrive";draw();
+  hfNextAt=Rush.now()+8000;hfView="arrive";hApi.presence(hfPresence());draw();
 }
 function hfLeave(){
   if(hApi){hs.back=1;hs.st="ended";try{hApi.presence(hfPresence())}catch(e){}
