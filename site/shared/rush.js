@@ -241,13 +241,31 @@
     b.onclick = () => { try { window.close(); } catch {} location.href = "/" + (ar ? "ar/" : ""); };
     box.append(h, p, b); d.append(box); document.body.append(d); b.focus();
   }
+  /* the shared clock: the server's time, as best this device can tell. A few pings when the connection opens (and
+     again every minute); the one with the quickest round trip gives the offset. Room rounds are scheduled on it, so
+     every device starts and ends a round at the same moment even when their own clocks are seconds apart. */
+  let clockOff = 0, clockRtt = Infinity, clockTimer = 0;
+  const now = () => Date.now() + clockOff;
+  function syncClock() {
+    clearTimeout(clockTimer);
+    let k = 0;
+    const one = () => { if (!open) return; sendRaw({ t: "time", c: Date.now() }); if (++k < 5) clockTimer = setTimeout(one, 250); else clockTimer = setTimeout(() => { clockRtt = Infinity; syncClock(); }, 60000); };
+    one();
+  }
+  function gotTime(m) {
+    const t = Date.now(), rtt = t - Number(m.c);
+    if (!(rtt >= 0) || rtt > 10000 || !Number(m.s)) return;
+    // a much slower answer than the best one so far says less about the offset
+    if (rtt <= clockRtt + 30) { clockRtt = Math.min(clockRtt, rtt); clockOff = Math.round(Number(m.s) + rtt / 2 - t); }
+  }
   function connect() {
     ws = new WebSocket(wsUrl);
-    ws.onopen = () => { setOpen(true); setServer("up"); joined.forEach((s, name) => sendRaw({ t: "join", room: name, presence: s.presence })); };
+    ws.onopen = () => { setOpen(true); setServer("up"); syncClock(); joined.forEach((s, name) => sendRaw({ t: "join", room: name, presence: s.presence })); };
     ws.onclose = () => { setOpen(false); setTimeout(connect, 1200); };
     ws.onerror = () => {};
     ws.onmessage = ev => {
       let m; try { m = JSON.parse(ev.data); } catch { return; }
+      if (m && m.t === "time") return gotTime(m);
       const s = joined.get(m.room); if (!s) return;
       if (m.t === "error" && m.code === "replaced" && !s.pending) {
         joined.delete(m.room); s.peers = Object.freeze([]);
@@ -1410,7 +1428,7 @@
 
   // the message shown when a name is turned down by the shared name filter (rules.js badName)
   const badNameMsg = () => (document.documentElement.lang === "ar" ? "اختر اسماً آخر، هذا الاسم غير مسموح." : "Please pick another name. That one isn't allowed.");
-  window.Rush = { medals, medalSvg, medalEl, whoBtn, openPlayer, badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
+  window.Rush = { now, medals, medalSvg, medalEl, whoBtn, openPlayer, badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, user, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };

@@ -104,7 +104,7 @@ html.party,html.party body,:root.party[data-theme] body{background:var(--pv)!imp
 .stage{position:relative;flex:1;min-height:360px;border-radius:40px;background:var(--pv2);
   background-image:radial-gradient(rgba(255,255,255,.07) 2px,transparent 2.5px);background-size:34px 34px;box-shadow:inset 0 8px 0 rgba(0,0,0,.18);overflow:hidden}
 .stage .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;font-size:clamp(20px,2.2vw,30px);font-weight:700;color:var(--pmuted)}
-.chr{position:absolute;width:96px;margin-inline-start:-48px;margin-top:-118px;transition:left .22s linear,top .22s linear;display:grid;justify-items:center;pointer-events:none}
+.chr{position:absolute;width:96px;margin-inline-start:-48px;margin-top:-118px;transition:left .22s linear,top .22s linear;display:grid;justify-items:center}
 .chr .tag{background:#fff;color:var(--pdark);font-weight:800;font-size:18px;border-radius:999px;padding:2px 14px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 0 rgba(0,0,0,.2);margin-bottom:6px}
 .chr .say{position:absolute;bottom:calc(100% + 6px);background:#fff;color:var(--pdark);font-weight:700;font-size:20px;line-height:1.25;border-radius:20px;padding:8px 14px;
   max-width:260px;width:max-content;text-align:center;box-shadow:0 5px 0 rgba(0,0,0,.2);animation:pop .25s cubic-bezier(.3,1.6,.6,1)}
@@ -146,6 +146,17 @@ html.party,html.party body,:root.party[data-theme] body{background:var(--pv)!imp
 .chat input{flex:1;min-width:0;width:0;min-height:52px;border-radius:999px;border:3px solid #E6E0FF;padding:0 18px;font-size:18px;font-weight:700;color:var(--pdark);background:#F7F5FF}
 .chat input:focus{outline:none;border-color:var(--pv3)}
 .quick{display:flex;gap:8px;flex-wrap:wrap}
+.hostpanel{background:#fff;color:var(--pdark);border-radius:28px;padding:18px;display:grid;gap:12px;box-shadow:0 6px 0 rgba(0,0,0,.15);border:3px solid var(--yel)}
+.hostpanel>b{font-size:20px}.hostpanel .pnote{margin:0;color:#5B5480}
+.hostline{color:#fff;font-weight:800;text-align:center}
+.hg{display:grid;gap:6px}.lbl3{font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#7A72A8}
+.seg3{display:flex;gap:6px;flex-wrap:wrap}
+.seg3 button{min-height:44px;border-radius:999px;border:0;padding:0 14px;font-weight:800;font-size:15px;background:#EFEAFF;color:var(--pdark);cursor:pointer}
+.seg3 button[aria-pressed="true"]{background:var(--pdark);color:#fff}
+.chr{pointer-events:auto;cursor:pointer}.chr.host .tag{background:var(--yel)}
+.apbox{background:rgba(255,214,102,.16);border:3px solid var(--yel);border-radius:24px;padding:12px 16px;display:grid;gap:8px;text-align:start}
+.apit{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.apit span{flex:1;min-width:0;font-size:20px}
+.apit .pbtn{min-height:44px;font-size:17px;padding:0 18px}
 .quick button{min-height:44px;border-radius:999px;border:0;padding:0 16px;font-weight:800;font-size:16px;background:#EFEAFF;color:var(--pdark);cursor:pointer}
 .pstatus{text-align:center;font-size:20px;font-weight:800}
 /* ---------- Harf on the TV ---------- */
@@ -220,7 +231,8 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   startHint:"Press Enter to start",yourName:"Your name",namePh:"e.g. Yousef",colour:"Your colour",joinParty:"Join the party",nameShort:"Pick a name (2+ letters).",
   full:"This party is full ({m} players).",noParty:"Couldn't reach that party. Check the code and try again.",connecting:"Joining…",
   inLobby:"You're in! Move around and say hi while you wait.",say:"Say something…",send:"Send",jump:"Jump",
-  q1:"Hi!",q2:"Ready",q3:"Let's go!",q4:"GG",chat:"Chat",chatOn:"Typing on",chatQuick:"Quick only",chatOff:"The big screen turned typing off. Quick messages still work.",chatNo:"That message isn't allowed.",chatSlow:"Slow down a little.",starting:"Starting {g}…",tvGone:"The big screen left the party.",
+  q1:"Hi!",q2:"Ready",q3:"Let's go!",q4:"GG",hostIs:"👑 {n} is the host",hostNone:"👑 No host yet",makeHost:"Make this player the host",makeHostHelp:"Tap a character to make them the host",youHost:"👑 You're the host",youHostHelp:"Pick the settings and start from here. You play too.",passHost:"Make someone else the host",appealsTv:"Appeals for the host {n}",
+  chat:"Chat",chatOn:"Typing on",chatQuick:"Quick only",chatOff:"The big screen turned typing off. Quick messages still work.",chatNo:"That message isn't allowed.",chatSlow:"Slow down a little.",starting:"Starting {g}…",tvGone:"The big screen left the party.",
   round:"Round {r}",get:"Get ready…",write:"Write!",stopBy:"{n} pressed STOP!",checking:"Checking answers…",results:"Round {r}",
   total:"Score",nextIn:"Next round in {s}",nextNow:"Next round",pause:"Pause",resume:"Resume",lobby:"Back to lobby",
   noPlayers:"Nobody's in the room yet.",waitPlayers:"Waiting for {n} more to finish…",writing:"writing",done:"done",
@@ -236,7 +248,8 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   startHint:"اضغط Enter للبدء",yourName:"اسمك",namePh:"مثلاً: يوسف",colour:"لونك",joinParty:"ادخل الحفلة",nameShort:"اختر اسماً (حرفان على الأقل).",
   full:"الحفلة ممتلئة ({m} لاعباً).",noParty:"تعذّر الوصول للحفلة. تأكد من الرمز وحاول مرة أخرى.",connecting:"جارٍ الدخول…",
   inLobby:"دخلت! تحرّك وسلّم على الكل وأنت تنتظر.",say:"قل شيئاً…",send:"أرسل",jump:"نط",
-  q1:"هلا!",q2:"جاهز",q3:"يلا!",q4:"كفو",chat:"الدردشة",chatOn:"الكتابة مفعّلة",chatQuick:"السريعة فقط",chatOff:"الشاشة الكبيرة أوقفت الكتابة. الرسائل السريعة متاحة.",chatNo:"هذه الرسالة غير مسموحة.",chatSlow:"على مهلك شوي.",starting:"جارٍ بدء {g}…",tvGone:"الشاشة الكبيرة غادرت الحفلة.",
+  q1:"هلا!",q2:"جاهز",q3:"يلا!",q4:"كفو",hostIs:"👑 المضيف: {n}",hostNone:"👑 لا يوجد مضيف بعد",makeHost:"اجعل هذا اللاعب المضيف",makeHostHelp:"اضغط على شخصية لتجعلها المضيف",youHost:"👑 أنت المضيف",youHostHelp:"اختر الإعدادات وابدأ من هنا. وتلعب أيضاً.",passHost:"اجعل لاعباً آخر المضيف",appealsTv:"اعتراضات بانتظار المضيف {n}",
+  chat:"الدردشة",chatOn:"الكتابة مفعّلة",chatQuick:"السريعة فقط",chatOff:"الشاشة الكبيرة أوقفت الكتابة. الرسائل السريعة متاحة.",chatNo:"هذه الرسالة غير مسموحة.",chatSlow:"على مهلك شوي.",starting:"جارٍ بدء {g}…",tvGone:"الشاشة الكبيرة غادرت الحفلة.",
   round:"الجولة {r}",get:"استعدوا…",write:"اكتبوا!",stopBy:"{n} ضغط ستوب!",checking:"جارٍ تصحيح الإجابات…",results:"الجولة {r}",
   total:"النقاط",nextIn:"الجولة التالية بعد {s}",nextNow:"الجولة التالية",pause:"إيقاف مؤقت",resume:"استئناف",lobby:"العودة للردهة",
   noPlayers:"لا يوجد أحد في الغرفة بعد.",waitPlayers:"بانتظار {n} لإنهاء الإجابات…",writing:"يكتب",done:"انتهى",
@@ -327,13 +340,59 @@ async function startTv(){
   role="tv";document.documentElement.classList.add("party-tv");code=Rush.roomCode();tvMode="lobby";history.replaceState(null,"",location.pathname+"#tv");keepAwake();draw();
   try{await Rush.ready;pApi=await Rush.room.join("pt-"+code.toLowerCase())}catch(e){tvErr=t("noParty");draw();return}
   pApi.presence(tvPresence());
-  pUnsub.push(pApi.onPeers(()=>{track();if(tvMode==="lobby")drawStage()}));
+  pUnsub.push(pApi.onPeers(()=>{track();ensureCap();runCmds(players());if(tvMode==="lobby")drawStage()}));
   pUnsub.push(pApi.onConnection(v=>{connected=v}));
   draw();
 }
-const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":"lobby",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch});
+const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":"lobby",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch,ns:tvGame.ns,cap});
 let roomCount=0; // how many games this party has started (phones only follow a new one)
 const players=()=>pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv):[];
+/* ---------- the host: one player runs the party from their phone, and plays too ----------
+   The big screen keeps the game going (its clock and its round state); the host player's phone sends it commands in
+   its presence (hq: its last few, each with a rising n), from the party lobby or from the game. The first player to
+   join is the host; the host or the big screen (tap a character) can hand it to someone else; a host who's been
+   gone for 15 seconds (not just moving between pages) passes it to the next player. */
+let cap="",capSeenAt=0;const cmdSeen=new Map();
+const activePlayers=()=>tvMode==="harf"?hfPlayers():players();
+function pushTv(){if(pApi)pApi.presence(tvPresence());if(hApi&&hs)hApi.presence(hfPresence())}
+function setCap(u){if(u===cap)return;cap=u;capSeenAt=Date.now();pushTv();if(tvMode==="lobby")draw();else{lastCenter="";lastSide=""}}
+function ensureCap(){
+  if(role!=="tv")return;const list=activePlayers().filter(p=>p.presence.u),now=Date.now();
+  if(cap&&list.some(p=>p.presence.u===cap)){capSeenAt=now;return}
+  if(cap&&now-capSeenAt<15000)return;
+  const next=list[0]?String(list[0].presence.u):"";
+  if(next!==cap)setCap(next);
+}
+function runCmds(list){
+  for(const p of list){
+    const P=p.presence,u=P.u;if(!u)continue;
+    const q=(Array.isArray(P.hq)?P.hq:[]).filter(c=>c&&typeof c==="object"&&Number.isFinite(c.n)).slice(-8),top=q.reduce((m,c)=>Math.max(m,c.n),0);
+    // commands already there when this screen first sees a phone are old: skip them
+    if(!cmdSeen.has(u)){cmdSeen.set(u,top);continue}
+    const last=cmdSeen.get(u);if(top<=last)continue;cmdSeen.set(u,top);
+    if(u!==cap)continue;
+    q.filter(c=>c.n>last).sort((a,b)=>a.n-b.n).forEach(doCmd);
+  }
+}
+function doCmd(c){
+  const k=c.k;
+  if(k==="cap"){if(typeof c.u==="string"&&activePlayers().some(p=>p.presence.u===c.u))setCap(c.u);return}
+  const setAll=()=>{if(c.lg==="ar"||c.lg==="en")tvGame.lg=c.lg;if(H.ROOM_MS.includes(c.ms))tvGame.ms=c.ms;
+    if(c.ns===0||c.ns===1){tvGame.ns=c.ns;try{localStorage.setItem("rush-party-ns",String(c.ns))}catch(e){}}
+    if(c.ch===0||c.ch===1){tvGame.ch=c.ch;try{localStorage.setItem("rush-party-chat",String(c.ch))}catch(e){}}};
+  if(tvMode==="lobby"){
+    if(k==="set"){setAll();pushTv();draw()}
+    else if(k==="start")tvStart();
+    return;
+  }
+  if(tvMode!=="harf"||!hs)return;
+  // next round; while results are still waiting on a slow phone, show them now
+  if(k==="next"){if(hfView==="check"){hs.st="ended";hApi.presence(hfPresence());hfView="results";draw()}else hfNext()}
+  else if(k==="lobby")backToLobby();
+  else if(k==="set"&&hs.st!=="playing"){setAll();hs.lg=tvGame.lg;hs.ms=tvGame.ms;hApi&&hApi.presence(hfPresence());lastCenter=""}
+  else if(k==="ov"&&hfRound&&c.r===hfRound.r&&typeof c.id==="string"&&Number.isInteger(c.i)&&c.i>=0&&c.i<N&&(c.v===0||c.v===1))hfDecide(c.id,c.i,c.v);
+}
+setInterval(()=>{if(role==="tv")ensureCap()},1000);
 function track(){
   const now=Date.now();
   for(const p of players()){
@@ -358,8 +417,8 @@ function drawTv(){
   if(code){const q=el("div","tvq"),box=el("div","qrbox");box.append(qrSvg(partyUrl(code)),el("span","pulse"));
     const u=Rush.shareUrl().replace(/^https?:\/\//,"").replace(/\/.*$/,"")+"/party";
     q.append(el("b","pchip",t("scan")),box,el("p","pnote",t("orGo",{u})),el("div","code ltrx",code));side.append(q)}
-  const head=el("div","tvhead"),h=el("h1","ptitle",t("title")),cnt=el("span","pchip pcount");cnt.id="tvCount";
-  const right=el("div");right.style.cssText="display:flex;gap:10px;align-items:center";right.append(cnt,langBtn());head.append(h,right);
+  const head=el("div","tvhead"),h=el("h1","ptitle",t("title")),cnt=el("span","pchip pcount");cnt.id="tvCount";const capc=el("span","pchip");capc.id="tvCap";
+  const right=el("div");right.style.cssText="display:flex;gap:10px;align-items:center";right.append(capc,cnt,langBtn());head.append(h,right);
   const stage=el("div","stage");stage.id="stage";
   const bar=el("div","tvbar");
   const g1=el("div","grp"),gs=el("div","seg2");g1.append(el("span","lbl2",t("pickGame")),gs);
@@ -381,6 +440,7 @@ function drawTv(){
 function drawStage(){
   const st=$("#stage");if(!st)return;const list=players(),now=Date.now();
   const c=$("#tvCount");if(c)c.textContent=t("players",{n:list.length,m:MAX});
+  const hc=$("#tvCap");if(hc){const cp=list.find(p=>p.presence.u===cap);hc.textContent=cp?t("hostIs",{n:shownName(cp.presence.n)}):t("hostNone");hc.title=t("makeHostHelp")}
   const go=$("#tvGo");if(go){go.disabled=!list.length||!pApi;go.textContent=list.length?t("start")+" · "+t(tvGame.g):t("start")}
   let em=st.querySelector(".empty");
   if(!list.length){if(!em){em=el("div","empty",t("waiting"));st.append(em)}}else if(em)em.remove();
@@ -389,8 +449,9 @@ function drawStage(){
   for(const p of list){
     const s=seen.get(p.peer);if(!s)continue;const P=p.presence;
     let n=st.querySelector('.chr[data-peer="'+p.peer+'"]');
-    const key=shownName(P.n)+"|"+R.safeColor(P.c);
-    if(!n||n.dataset.key!==key){if(n)n.remove();n=el("div","chr");n.dataset.peer=p.peer;n.dataset.key=key;n.append(el("span","tag",shownName(P.n)),blob(P.c));st.append(n)}
+    const isCap=!!cap&&P.u===cap,key=shownName(P.n)+"|"+R.safeColor(P.c)+"|"+(isCap?1:0);
+    if(!n||n.dataset.key!==key){if(n)n.remove();n=el("div","chr"+(isCap?" host":""));n.dataset.peer=p.peer;n.dataset.key=key;n.append(el("span","tag",(isCap?"👑 ":"")+shownName(P.n)),blob(P.c));
+      n.title=t("makeHost");n.onclick=()=>{if(P.u)setCap(String(P.u))};st.append(n)}
     n.style.left=(6+s.x*88)+"%";n.style.top=(16+s.y*76)+"%";n.style.zIndex=String(Math.round(s.y*100)+10);
     n.classList.toggle("walk",now<s.walkUntil);n.classList.toggle("left",s.dir<0);
     if(s.jumpAt&&now-s.jumpAt<600){if(!n.classList.contains("jump")){n.classList.add("jump");setTimeout(()=>n.classList.remove("jump"),560)}}
@@ -423,7 +484,30 @@ async function phoneJoin(){
   pUnsub.push(pApi.onPeers(()=>phoneFollow()));
   draw();phoneFollow();
 }
-const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId});
+const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null});
+// the host player's commands to the big screen (see runCmds on the TV side)
+let hq=[],hqN=0;
+function hostCmd(o){hqN=Math.max(Date.now(),hqN+1);hq=hq.concat([Object.assign({n:hqN},o)]).slice(-6);send()}
+let lastHostKey="";
+function drawHostPanel(P){
+  const box=$("#hostPanel");if(!box)return;
+  const mine=P.cap===Rush.uid,others=pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv&&p.presence.u&&p.presence.u!==Rush.uid):[];
+  const capP=others.find(p=>p.presence.u===P.cap);
+  const key=JSON.stringify([mine,P.cap,capP&&capP.presence.n,P.lg,P.ms,P.ns,P.ch,others.map(p=>[p.presence.u,p.presence.n]),lang]);
+  if(key===lastHostKey)return;lastHostKey=key;box.textContent="";
+  if(!mine){box.className="hostline";box.textContent=capP?t("hostIs",{n:shownName(capP.presence.n)}):"";return}
+  box.className="hostpanel";
+  box.append(el("b",null,t("youHost")),el("p","pnote",t("youHostHelp")));
+  const seg3=(label,opts,v,f)=>{const g=el("div","hg");g.append(el("span","lbl3",label));const sg=el("div","seg3");
+    opts.forEach(([x,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(v===x));b.onclick=()=>{hostCmd(f(x));sg.querySelectorAll("button").forEach(y=>y.setAttribute("aria-pressed",String(y===b)))};sg.append(b)});g.append(sg);return g};
+  box.append(seg3(t("wordLang"),[["ar","عربي"],["en","English"]],P.lg,x=>({k:"set",lg:x})),
+    seg3(t("time"),H.ROOM_MS.map(x=>[x,t("secsN",{n:x/1000})]),num(P.ms),x=>({k:"set",ms:x})),
+    seg3(t("ends"),[[0,t("endStop")],[1,t("endFull")]],P.ns===0?0:1,x=>({k:"set",ns:x})),
+    seg3(t("chat"),[[1,t("chatOn")],[0,t("chatQuick")]],P.ch===0?0:1,x=>({k:"set",ch:x})));
+  const go=el("button","pbtn pink",t("start")+" · "+t("harf"));go.type="button";go.onclick=()=>{hostCmd({k:"start"});go.disabled=true;setTimeout(()=>go.disabled=false,4000)};box.append(go);
+  if(others.length){const g=el("div","hg");g.append(el("span","lbl3",t("passHost")));const sg=el("div","seg3");
+    others.forEach(p=>{const b=el("button",null,shownName(p.presence.n));b.type="button";b.onclick=()=>hostCmd({k:"cap",u:String(p.presence.u)});sg.append(b)});g.append(sg);box.append(g)}
+}
 let lastMsg="",lastSayAt=0;
 // names on the big screen: an insult or spam shows as Player
 const shownName=v=>R.junkText(String(v||""))?"Player":nm16(v);
@@ -435,6 +519,7 @@ function phoneFollow(){
   // the big screen can turn typing off: quick phrases still work
   const cr=$("#chatRow"),cn=$("#chatNote"),typing=P.ch!==0;
   if(cr&&cr.hidden===typing){cr.hidden=!typing;if(cn)cn.textContent=typing?"":t("chatOff")}
+  drawHostPanel(P);
   if(followRc<0)followRc=num(P.rc)-(P.st==="play"?1:0); // joined while a game was on: follow it straight away
   if(P.st==="play"&&num(P.rc)>followRc&&P.g==="harf"){
     followRc=num(P.rc);
@@ -484,7 +569,8 @@ function drawPhone(){
   const chatNote=v=>{cn.textContent=v};chat.id="chatRow";
   cb.onclick=()=>say(ci.value);ci.addEventListener("keydown",e=>{if(e.key==="Enter")say(ci.value)});chat.append(ci,cb);
   const quick=el("div","quick");["q1","q2","q3","q4"].forEach(k=>{const b=el("button",null,t(k));b.type="button";b.onclick=()=>say(t(k));quick.append(b)});
-  card.append(prev,pad,chat,quick,cn);w.append(st,card);view.append(w);phoneFollow();
+  const hpn=el("div");hpn.id="hostPanel";lastHostKey="";
+  card.append(prev,pad,chat,quick,cn);w.append(st,hpn,card);view.append(w);phoneFollow();
 }
 // moving: arrows on the pad (or the keyboard on a laptop), sent a few times a second
 const KEYS={ArrowUp:"u",ArrowDown:"d",ArrowLeft:"l",ArrowRight:"r"};
@@ -524,15 +610,15 @@ function backToLobby(){
    leave it out of the players. Each phone checks its own answers and posts them with its points. */
 let hfLastHr=0,leaving=null,hApi=null,hUnsub=[],hs=null,hfView="wait",hfTimer=null,hfPaused=false,hfNextAt=0,hfRound=null;
 const NEXT_MS=20000;
-function hfPresence(){return{n:lang==="ar"?"الشاشة":"TV",c:R.COLORS[0],u:"tv_"+Rush.uid,scr:1,h:1,s:0,r:0,f:0,dn:0,hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn,back:hs.back||0,gid:roomCount,ns:hs.ns,ov:hs.ov,ovr:hs.hr}}
+function hfPresence(){return{n:lang==="ar"?"الشاشة":"TV",c:R.COLORS[0],u:"tv_"+Rush.uid,scr:1,h:1,s:0,r:0,f:0,dn:0,hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn,back:hs.back||0,gid:roomCount,ns:hs.ns,ov:hs.ov,ovr:hs.hr,cap,tot:hs.tot||{}}}
 async function hfEnter(){
-  hs={hr:hfLastHr,st:"waiting",at:0,L:"",lg:tvGame.lg,ms:tvGame.ms,ns:tvGame.ns,ov:{},sa:0,sn:"",used:[],back:0};hfView="wait";hfRound=null;draw();
+  hs={hr:hfLastHr,st:"waiting",at:0,L:"",lg:tvGame.lg,ms:tvGame.ms,ns:tvGame.ns,ov:{},sa:0,sn:"",used:[],back:0,tot:{}};hfView="wait";hfRound=null;roundPts={};draw();
   if(leaving){clearTimeout(leaving.tm);hApi=leaving.api;leaving=null}
   else try{hApi=await Rush.room.join("hf-"+code.toLowerCase())}catch(e){hApi=null;tvErr=t("noParty");backToLobby();return}
   hApi.presence(hfPresence());
-  hUnsub.push(hApi.onPeers(()=>{hfTick();drawHarfLive()}));
+  hUnsub.push(hApi.onPeers(()=>{ensureCap();runCmds(hfPlayers());hfTick();drawHarfLive()}));
   // give the phones a moment to arrive, then start the first round
-  hfNextAt=Date.now()+8000;hfView="arrive";draw();
+  hfNextAt=Rush.now()+8000;hfView="arrive";draw();
 }
 function hfLeave(){
   if(hApi){hs.back=1;hs.st="ended";try{hApi.presence(hfPresence())}catch(e){}
@@ -544,7 +630,7 @@ function hfStartRound(){
   const lg=hs.lg,all=H.LETTERS[lg];let pool=all.filter(l=>!hs.used.includes(lg+l));
   if(!pool.length){hs.used=hs.used.filter(x=>!x.startsWith(lg));pool=all}
   const L=pool[Math.floor(Math.random()*pool.length)];hs.used.push(lg+L);
-  hs.hr=++hfLastHr;hs.st="playing";hs.at=Date.now();hs.L=L;hs.sa=0;hs.sn="";hs.ov={};
+  hs.hr=++hfLastHr;hs.st="playing";hs.at=Rush.now();hs.L=L;hs.sa=0;hs.sn="";hs.ov={};
   hfRound={r:hs.hr,L,lg,ms:hs.ms,at:hs.at,endAt:0};hfView="round";hApi.presence(hfPresence());draw();
 }
 function hfPhase(now){
@@ -559,10 +645,30 @@ function hfRows(){
   const r=hfRound?hfRound.r:-1;
   return hfPlayers().map(p=>{const P=p.presence;return{peer:p.peer,id:P.u||p.peer,n:shownName(P.n),c:R.safeColor(P.c),inRound:P.r===r,
     f:Math.min(N,num(P.f)),dn:!!P.dn,a:Array.isArray(P.a)?P.a.slice(0,N).map(x=>String(x||"").slice(0,H.MAXLEN)):null,
-    v:Array.isArray(P.v)?P.v.slice(0,N).map(x=>x?1:0):null,rp:P.rp==null?null:num(P.rp),s:num(P.s),stop:P.sp===r}});
+    v:Array.isArray(P.v)?P.v.slice(0,N).map(x=>x?1:0):null,rp:P.rp==null?null:num(P.rp),s:num((hs.tot||{})[P.u||p.peer]),stop:P.sp===r,
+    apl:P.r===r&&P.apl&&num(P.apl.r)===r&&Array.isArray(P.apl.i)?P.apl.i.filter(i=>Number.isInteger(i)&&i>=0&&i<N):[]}});
 }
+/* scores: this screen keeps every player's total for the game, by player id, from each round's results with the
+   host's calls; phones show it (so a reload, a rejoin or a new name never loses points) */
+let roundPts={};
+function hfScores(rows){
+  const inR=rows.filter(r=>r.inRound&&r.a&&r.v).map(r=>Object.assign({},r,{v0:r.v,v:r.v.map((x,i)=>{const k=r.id+":"+i;return k in hs.ov?hs.ov[k]:x})})),A={},V={};
+  inR.forEach(r=>{A[r.id]=r.a;V[r.id]=r.v});return{inR,pts:R.harfRoomPoints(A,V,hfRound.lg)};
+}
+function hfCount(){
+  if(!hfRound||hfView!=="results")return;
+  const {pts}=hfScores(hfRows()),m=roundPts[hfRound.r]||{};
+  for(const id of Object.keys(pts))m[id]=pts[id].reduce((a,b)=>a+b,0);
+  roundPts[hfRound.r]=m;const tot={};
+  for(const r of Object.values(roundPts))for(const id of Object.keys(r))tot[id]=(tot[id]||0)+r[id];
+  if(JSON.stringify(tot)!==JSON.stringify(hs.tot)){hs.tot=tot;if(hApi)hApi.presence({tot});lastSide=""}
+}
+// appeals waiting for the host: a player's answer they asked about, not decided yet
+const hfAppeals=rows=>rows.filter(r=>r.inRound&&r.a).flatMap(r=>r.apl.filter(i=>r.a[i]&&!((r.id+":"+i) in hs.ov)).map(i=>({r,i})));
+// the host's decision on an answer (an appeal, or any answer): 1 counts it, 0 doesn't, and it stays marked as decided
+function hfDecide(id,i,v){hs.ov=Object.assign({},hs.ov,{[id+":"+i]:v});if(hApi)hApi.presence({ov:hs.ov,ovr:hs.hr});hfCount();lastCenter="";drawHarfLive()}
 function hfTick(){
-  if(!hApi||!hfRound)return;const now=Date.now(),P=hfPhase(now);
+  if(!hApi||!hfRound)return;const now=Rush.now(),P=hfPhase(now);
   if(hs.st==="playing"){
     if(!hs.ns&&!hs.sa&&P.ph==="write"){const by=hfRows().find(x=>x.inRound&&x.stop);if(by){hs.sa=now;hs.sn=by.n;hApi.presence(hfPresence());draw()}}
     if(P.ph==="after"){
@@ -573,11 +679,12 @@ function hfTick(){
       if(ready){hs.st="ended";hApi.presence(hfPresence());hfView="results";draw()}
     }
   }
+  hfCount();
 }
 function hfNext(){if(hfView==="results"||hfView==="arrive"){hfPaused=false;hfStartRound()}}
 setInterval(()=>{
   if(role!=="tv"||tvMode!=="harf")return;
-  const now=Date.now();hfTick();
+  const now=Rush.now();hfTick();
   if(hfView==="arrive"&&now>=hfNextAt&&hfPlayers().length)hfNext(); // later rounds wait for Next round, so everyone can compare answers
   drawHarfLive();
 },200);
@@ -596,12 +703,12 @@ function drawHarf(){
 let lastCenter="",lastFoot="",lastSide="";
 function drawHarfLive(){
   const center=$("#hfCenter");if(!center)return;
-  const now=Date.now(),P=hfPhase(now),rows=hfRows(),c=hfRound;
+  const now=Rush.now(),P=hfPhase(now),rows=hfRows(),c=hfRound;
   const hfEl=center.closest(".hf");if(hfEl)hfEl.classList.toggle("many",rows.length>7);
   const rl=$("#hfRound");if(rl)rl.textContent=c?t("round",{r:c.r}):t("harf");
   // centre
   let key=hfView+"|"+(c?c.r:0)+"|"+P.ph+"|"+(hs.sa?1:0);
-  if(hfView==="results")key+="|"+JSON.stringify(rows.map(r=>[r.id,r.a,r.v,r.rp,r.s]))+JSON.stringify(hs.ov);
+  if(hfView==="results")key+="|"+JSON.stringify(rows.map(r=>[r.id,r.a,r.v,r.rp,r.s,r.apl]))+JSON.stringify(hs.ov)+cap;
   if(hfView==="arrive"||hfView==="wait")key+="|"+rows.length;
   if(key!==lastCenter){lastCenter=key;center.textContent="";
     if(hfView==="arrive"||hfView==="wait"){center.append(el("div","bigmsg",rows.length?t("get"):t("noPlayers")),el("p","pnote",t(hs.ns?"rulesFull":"rules")))}
@@ -620,11 +727,11 @@ function drawHarfLive(){
   // side: players, live status during a round, scores otherwise
   const side=$("#hfSide");
   const sorted=[...rows].sort((a,b)=>b.s-a.s||a.n.localeCompare(b.n));
-  const skey=JSON.stringify([hfView,P.ph,sorted.map(r=>[r.id,r.n,r.c,r.f,r.dn,!!r.v,r.s,r.inRound])]);
+  const skey=JSON.stringify([hfView,P.ph,cap,sorted.map(r=>[r.id,r.n,r.c,r.f,r.dn,!!r.v,r.s,r.inRound])]);
   if(side&&skey!==lastSide){lastSide=skey;side.textContent="";
     const live=hfView==="round"&&(P.ph==="write"||P.ph==="after");
     const list=live?rows:sorted;
-    list.forEach((r,i)=>{const row=el("div","prow"+(!live&&i===0&&r.s>0?" lead":""));row.append(blob(r.c,null),el("b",null,r.n));
+    list.forEach((r,i)=>{const row=el("div","prow"+(!live&&i===0&&r.s>0?" lead":""));row.append(blob(r.c,null),el("b",null,(r.id===cap?"👑 ":"")+r.n));
       if(live){const st=el("span","st"+(r.dn?" done":""));
         if(r.dn)st.append(document.createTextNode(t("done")));else{const pips=el("span","pips");for(let k=0;k<N;k++)pips.append(el("i",k<r.f?"on":null));st.append(pips)}
         row.append(st)}
@@ -644,17 +751,23 @@ function drawHarfLive(){
   }
 }
 // the host's call on an answer: 1 accepts it, 0 rejects it; back to the checker's own verdict clears it
+function capNameTv(){const p=activePlayers().find(x=>x.presence.u===cap);return p?shownName(p.presence.n):""}
 function hfOverride(id,i,orig,val){const k=id+":"+i;if(val===(orig?1:0))delete hs.ov[k];else hs.ov[k]=val;hs.ov=Object.assign({},hs.ov);
-  if(hApi)hApi.presence({ov:hs.ov,ovr:hs.hr});lastCenter="";drawHarfLive()}
+  if(hApi)hApi.presence({ov:hs.ov,ovr:hs.hr});hfCount();lastCenter="";drawHarfLive()}
 // round results: every player's five answers, marked like the phones mark them
 function resultsTable(rows){
   // a phone that hasn't sent its checked answers yet still shows what it wrote, greyed out
   const unchecked=rows.filter(r=>r.inRound&&r.a&&!r.v);
-  const inR=rows.filter(r=>r.inRound&&r.a&&r.v).map(r=>Object.assign({},r,{v0:r.v,v:r.v.map((x,i)=>{const k=r.id+":"+i;return k in hs.ov?hs.ov[k]:x})})),A={},V={};
-  inR.forEach(r=>{A[r.id]=r.a;V[r.id]=r.v});
-  const pts=R.harfRoomPoints(A,V,hfRound.lg);
+  const {inR,pts}=hfScores(rows);
   const wrap=el("div");wrap.style.cssText="width:100%;display:grid;gap:12px";
   wrap.append(el("div","bigmsg",t("results",{r:hfRound.r})+" · "+hfRound.L));
+  // appeals: the host decides (on this screen or on their phone)
+  const ap=hfAppeals(rows);
+  if(ap.length){const box=el("div","apbox");box.append(el("b",null,t("appealsTv",{n:capNameTv()})));
+    ap.forEach(({r,i})=>{const it=el("div","apit"),w=el("span",null,r.n+" · "+t("cat_"+H.CATS[i])+": ");const ww=el("b",null,r.a[i]);ww.dir="auto";w.append(ww);
+      const y=el("button","pbtn mint",t("accept"));y.type="button";y.onclick=()=>hfDecide(r.id,i,1);
+      const n=el("button","pbtn ghost",t("reject"));n.type="button";n.onclick=()=>hfDecide(r.id,i,0);it.append(w,y,n);box.append(it)});
+    wrap.append(box)}
   const tbl=el("table","hres"),th=el("tr");th.append(el("th",null,""));H.CATS.forEach(k=>th.append(el("th",null,t("cat_"+k))));th.append(el("th",null,"+"));
   const thead=el("thead");thead.append(th);tbl.append(thead);const tb=el("tbody");
   inR.map(r=>({r,p:pts[r.id]||H.CATS.map(()=>0)})).sort((x,y)=>y.p.reduce((a,b)=>a+b,0)-x.p.reduce((a,b)=>a+b,0)).forEach(({r,p})=>{
