@@ -231,7 +231,7 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   startHint:"Press Enter to start",yourName:"Your name",namePh:"e.g. Yousef",colour:"Your colour",joinParty:"Join the party",nameShort:"Pick a name (2+ letters).",
   full:"This party is full ({m} players).",noParty:"Couldn't reach that party. Check the code and try again.",connecting:"Joining…",
   inLobby:"You're in! Move around and say hi while you wait.",say:"Say something…",send:"Send",jump:"Jump",
-  q1:"Hi!",q2:"Ready",q3:"Let's go!",q4:"GG",hostIs:"👑 {n} is the host",hostNone:"👑 No host yet",makeHost:"Make this player the host",makeHostHelp:"Tap a character to make them the host",youHost:"👑 You're the host",youHostHelp:"Pick the settings and start from here. You play too.",passHost:"Make someone else the host",appealsTv:"Appeals for the host {n}",
+  q1:"Hi!",q2:"Ready",q3:"Let's go!",q4:"GG",hostIs:"👑 {n} is the host",hostNone:"👑 No host yet",makeHost:"Make this player the host",makeHostHelp:"Tap a character to make them the host",youHost:"👑 You're the host",youHostHelp:"Pick the settings and start from here. You play too.",passHost:"Make someone else the host",appealsTv:"Appeals for the host {n}",voteOpen:"Vote on this answer",voteTally:"👍 {y} · 👎 {n} · {d} of {e} voted · {s}s",voteMark:"by vote",voteBadge:"voting",
   chat:"Chat",chatOn:"Typing on",chatQuick:"Quick only",chatOff:"The big screen turned typing off. Quick messages still work.",chatNo:"That message isn't allowed.",chatSlow:"Slow down a little.",starting:"Starting {g}…",tvGone:"The big screen left the party.",
   round:"Round {r}",get:"Get ready…",write:"Write!",stopBy:"{n} pressed STOP!",checking:"Checking answers…",results:"Round {r}",
   total:"Score",nextIn:"Next round in {s}",nextNow:"Next round",pause:"Pause",resume:"Resume",lobby:"Back to lobby",
@@ -248,7 +248,7 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   startHint:"اضغط Enter للبدء",yourName:"اسمك",namePh:"مثلاً: يوسف",colour:"لونك",joinParty:"ادخل الحفلة",nameShort:"اختر اسماً (حرفان على الأقل).",
   full:"الحفلة ممتلئة ({m} لاعباً).",noParty:"تعذّر الوصول للحفلة. تأكد من الرمز وحاول مرة أخرى.",connecting:"جارٍ الدخول…",
   inLobby:"دخلت! تحرّك وسلّم على الكل وأنت تنتظر.",say:"قل شيئاً…",send:"أرسل",jump:"نط",
-  q1:"هلا!",q2:"جاهز",q3:"يلا!",q4:"كفو",hostIs:"👑 المضيف: {n}",hostNone:"👑 لا يوجد مضيف بعد",makeHost:"اجعل هذا اللاعب المضيف",makeHostHelp:"اضغط على شخصية لتجعلها المضيف",youHost:"👑 أنت المضيف",youHostHelp:"اختر الإعدادات وابدأ من هنا. وتلعب أيضاً.",passHost:"اجعل لاعباً آخر المضيف",appealsTv:"اعتراضات بانتظار المضيف {n}",
+  q1:"هلا!",q2:"جاهز",q3:"يلا!",q4:"كفو",hostIs:"👑 المضيف: {n}",hostNone:"👑 لا يوجد مضيف بعد",makeHost:"اجعل هذا اللاعب المضيف",makeHostHelp:"اضغط على شخصية لتجعلها المضيف",youHost:"👑 أنت المضيف",youHostHelp:"اختر الإعدادات وابدأ من هنا. وتلعب أيضاً.",passHost:"اجعل لاعباً آخر المضيف",appealsTv:"اعتراضات بانتظار المضيف {n}",voteOpen:"تصويت على إجابة",voteTally:"👍 {y} · 👎 {n} · صوّت {d} من {e} · {s} ث",voteMark:"بالتصويت",voteBadge:"تصويت",
   chat:"الدردشة",chatOn:"الكتابة مفعّلة",chatQuick:"السريعة فقط",chatOff:"الشاشة الكبيرة أوقفت الكتابة. الرسائل السريعة متاحة.",chatNo:"هذه الرسالة غير مسموحة.",chatSlow:"على مهلك شوي.",starting:"جارٍ بدء {g}…",tvGone:"الشاشة الكبيرة غادرت الحفلة.",
   round:"الجولة {r}",get:"استعدوا…",write:"اكتبوا!",stopBy:"{n} ضغط ستوب!",checking:"جارٍ تصحيح الإجابات…",results:"الجولة {r}",
   total:"النقاط",nextIn:"الجولة التالية بعد {s}",nextNow:"الجولة التالية",pause:"إيقاف مؤقت",resume:"استئناف",lobby:"العودة للردهة",
@@ -610,9 +610,9 @@ function backToLobby(){
    leave it out of the players. Each phone checks its own answers and posts them with its points. */
 let hfLastHr=0,leaving=null,hApi=null,hUnsub=[],hs=null,hfView="wait",hfTimer=null,hfPaused=false,hfNextAt=0,hfRound=null;
 const NEXT_MS=20000;
-function hfPresence(){return{n:lang==="ar"?"الشاشة":"TV",c:R.COLORS[0],u:"tv_"+Rush.uid,scr:1,h:1,s:0,r:0,f:0,dn:0,hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn,back:hs.back||0,gid:roomCount,ns:hs.ns,ov:hs.ov,ovr:hs.hr,cap,tot:hs.tot||{},nx:hfView==="arrive"?hfNextAt:0}}
+function hfPresence(){return{n:lang==="ar"?"الشاشة":"TV",c:R.COLORS[0],u:"tv_"+Rush.uid,scr:1,h:1,s:0,r:0,f:0,dn:0,hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn,back:hs.back||0,gid:roomCount,ns:hs.ns,ov:hfEff(),ovr:hs.hr,vo:hs.vo,cap,tot:hs.tot||{},nx:hfView==="arrive"?hfNextAt:0}}
 async function hfEnter(){
-  hs={hr:hfLastHr,st:"waiting",at:0,L:"",lg:tvGame.lg,ms:tvGame.ms,ns:tvGame.ns,ov:{},sa:0,sn:"",used:[],back:0,tot:{}};hfView="wait";hfRound=null;roundPts={};draw();
+  hs={hr:hfLastHr,st:"waiting",at:0,L:"",lg:tvGame.lg,ms:tvGame.ms,ns:tvGame.ns,ov:{},vo:{},vr:{},sa:0,sn:"",used:[],back:0,tot:{}};hfView="wait";hfRound=null;roundPts={};draw();
   if(leaving){clearTimeout(leaving.tm);hApi=leaving.api;leaving=null}
   else try{hApi=await Rush.room.join("hf-"+code.toLowerCase())}catch(e){hApi=null;tvErr=t("noParty");backToLobby();return}
   hApi.presence(hfPresence());
@@ -630,7 +630,7 @@ function hfStartRound(){
   const lg=hs.lg,all=H.LETTERS[lg];let pool=all.filter(l=>!hs.used.includes(lg+l));
   if(!pool.length){hs.used=hs.used.filter(x=>!x.startsWith(lg));pool=all}
   const L=pool[Math.floor(Math.random()*pool.length)];hs.used.push(lg+L);
-  hs.hr=++hfLastHr;hs.st="playing";hs.at=Rush.now();hs.L=L;hs.sa=0;hs.sn="";hs.ov={};
+  hs.hr=++hfLastHr;hs.st="playing";hs.at=Rush.now();hs.L=L;hs.sa=0;hs.sn="";hs.ov={};hs.vo={};hs.vr={};
   hfRound={r:hs.hr,L,lg,ms:hs.ms,at:hs.at,endAt:0};hfView="round";hApi.presence(hfPresence());draw();
 }
 function hfPhase(now){
@@ -646,13 +646,13 @@ function hfRows(){
   return hfPlayers().map(p=>{const P=p.presence;return{peer:p.peer,id:P.u||p.peer,n:shownName(P.n),c:R.safeColor(P.c),inRound:P.r===r,
     f:Math.min(N,num(P.f)),dn:!!P.dn,a:Array.isArray(P.a)?P.a.slice(0,N).map(x=>String(x||"").slice(0,H.MAXLEN)):null,
     v:Array.isArray(P.v)?P.v.slice(0,N).map(x=>x?1:0):null,rp:P.rp==null?null:num(P.rp),s:num((hs.tot||{})[P.u||p.peer]),stop:P.sp===r,
-    apl:P.r===r&&P.apl&&num(P.apl.r)===r&&Array.isArray(P.apl.i)?P.apl.i.filter(i=>Number.isInteger(i)&&i>=0&&i<N):[]}});
+    apl:P.r===r&&P.apl&&num(P.apl.r)===r&&Array.isArray(P.apl.i)?P.apl.i.filter(i=>Number.isInteger(i)&&i>=0&&i<N).slice(0,2):[]}});
 }
 /* scores: this screen keeps every player's total for the game, by player id, from each round's results with the
    host's calls; phones show it (so a reload, a rejoin or a new name never loses points) */
 let roundPts={};
-function hfScores(rows){
-  const inR=rows.filter(r=>r.inRound&&r.a&&r.v).map(r=>Object.assign({},r,{v0:r.v,v:r.v.map((x,i)=>{const k=r.id+":"+i;return k in hs.ov?hs.ov[k]:x})})),A={},V={};
+function hfScores(rows){const eff=hfEff();
+  const inR=rows.filter(r=>r.inRound&&r.a&&r.v).map(r=>Object.assign({},r,{v0:r.v,v:r.v.map((x,i)=>{const k=r.id+":"+i;return k in eff?eff[k]:x})})),A={},V={};
   inR.forEach(r=>{A[r.id]=r.a;V[r.id]=r.v});return{inR,pts:R.harfRoomPoints(A,V,hfRound.lg)};
 }
 function hfCount(){
@@ -664,11 +664,37 @@ function hfCount(){
   if(JSON.stringify(tot)!==JSON.stringify(hs.tot)){hs.tot=tot;if(hApi)hApi.presence({tot});lastSide=""}
 }
 // appeals waiting for the host: a player's answer they asked about, not decided yet
-const hfAppeals=rows=>rows.filter(r=>r.inRound&&r.a).flatMap(r=>r.apl.filter(i=>r.a[i]&&!((r.id+":"+i) in hs.ov)).map(i=>({r,i})));
+const hfAppeals=rows=>{const eff=hfEff();return rows.filter(r=>r.inRound&&r.a).flatMap(r=>r.apl.filter(i=>r.a[i]&&!((r.id+":"+i) in eff)&&!((r.id+":"+i) in hs.vo)).map(i=>({r,i})))};
+// the verdicts in force: the host's calls over the votes' (a tie, stored as null, leaves the answer to the host)
+const hfEff=()=>{const o={};for(const k of Object.keys(hs.vr||{}))if(hs.vr[k]!==null)o[k]=hs.vr[k];return Object.assign(o,hs.ov||{})};
+const hfPublish=()=>{if(hApi)hApi.presence(hfPresence())};
 // the host's decision on an answer (an appeal, or any answer): 1 counts it, 0 doesn't, and it stays marked as decided
-function hfDecide(id,i,v){hs.ov=Object.assign({},hs.ov,{[id+":"+i]:v});if(hApi)hApi.presence({ov:hs.ov,ovr:hs.hr});hfCount();lastCenter="";drawHarfLive()}
+function hfDecide(id,i,v){const k=id+":"+i;hs.ov=Object.assign({},hs.ov,{[k]:v});if(k in hs.vo){hs.vo=Object.assign({},hs.vo);delete hs.vo[k]}hfPublish();hfCount();lastCenter="";drawHarfLive()}
+/* votes on an appeal, with 3 or more players: every phone but the appealer's votes for 15 s, or until all have voted.
+   The majority of the votes cast decides; a tie or no votes leaves it to the host. Each phone keeps its votes in its
+   presence (bv, keyed by round and answer) and this screen counts them on its own clock. */
+const VOTE_MS=15000;
+function hfTally(k,v){const key=v.r+"|"+k,voters=hfPlayers().filter(p=>(p.presence.u||p.peer)!==v.id);let y=0,n=0;
+  for(const p of voters){const b=p.presence.bv,x=b&&typeof b==="object"?b[key]:undefined;if(x===1)y++;else if(x===0)n++}
+  return{y,n,e:voters.length}}
+function hfCloseVote(k,force){
+  const v=hs.vo[k];if(!v)return false;const T=hfTally(k,v);
+  if(!force&&!(T.e>0&&T.y+T.n>=T.e)&&Rush.now()<v.at+VOTE_MS)return false;
+  hs.vo=Object.assign({},hs.vo);delete hs.vo[k];
+  hs.vr=Object.assign({},hs.vr,{[k]:T.y>T.n?1:T.n>T.y?0:null});
+  return true;
+}
+function hfVoteTick(now){
+  if(!hApi||!hfRound)return;let ch=false;
+  if(hfPlayers().length>=3)for(const r of hfRows()){if(!r.inRound||!r.a)continue;
+    for(const i of r.apl){const k=r.id+":"+i;if(!r.a[i]||k in hs.ov||k in hs.vr||k in hs.vo)continue;
+      hs.vo=Object.assign({},hs.vo,{[k]:{r:hfRound.r,id:r.id,i,w:r.a[i],n:r.n,at:now}});ch=true}}
+  for(const k of Object.keys(hs.vo))if(hfCloseVote(k,false))ch=true;
+  if(ch){hfPublish();hfCount();lastCenter=""}
+}
 function hfTick(){
   if(!hApi||!hfRound)return;const now=Rush.now(),P=hfPhase(now);
+  hfVoteTick(now);
   if(hs.st==="playing"){
     if(!hs.ns&&!hs.sa&&P.ph==="write"){const by=hfRows().find(x=>x.inRound&&x.stop);if(by){hs.sa=now;hs.sn=by.n;hApi.presence(hfPresence());draw()}}
     if(P.ph==="after"){
@@ -681,7 +707,7 @@ function hfTick(){
   }
   hfCount();
 }
-function hfNext(){if(hfView==="results"||hfView==="arrive"){hfPaused=false;hfStartRound()}}
+function hfNext(){if(hfView==="results"||hfView==="arrive"){hfPaused=false;for(const k of Object.keys(hs.vo||{}))hfCloseVote(k,true);hfStartRound()}}
 setInterval(()=>{
   if(role!=="tv"||tvMode!=="harf")return;
   const now=Rush.now();hfTick();
@@ -708,7 +734,7 @@ function drawHarfLive(){
   const rl=$("#hfRound");if(rl)rl.textContent=c?t("round",{r:c.r}):t("harf");
   // centre
   let key=hfView+"|"+(c?c.r:0)+"|"+P.ph+"|"+(hs.sa?1:0);
-  if(hfView==="results")key+="|"+JSON.stringify(rows.map(r=>[r.id,r.a,r.v,r.rp,r.s,r.apl]))+JSON.stringify(hs.ov)+cap;
+  if(hfView==="results")key+="|"+JSON.stringify(rows.map(r=>[r.id,r.a,r.v,r.rp,r.s,r.apl]))+JSON.stringify(hs.ov)+JSON.stringify(hs.vr)+JSON.stringify(Object.keys(hs.vo).map(k=>[k,hfTally(k,hs.vo[k]),Math.ceil((hs.vo[k].at+VOTE_MS-now)/1000)]))+cap;
   if(hfView==="arrive"||hfView==="wait")key+="|"+rows.length;
   if(key!==lastCenter){lastCenter=key;center.textContent="";
     if(hfView==="arrive"||hfView==="wait"){center.append(el("div","bigmsg",rows.length?t("get"):t("noPlayers")),el("p","pnote",t(hs.ns?"rulesFull":"rules")))}
@@ -752,8 +778,8 @@ function drawHarfLive(){
 }
 // the host's call on an answer: 1 accepts it, 0 rejects it; back to the checker's own verdict clears it
 function capNameTv(){const p=activePlayers().find(x=>x.presence.u===cap);return p?shownName(p.presence.n):""}
-function hfOverride(id,i,orig,val){const k=id+":"+i;if(val===(orig?1:0))delete hs.ov[k];else hs.ov[k]=val;hs.ov=Object.assign({},hs.ov);
-  if(hApi)hApi.presence({ov:hs.ov,ovr:hs.hr});hfCount();lastCenter="";drawHarfLive()}
+function hfOverride(id,i,orig,val){const k=id+":"+i;hs.ov=Object.assign({},hs.ov);if(val===(orig?1:0)&&!(k in hs.vr))delete hs.ov[k];else hs.ov[k]=val;
+  hfPublish();hfCount();lastCenter="";drawHarfLive()}
 // round results: every player's five answers, marked like the phones mark them
 function resultsTable(rows){
   // a phone that hasn't sent its checked answers yet still shows what it wrote, greyed out
@@ -761,6 +787,15 @@ function resultsTable(rows){
   const {inR,pts}=hfScores(rows);
   const wrap=el("div");wrap.style.cssText="width:100%;display:grid;gap:12px";
   wrap.append(el("div","bigmsg",t("results",{r:hfRound.r})+" · "+hfRound.L));
+  // votes in progress: the tally; the host can still decide any of them
+  const vk=Object.keys(hs.vo||{});
+  if(vk.length){const box=el("div","apbox");box.append(el("b",null,t("voteOpen")));
+    vk.forEach(k=>{const v=hs.vo[k],T=hfTally(k,v),it=el("div","apit"),w=el("span",null,v.n+" · "+t("cat_"+H.CATS[v.i])+": ");const ww=el("b",null,v.w);ww.dir="auto";w.append(ww);
+      const sec=Math.max(0,Math.ceil((v.at+VOTE_MS-Rush.now())/1000));
+      const tl=el("span","ltrx",t("voteTally",{y:T.y,n:T.n,d:T.y+T.n,e:T.e,s:sec}));
+      const y=el("button","pbtn mint",t("accept"));y.type="button";y.onclick=()=>hfDecide(v.id,v.i,1);
+      const n=el("button","pbtn ghost",t("reject"));n.type="button";n.onclick=()=>hfDecide(v.id,v.i,0);it.append(w,tl,y,n);box.append(it)});
+    wrap.append(box)}
   // appeals: the host decides (on this screen or on their phone)
   const ap=hfAppeals(rows);
   if(ap.length){const box=el("div","apbox");box.append(el("b",null,t("appealsTv",{n:capNameTv()})));
@@ -772,10 +807,10 @@ function resultsTable(rows){
   const thead=el("thead");thead.append(th);tbl.append(thead);const tb=el("tbody");
   inR.map(r=>({r,p:pts[r.id]||H.CATS.map(()=>0)})).sort((x,y)=>y.p.reduce((a,b)=>a+b,0)-x.p.reduce((a,b)=>a+b,0)).forEach(({r,p})=>{
     const tr=el("tr"),who=el("td"),wd=el("div","hwho");wd.append(blob(r.c),el("span",null,r.n));who.append(wd);tr.append(who);
-    H.CATS.forEach((k,i)=>{const td=el("td"),w=r.a[i]||"—",ok=r.v[i],ch=(r.id+":"+i) in hs.ov;
+    H.CATS.forEach((k,i)=>{const td=el("td"),w=r.a[i]||"—",ok=r.v[i],ch=(r.id+":"+i) in hs.ov,vt=!ch&&(r.id+":"+i) in hs.vr&&hs.vr[r.id+":"+i]!==null;
       const sp=el(r.a[i]?"button":"span","ans "+(ok?(p[i]>=H.ROOM_UNIQUE?"u":"s"):"x")+(ch?" ov":""));sp.dir="auto";
       sp.append(document.createTextNode(w));
-      if(ok||ch){const sm=el("small","ltrx",ok?(p[i]>=H.ROOM_UNIQUE?t("unique"):t("shared")):"✗");if(ch)sm.append(document.createTextNode(" · "+t("ovMark")));sp.append(sm)}
+      if(ok||ch||vt){const sm=el("small","ltrx",ok?(p[i]>=H.ROOM_UNIQUE?t("unique"):t("shared")):"✗");if(ch)sm.append(document.createTextNode(" · "+t("ovMark")));else if(vt)sm.append(document.createTextNode(" · "+t("voteMark")));sp.append(sm)}
       if(r.a[i]){sp.type="button";sp.title=t(ok?"reject":"accept");sp.setAttribute("aria-label",r.n+" · "+t("cat_"+k)+": "+w+" · "+t(ok?"reject":"accept"));
         sp.onclick=()=>hfOverride(r.id,i,r.v0[i],ok?0:1)}
       td.append(sp);tr.append(td)});

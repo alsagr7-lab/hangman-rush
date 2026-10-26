@@ -86,6 +86,7 @@
 .capban{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:min(560px,calc(100vw - 16px));box-sizing:border-box;z-index:9000;
   background:#FFF4C8;color:#2B2100;border:2px solid #E0B400;border-radius:16px;padding:10px 12px;display:grid;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-height:45vh;overflow:auto}
 .capban>b{font-size:15px}
+.voteban{top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px))}
 .cbrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cbrow span{flex:1;min-width:0;font-size:14px}
 .cby,.cbn{min-height:40px;padding:0 14px;border-radius:999px;font-weight:800;font-size:14px;cursor:pointer;border:0}
 .cby{background:#178a5c;color:#fff}.cbn{background:#fff;color:#2B2100;border:1px solid #C9A400}
@@ -271,7 +272,7 @@ en:{
   pts:"{n} pts",hm:"{h}h {m}m",rareTag:"+{n} rare",
   corrected:"Counted as \u201c{w}\u201d",fixMark:"spelling fixed",wrongLetterFix:"Spelt correctly it's \u201c{w}\u201d, which doesn't start with {L}",
   appeal:"Appeal",appealing:"Taking a second look…",appealWon:"Accepted on appeal",appealLost:"Appeal turned down",
-  appealNone:"No appeals left today.",appealDown:"Appeals aren't available right now. Try again later.",appealsLeft:"{n} appeals left today",
+  appealNone:"No appeals left today.",appealLimit:"Two appeals per round at most.",voteTitle:"Vote on this appeal",voteYes:"👍 Accept",voteNo:"👎 Reject",voteOwn:"Your answer is being voted on ({n}s)",voteBadge:"voting",appealDown:"Appeals aren't available right now. Try again later.",appealsLeft:"{n} appeals left today",
   playIn:"Play today's letter in",playInHelp:"Arabic and English each have their own letter, streak and leaderboard. You can play both.",
   boardLangLbl:"Leaderboard",
   appealHelp:"Think a word was unfairly turned down? Appeal it and a stronger referee takes a second look.",appealMine:"Appeal your answers:",ydAppeal:"Think one of yesterday's answers was unfairly turned down? You can appeal it until the letters change tonight."
@@ -327,7 +328,7 @@ ar:{
   pts:"{n} نقطة",hm:"{h}س {m}د",rareTag:"+{n} ندرة",
   corrected:"احتُسبت: «{w}»",fixMark:"صُحّح الإملاء",wrongLetterFix:"إملاؤها الصحيح «{w}» ولا تبدأ بحرف {L}",
   appeal:"اعتراض",appealing:"نعيد النظر…",appealWon:"قُبلت بعد الاعتراض",appealLost:"رُفض الاعتراض",
-  appealNone:"لا اعتراضات متبقية اليوم.",appealDown:"الاعتراض غير متاح الآن. حاول لاحقاً.",appealsLeft:"باقي {n} اعتراضات اليوم",
+  appealNone:"لا اعتراضات متبقية اليوم.",appealLimit:"اعتراضان في الجولة كحد أقصى.",voteTitle:"صوّت على هذا الاعتراض",voteYes:"👍 اقبل",voteNo:"👎 ارفض",voteOwn:"إجابتك قيد التصويت ({n} ث)",voteBadge:"تصويت",appealDown:"الاعتراض غير متاح الآن. حاول لاحقاً.",appealsLeft:"باقي {n} اعتراضات اليوم",
   playIn:"العب حرف اليوم بـ",playInHelp:"للعربية والإنجليزية حرف وسلسلة ولوحة ترتيب لكل منهما. تستطيع لعب الاثنين.",
   boardLangLbl:"لوحة الترتيب",
   appealHelp:"تظن أن كلمة رُفضت ظلماً؟ اعترض عليها ليعيد حَكَم أقوى النظر فيها.",appealMine:"اعترض على إجاباتك:",ydAppeal:"تظن أن إحدى إجابات الأمس رُفضت ظلماً؟ تستطيع الاعتراض عليها حتى تتغيّر الحروف الليلة."
@@ -599,10 +600,12 @@ async function submitDaily(){
 }
 
 /* ---------- rooms and practice ---------- */
+// this phone's votes on appeals in a party, keyed by round|answer (sent in its presence, so the big screen counts them)
+let votes={};const VOTE_MS=15000;
 function myPresence(){
   const p={n:me.nick,c:me.color,u:uid,h:host?1:0,s:score,r:cur?cur.round:0,f:cur&&!cur.locked?words().filter(Boolean).length:N,
     sp:cur&&cur.stopSent?cur.round:0,a:cur&&cur.locked?cur.words:null,v:cur&&cur.v?cur.v:null,rp:cur&&cur.pts?cur.pts.reduce((x,y)=>x+y,0):null,dn:cur&&cur.locked?1:0,
-    hq:hq.length?hq:null,apl:cur&&cur.apl&&cur.apl.length?{r:cur.round,i:cur.apl}:null};
+    hq:hq.length?hq:null,apl:cur&&cur.apl&&cur.apl.length?{r:cur.round,i:cur.apl}:null,bv:Object.keys(votes).length?votes:null};
   if(host)Object.assign(p,{hr:hs.hr,st:hs.st,at:hs.at,L:hs.L,lg:hs.lg,ms:hs.ms,sa:hs.sa,sn:hs.sn});
   else Object.assign(p,{hr:null,st:null,at:null,L:null,lg:null,ms:null,sa:null,sn:null});
   return p;
@@ -777,7 +780,7 @@ function scoreRound(){
 // rooms and practice: a won appeal makes the answer valid and recounts my points for the round
 async function appealRoom(i){
   const c=cur;if(!c||!c.res||c.ap[i]!=null)return;
-  if(partyTv()){c.ap[i]=0;c.apl=(c.apl||[]).concat([i]);c.apMsg=t("appealSent");pushPresence();lastPanelKey="";render();return}
+  if(partyTv()){if(appealedN(c)>=2){c.apMsg=t("appealLimit");lastPanelKey="";render();return}c.ap[i]=0;c.apl=(c.apl||[]).concat([i]);c.apMsg=t("appealSent");pushPresence();lastPanelKey="";render();return}
   c.ap[i]=0;c.apMsg="";lastPanelKey="";render();
   try{const r=await Rush.harf.appeal(c.lg,c.L,i,c.res[i].w,false);if(cur!==c)return;
     c.ap[i]=r.ok?1:-1;
@@ -834,21 +837,46 @@ setInterval(()=>{if(!$("#game").hidden){tick();renderLive()}},200);
 
 /* ---------- render ---------- */
 function render(){if($("#game").hidden){if(!$("#lobby").hidden)renderBoard();return}renderTop();renderPlay();renderBoard();renderOverlay()}
-function renderLive(){renderTimer();renderActions();renderOverlay();if(mode==="room")renderBoardLight();capBanner()}
+function renderLive(){renderTimer();renderActions();renderOverlay();if(mode==="room")renderBoardLight();capBanner();voteBanner()}
 /* party host: appeals waiting for a decision (the host's own too), pinned to the top of the screen whatever else is
    showing, with Accept / Reject on each, and a short buzz when a new one arrives. */
+/* party: an appeal is voted on by every other phone (👍 / 👎 for 15 s, or until all have voted); the appealer sees that
+   it's being voted on. The big screen counts the votes and tells everyone the result. */
+let voteKey="";
+// the appeals I made this round, decided or not (the pending list drops the decided ones)
+function appealedN(c){return Object.values(c.ap||{}).filter(x=>x!=null).length}
+function castVote(key,val){votes[key]=val;const ks=Object.keys(votes);if(ks.length>40)ks.slice(0,ks.length-40).forEach(x=>{delete votes[x]});pushPresence();voteKey="";lastPanelKey="";render()}
+function voting(id,i){const tv=partyTv(),V=tv&&tv.presence.vo;return!!V&&typeof V==="object"&&((id+":"+i) in V)}
+function voteBanner(){
+  const tv=partyTv(),V=tv&&tv.presence.vo&&typeof tv.presence.vo==="object"?tv.presence.vo:{};
+  const now=RN(),open=Object.keys(V).map(k=>({k,v:V[k]})).filter(({v})=>v&&typeof v==="object"&&Number.isInteger(v.r)&&typeof v.id==="string"&&typeof v.w==="string"&&v.w&&Number.isInteger(v.i)&&v.i>=0&&v.i<N);
+  const mine=open.filter(({k,v})=>v.id!==uid&&votes[v.r+"|"+k]===undefined),own=open.filter(({v})=>v.id===uid);
+  let box=$("#voteBan");
+  if(!mine.length&&!own.length){if(box)box.remove();voteKey="";return}
+  const secs=v=>Math.max(0,Math.ceil((num(v.at)+VOTE_MS-now)/1000));
+  const key=JSON.stringify([lang,mine.map(({k,v})=>[k,v.r,v.n,v.w,v.i,secs(v)]),own.map(({v})=>secs(v))]);
+  if(key===voteKey)return;voteKey=key;
+  if(!box){box=el("div","capban voteban");box.id="voteBan";box.setAttribute("role","region");box.setAttribute("aria-live","polite");document.body.append(box)}
+  box.textContent="";
+  if(mine.length)box.append(el("b",null,t("voteTitle")));
+  mine.forEach(({k,v})=>{const row=el("div","cbrow"),w=el("span",null,v.n+" · "+catName(H.CATS[v.i])+": "),ww=el("b",null,v.w);ww.dir="auto";w.append(ww);
+    const y=el("button","cby",t("voteYes"));y.type="button";y.onclick=()=>castVote(v.r+"|"+k,1);
+    const n=el("button","cbn",t("voteNo"));n.type="button";n.onclick=()=>castVote(v.r+"|"+k,0);
+    row.append(w,el("small","ltrx",t("secs",{n:secs(v)})),y,n);box.append(row)});
+  own.forEach(({v})=>box.append(el("p","note",t("voteOwn",{n:secs(v)}))));
+}
 let capBanKey="",capBanSeen=new Set();
 function capBanner(){
   let box=$("#capBan");
   const pend=cur&&isCap()?roundRows().filter(r=>r.apl&&r.a).flatMap(r=>r.apl.filter(i=>r.a[i]&&!((r.id+":"+i) in (hostOv()||{}))).map(i=>({r,i}))):[];
-  const key=JSON.stringify([lang,cur&&cur.round,pend.map(x=>[x.r.id,x.r.n,x.i,x.r.a[x.i]])]);
+  const key=JSON.stringify([lang,cur&&cur.round,pend.map(x=>[x.r.id,x.r.n,x.i,x.r.a[x.i],voting(x.r.id,x.i)])]);
   if(key===capBanKey)return;capBanKey=key;
   if(!pend.length){if(box)box.remove();return}
   if(!box){box=el("div","capban");box.id="capBan";box.setAttribute("role","region");box.setAttribute("aria-live","polite");document.body.append(box)}
   box.textContent="";box.append(el("b",null,t("appealsTitle")+" ("+pend.length+")"));
   let fresh=false;
   pend.forEach(({r,i})=>{const k=cur.round+"|"+r.id+":"+i;if(!capBanSeen.has(k)){capBanSeen.add(k);fresh=true}
-    const row=el("div","cbrow"),w=el("span",null,r.n+(r.me?" ("+t("you")+")":"")+" · "+catName(H.CATS[i])+": "),ww=el("b",null,r.a[i]);ww.dir="auto";w.append(ww);
+    const vb=voting(r.id,i)?" · "+t("voteBadge"):"";const row=el("div","cbrow"),w=el("span",null,r.n+(r.me?" ("+t("you")+")":"")+" · "+catName(H.CATS[i])+vb+": "),ww=el("b",null,r.a[i]);ww.dir="auto";w.append(ww);
     const y=el("button","cby",t("accept"));y.type="button";y.onclick=()=>{hostCmd({k:"ov",id:r.id,i,v:1,r:cur.round});row.style.opacity=".4"};
     const n=el("button","cbn",t("reject"));n.type="button";n.onclick=()=>{hostCmd({k:"ov",id:r.id,i,v:0,r:cur.round});row.style.opacity=".4"};
     row.append(w,y,n);box.append(row)});
@@ -1024,8 +1052,9 @@ function renderOverlay(){
         mine.forEach(({a,i})=>{const st=cur.ap[i];
           if(st===1)row.appendChild(el("span","apnote won",a.w+" ✓"));
           else if(st===-1)row.appendChild(el("span","apnote",a.w+" ✗"));
-          else{const b=el("button","apbtn",t("appeal")+": "+a.w);b.type="button";b.disabled=st===0;b.onclick=()=>appealRoom(i);row.appendChild(b)}});
+          else{const b=el("button","apbtn",t("appeal")+": "+a.w);b.type="button";b.disabled=st===0||!!(partyTv()&&appealedN(cur)>=2);b.onclick=()=>appealRoom(i);row.appendChild(b)}});
         out.push(row);
+        if(partyTv()&&appealedN(cur)>=2)out.push(el("p","note",t("appealLimit")));
         if(cur.apMsg)out.push(el("p",cur.apMsg===t("appealSent")?"note":"note warn",cur.apMsg));
       }
       const won=Object.keys(cur.ap).filter(i=>cur.ap[i]===1).length;if(won)out.push(el("p","apnote won",t("appealWon")+" ×"+won));
