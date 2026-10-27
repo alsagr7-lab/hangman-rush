@@ -122,6 +122,8 @@ html.party,html.party body,:root.party[data-theme] body{background:var(--pv)!imp
 @keyframes blink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
 .tvbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:rgba(0,0,0,.22);border-radius:32px;padding:14px 16px}
 .tvbar .grp{display:grid;gap:6px}
+.tvbar{align-items:flex-start}.tvbar>button,.tvbar>.pbtn{align-self:center}
+.tvbar .tvhelp{margin:0;max-width:300px;color:rgba(255,255,255,.82);font-weight:700;font-size:14px;line-height:1.35}
 .tvbar .lbl2{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--pmuted)}
 :root[lang="ar"] .tvbar .lbl2{letter-spacing:0;font-size:15px;text-transform:none}
 .tvbar .go{margin-inline-start:auto;min-height:72px;font-size:26px;padding:0 40px}
@@ -288,7 +290,7 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   full:"This party is full ({m} players).",noParty:"Couldn't reach that party. Check the code and try again.",connecting:"Joining…",
   inLobby:"You're in! Move around and say hi while you wait.",say:"Say something…",send:"Send",jump:"Jump",
   q1:"Hi!",q2:"Ready",q3:"Let's go!",q4:"GG",hostIs:"👑 {n} is the host",hostNone:"👑 No host yet",makeHost:"Make this player the host",makeHostHelp:"Tap a character to make them the host",youHost:"👑 You're the host",youHostHelp:"Pick the settings and start from here. You play too.",passHost:"Make someone else the host",appealsTv:"Appeals for the host {n}",voteOpen:"Vote on this answer",voteTally:"👍 {y} · 👎 {n} · {d} of {e} voted · {s}s",voteMark:"by vote",voteBadge:"voting",
-  topic:"Topic",pickBy:"Topic picked by",pmVote:"Vote",pmLast:"Last place",pmHost:"Host",pmVoteHelp:"First topic is random; after each round everyone votes on four.",pmLastHelp:"First topic is random; after each round the player in last place picks from four.",voteTopic:"Vote for the next topic",youPick:"You're in last place: pick the next topic",picking:"{n} picks the next topic",often:"Often picked",allTopics:"All topics",tp_mix:"Mixed",tp_letters:"Letter scramble",tp_geography:"Geography",tp_history:"History",tp_science:"Science",tp_space:"Space",tp_animals:"Animals",tp_sports:"Sports",tp_football:"Football",tp_food:"Food & drink",tp_saudi:"Saudi Arabia",tp_tech:"Tech",tp_gaming:"Gaming",tp_cars:"Cars",
+  topic:"Topic",pickBy:"Topic picked by",pmVote:"Vote",pmLast:"Last place",pmHost:"Host",pmHostHelp:"The host picks the topic for each round.",pmVoteHelp:"First topic is random; after each round everyone votes on four.",pmLastHelp:"First topic is random; after each round the player in last place picks from four.",voteTopic:"Vote for the next topic",youPick:"You're in last place: pick the next topic",picking:"{n} picks the next topic",often:"Often picked",allTopics:"All topics",tp_mix:"Mixed",tp_letters:"Letter scramble",tp_geography:"Geography",tp_history:"History",tp_science:"Science",tp_space:"Space",tp_animals:"Animals",tp_sports:"Sports",tp_football:"Football",tp_food:"Food & drink",tp_saudi:"Saudi Arabia",tp_tech:"Tech",tp_gaming:"Gaming",tp_cars:"Cars",
   tp_general:"General knowledge",tp_gulf:"Gulf & Arab world",tp_flags:"Flags",tp_landmarks:"Landmarks",tp_islamic:"Islamic culture",tp_arabic:"Arabic language",tp_proverbs:"Proverbs",tp_riddles:"Riddles",tp_body:"Human body",tp_nature:"Plants & nature",tp_heritage:"Heritage",tp_cartoons:"Cartoons & anime",tp_movies:"Movies & TV",tp_inventions:"Inventions",tp_brands:"Brands",tp_puzzles:"Maths & puzzles",
   hc_animals:"Animals",hc_food:"Food & drink",hc_countries:"Countries",hc_cities:"Cities",hc_sports:"Sports",hc_hotel:"Hotel life",hc_jobs:"Jobs",hc_house:"Around the house",hc_space:"Space",hc_tech:"Tech",
   qn:"Question {i} of {n}",loadingQ:"Loading questions…",noBank:"Couldn't load the questions. Try again.",roundEnd:"Round {r} results",answered:"{n} of {m} answered",gotIt:"Got it: {names}",nobody:"Nobody got it",
@@ -311,7 +313,7 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   full:"الحفلة ممتلئة ({m} لاعباً).",noParty:"تعذّر الوصول للحفلة. تأكد من الرمز وحاول مرة أخرى.",connecting:"جارٍ الدخول…",
   inLobby:"دخلت! تحرّك وسلّم على الكل وأنت تنتظر.",say:"قل شيئاً…",send:"أرسل",jump:"نط",
   q1:"هلا!",q2:"جاهز",q3:"يلا!",q4:"كفو",hostIs:"👑 المضيف: {n}",hostNone:"👑 لا يوجد مضيف بعد",makeHost:"اجعل هذا اللاعب المضيف",makeHostHelp:"اضغط على شخصية لتجعلها المضيف",youHost:"👑 أنت المضيف",youHostHelp:"اختر الإعدادات وابدأ من هنا. وتلعب أيضاً.",passHost:"اجعل لاعباً آخر المضيف",appealsTv:"اعتراضات بانتظار المضيف {n}",voteOpen:"تصويت على إجابة",voteTally:"👍 {y} · 👎 {n} · صوّت {d} من {e} · {s} ث",voteMark:"بالتصويت",voteBadge:"تصويت",
-  topic:"الموضوع",pickBy:"من يختار الموضوع",pmVote:"تصويت",pmLast:"صاحب المركز الأخير",pmHost:"المضيف",pmVoteHelp:"الموضوع الأول عشوائي، وبعد كل جولة يصوّت الجميع على أربعة مواضيع.",pmLastHelp:"الموضوع الأول عشوائي، وبعد كل جولة يختار صاحب المركز الأخير من أربعة مواضيع.",voteTopic:"صوّت للموضوع التالي",youPick:"أنت في المركز الأخير: اختر الموضوع التالي",picking:"{n} يختار الموضوع التالي",often:"الأكثر اختياراً",allTopics:"كل المواضيع",tp_mix:"منوّع",tp_letters:"ترتيب الحروف",tp_geography:"جغرافيا",tp_history:"تاريخ",tp_science:"علوم",tp_space:"فضاء",tp_animals:"حيوانات",tp_sports:"رياضة",tp_football:"كرة القدم",tp_food:"أكل ومشروبات",tp_saudi:"السعودية",tp_tech:"تقنية",tp_gaming:"ألعاب الفيديو",tp_cars:"سيارات",
+  topic:"الموضوع",pickBy:"من يختار الموضوع",pmVote:"تصويت",pmLast:"صاحب المركز الأخير",pmHost:"المضيف",pmHostHelp:"المضيف يختار موضوع كل جولة.",pmVoteHelp:"الموضوع الأول عشوائي، وبعد كل جولة يصوّت الجميع على أربعة مواضيع.",pmLastHelp:"الموضوع الأول عشوائي، وبعد كل جولة يختار صاحب المركز الأخير من أربعة مواضيع.",voteTopic:"صوّت للموضوع التالي",youPick:"أنت في المركز الأخير: اختر الموضوع التالي",picking:"{n} يختار الموضوع التالي",often:"الأكثر اختياراً",allTopics:"كل المواضيع",tp_mix:"منوّع",tp_letters:"ترتيب الحروف",tp_geography:"جغرافيا",tp_history:"تاريخ",tp_science:"علوم",tp_space:"فضاء",tp_animals:"حيوانات",tp_sports:"رياضة",tp_football:"كرة القدم",tp_food:"أكل ومشروبات",tp_saudi:"السعودية",tp_tech:"تقنية",tp_gaming:"ألعاب الفيديو",tp_cars:"سيارات",
   tp_general:"معلومات عامة",tp_gulf:"الخليج والعالم العربي",tp_flags:"أعلام",tp_landmarks:"معالم",tp_islamic:"ثقافة إسلامية",tp_arabic:"اللغة العربية",tp_proverbs:"أمثال",tp_riddles:"ألغاز",tp_body:"جسم الإنسان",tp_nature:"نباتات وطبيعة",tp_heritage:"تراث وعادات",tp_cartoons:"كرتون وأنمي",tp_movies:"أفلام ومسلسلات",tp_inventions:"اختراعات",tp_brands:"علامات تجارية",tp_puzzles:"رياضيات وألغاز",
   hc_animals:"حيوانات",hc_food:"أكل ومشروبات",hc_countries:"دول",hc_cities:"مدن",hc_sports:"رياضات",hc_hotel:"عالم الفنادق",hc_jobs:"مهن",hc_house:"في البيت",hc_space:"الفضاء",hc_tech:"تقنية",
   qn:"السؤال {i} من {n}",loadingQ:"جارٍ تحميل الأسئلة…",noBank:"تعذّر تحميل الأسئلة. حاول مرة أخرى.",roundEnd:"نتائج الجولة {r}",answered:"أجاب {n} من {m}",gotIt:"أصاب: {names}",nobody:"لم يُصب أحد",
@@ -522,10 +524,11 @@ let often=[],oftenAt=0;
 function loadOften(){if(Date.now()-oftenAt<60000)return;oftenAt=Date.now();
   Rush.trivia.topics().then(r=>{const a=(r&&Array.isArray(r.top)?r.top:[]).map(x=>x.k).filter(k=>TOPICS.includes(k));
     if(a.join()!==often.join()){often=a;lastHostKey="";if(role==="tv"&&tvMode==="lobby")draw();else if(role==="phone")phoneFollow()}}).catch(()=>{})}
+const pmHelpKey=pm=>pm==="vote"?"pmVoteHelp":pm==="last"?"pmLastHelp":"pmHostHelp";
 // who picks the topic, on the TV lobby
 function pmGrpTv(){const g=el("div","grp"),sg=el("div","seg2");g.append(el("span","lbl2",t("pickBy")),sg);
   [["vote",t("pmVote")],["last",t("pmLast")],["host",t("pmHost")]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(tvGame.pm===v));
-    b.onclick=()=>{tvGame.pm=v;try{localStorage.setItem("rush-party-pm",v)}catch(e){}pushTv();draw()};sg.append(b)});return g}
+    b.onclick=()=>{tvGame.pm=v;try{localStorage.setItem("rush-party-pm",v)}catch(e){}pushTv();draw()};sg.append(b)});g.append(el("p","tvhelp",t(pmHelpKey(tvGame.pm))));return g}
 function topicGrp(lc,onPick,cur){loadOften();const g=el("div",lc==="lbl2"?"grp":"hg"),sl=el("select","psel");sl.setAttribute("aria-label",t("topic"));
   const grp=(label,keys)=>{const og=el("optgroup");og.label=label;keys.forEach(k=>{const o=el("option",null,tpName(k));o.value=k;og.append(o)});sl.append(og)};
   if(often.length)grp(t("often"),often);grp(t("allTopics"),TOPICS);
@@ -608,7 +611,7 @@ function drawHostPanel(P){
     seg3(t("ends"),[[0,t("endStop")],[1,t("endFull")]],P.ns===0?0:1,x=>({k:"set",ns:x})));
   if(g==="trivia"){const pm=["vote","last","host"].includes(P.pm)?P.pm:"vote";
     box.append(seg3(t("pickBy"),[["vote",t("pmVote")],["last",t("pmLast")],["host",t("pmHost")]],pm,x=>({k:"set",pm:x})));
-    if(pm==="host")box.append(topicGrp("lbl3",v=>hostCmd({k:"set",tc:v}),P.tc));else box.append(el("p","pnote",t(pm==="vote"?"pmVoteHelp":"pmLastHelp")))}
+    if(pm==="host")box.append(topicGrp("lbl3",v=>hostCmd({k:"set",tc:v}),P.tc));box.append(el("p","pnote",t(pmHelpKey(pm))))}
   box.append(seg3(t("chat"),[[1,t("chatOn")],[0,t("chatQuick")]],P.ch===0?0:1,x=>({k:"set",ch:x})));
   const go=el("button","pbtn pink",t("start")+" · "+t(g));go.type="button";go.onclick=()=>{hostCmd({k:"start"});go.disabled=true;setTimeout(()=>go.disabled=false,4000)};box.append(go);
   if(others.length){const g=el("div","hg");g.append(el("span","lbl3",t("passHost")));const sg=el("div","seg3");
@@ -1058,6 +1061,7 @@ function tvStart(){
   hfEnter();
 }
 function backToLobby(){
+  if(hfRound&&hs.vo){for(const k of Object.keys(hs.vo))hfCloseVote(k,true);hfLearn()}
   hfLeave();tg=null;hg=null;tvMode="lobby";pApi&&pApi.presence(tvPresence());draw();
 }
 
@@ -1102,7 +1106,7 @@ function hfRows(){
   return hfPlayers().map(p=>{const P=p.presence;return{peer:p.peer,id:P.u||p.peer,n:shownName(P.n),c:R.safeColor(P.c),inRound:P.r===r,
     f:Math.min(N,num(P.f)),dn:!!P.dn,a:Array.isArray(P.a)?P.a.slice(0,N).map(x=>String(x||"").slice(0,H.MAXLEN)):null,
     v:Array.isArray(P.v)?P.v.slice(0,N).map(x=>x?1:0):null,rp:P.rp==null?null:num(P.rp),s:num((hs.tot||{})[P.u||p.peer]),stop:P.sp===r,
-    apl:P.r===r&&P.apl&&num(P.apl.r)===r&&Array.isArray(P.apl.i)?P.apl.i.filter(i=>Number.isInteger(i)&&i>=0&&i<N).slice(0,2):[]}});
+    apl:P.r===r&&P.apl&&num(P.apl.r)===r&&Array.isArray(P.apl.i)?P.apl.i.filter(i=>Number.isInteger(i)&&i>=0&&i<N).slice(0,4):[]}});
 }
 /* scores: this screen keeps every player's total for the game, by player id, from each round's results with the
    host's calls; phones show it (so a reload, a rejoin or a new name never loses points) */
@@ -1125,7 +1129,7 @@ const hfAppeals=rows=>{const eff=hfEff();return rows.filter(r=>r.inRound&&r.a).f
 const hfEff=()=>{const o={};for(const k of Object.keys(hs.vr||{}))if(hs.vr[k]!==null)o[k]=hs.vr[k];return Object.assign(o,hs.ov||{})};
 const hfPublish=()=>{if(hApi)hApi.presence(hfPresence())};
 // the host's decision on an answer (an appeal, or any answer): 1 counts it, 0 doesn't, and it stays marked as decided
-function hfDecide(id,i,v){const k=id+":"+i;hs.ov=Object.assign({},hs.ov,{[k]:v});if(k in hs.vo){hs.vo=Object.assign({},hs.vo);delete hs.vo[k]}hfPublish();hfCount();lastCenter="";drawHarfLive()}
+function hfDecide(id,i,v){const k=id+":"+i;if(v===1)hfLearnAdd(id,i);hs.ov=Object.assign({},hs.ov,{[k]:v});if(k in hs.vo){hs.vo=Object.assign({},hs.vo);delete hs.vo[k]}hfPublish();hfCount();lastCenter="";drawHarfLive()}
 /* votes on an appeal, with 3 or more players: every phone but the appealer's votes for 15 s, or until all have voted.
    The majority of the votes cast decides; a tie or no votes leaves it to the host. Each phone keeps its votes in its
    presence (bv, keyed by round and answer) and this screen counts them on its own clock. */
@@ -1138,8 +1142,17 @@ function hfCloseVote(k,force){
   if(!force&&!(T.e>0&&T.y+T.n>=T.e)&&Rush.now()<v.at+VOTE_MS)return false;
   hs.vo=Object.assign({},hs.vo);delete hs.vo[k];
   hs.vr=Object.assign({},hs.vr,{[k]:T.y>T.n?1:T.n>T.y?0:null});
+  if(T.y>T.n)hfLearnAdd(v.id,v.i,v.w);
   return true;
 }
+/* the word bank grows from party play: an answer the referee turned down that the players accepted (by vote, or the
+   host's call) goes to the server when the round moves on, if it's still accepted then. The server's stronger model
+   checks it and, if it agrees, the word counts as valid everywhere from then on. */
+let hfLearnQ={};
+function hfLearnAdd(id,i,w){if(!hfRound)return;if(w==null){const r=hfRows().find(x=>x.id===id);w=r&&r.a?r.a[i]:""}
+  w=String(w||"").trim();if(w)hfLearnQ[id+":"+i]={r:hfRound.r,lg:hfRound.lg,L:hfRound.L,i,w}}
+function hfLearn(){const eff=hfEff(),q=hfLearnQ;hfLearnQ={};
+  for(const k of Object.keys(q)){const x=q[k];if(!hfRound||x.r!==hfRound.r||eff[k]!==1)continue;Rush.harf.learn(x.lg,x.L,x.i,x.w,code).catch(()=>{})}}
 function hfVoteTick(now){
   if(!hApi||!hfRound)return;let ch=false;
   if(hfPlayers().length>=3)for(const r of hfRows()){if(!r.inRound||!r.a)continue;
@@ -1163,7 +1176,7 @@ function hfTick(){
   }
   hfCount();
 }
-function hfNext(){if(hfView==="results"||hfView==="arrive"){hfPaused=false;for(const k of Object.keys(hs.vo||{}))hfCloseVote(k,true);hfStartRound()}}
+function hfNext(){if(hfView==="results"||hfView==="arrive"){hfPaused=false;for(const k of Object.keys(hs.vo||{}))hfCloseVote(k,true);hfLearn();hfStartRound()}}
 setInterval(()=>{
   if(role!=="tv"||tvMode!=="harf")return;
   const now=Rush.now();hfTick();
@@ -1234,7 +1247,7 @@ function drawHarfLive(){
 }
 // the host's call on an answer: 1 accepts it, 0 rejects it; back to the checker's own verdict clears it
 function capNameTv(){const p=activePlayers().find(x=>x.presence.u===cap);return p?shownName(p.presence.n):""}
-function hfOverride(id,i,orig,val){const k=id+":"+i;hs.ov=Object.assign({},hs.ov);if(val===(orig?1:0)&&!(k in hs.vr))delete hs.ov[k];else hs.ov[k]=val;
+function hfOverride(id,i,orig,val){const k=id+":"+i;if(val===1&&!orig)hfLearnAdd(id,i);hs.ov=Object.assign({},hs.ov);if(val===(orig?1:0)&&!(k in hs.vr))delete hs.ov[k];else hs.ov[k]=val;
   hfPublish();hfCount();lastCenter="";drawHarfLive()}
 // round results: every player's five answers, marked like the phones mark them
 function resultsTable(rows){

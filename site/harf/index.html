@@ -267,7 +267,7 @@ en:{
   pts:"{n} pts",hm:"{h}h {m}m",rareTag:"+{n} rare",
   corrected:"Counted as \u201c{w}\u201d",fixMark:"spelling fixed",wrongLetterFix:"Spelt correctly it's \u201c{w}\u201d, which doesn't start with {L}",
   appeal:"Appeal",appealing:"Taking a second look…",appealWon:"Accepted on appeal",appealLost:"Appeal turned down",
-  appealNone:"No appeals left today.",appealLimit:"Two appeals per round at most.",voteTitle:"Vote on this appeal",voteYes:"👍 Accept",voteNo:"👎 Reject",voteOwn:"Your answer is being voted on ({n}s)",voteBadge:"voting",appealDown:"Appeals aren't available right now. Try again later.",appealsLeft:"{n} appeals left today",
+  appealNone:"No appeals left today.",appealLimit:"Four appeals per round at most.",voteTitle:"Vote on this appeal",voteYes:"👍 Accept",voteNo:"👎 Reject",voteOwn:"Your answer is being voted on ({n}s)",voteBadge:"voting",appealDown:"Appeals aren't available right now. Try again later.",appealsLeft:"{n} appeals left today",
   playIn:"Play today's letter in",playInHelp:"Arabic and English each have their own letter, streak and leaderboard. You can play both.",
   boardLangLbl:"Leaderboard",
   appealHelp:"Think a word was unfairly turned down? Appeal it and a stronger referee takes a second look.",appealMine:"Appeal your answers:",ydAppeal:"Think one of yesterday's answers was unfairly turned down? You can appeal it until the letters change tonight."
@@ -323,7 +323,7 @@ ar:{
   pts:"{n} نقطة",hm:"{h}س {m}د",rareTag:"+{n} ندرة",
   corrected:"احتُسبت: «{w}»",fixMark:"صُحّح الإملاء",wrongLetterFix:"إملاؤها الصحيح «{w}» ولا تبدأ بحرف {L}",
   appeal:"اعتراض",appealing:"نعيد النظر…",appealWon:"قُبلت بعد الاعتراض",appealLost:"رُفض الاعتراض",
-  appealNone:"لا اعتراضات متبقية اليوم.",appealLimit:"اعتراضان في الجولة كحد أقصى.",voteTitle:"صوّت على هذا الاعتراض",voteYes:"👍 اقبل",voteNo:"👎 ارفض",voteOwn:"إجابتك قيد التصويت ({n} ث)",voteBadge:"تصويت",appealDown:"الاعتراض غير متاح الآن. حاول لاحقاً.",appealsLeft:"باقي {n} اعتراضات اليوم",
+  appealNone:"لا اعتراضات متبقية اليوم.",appealLimit:"أربعة اعتراضات في الجولة كحد أقصى.",voteTitle:"صوّت على هذا الاعتراض",voteYes:"👍 اقبل",voteNo:"👎 ارفض",voteOwn:"إجابتك قيد التصويت ({n} ث)",voteBadge:"تصويت",appealDown:"الاعتراض غير متاح الآن. حاول لاحقاً.",appealsLeft:"باقي {n} اعتراضات اليوم",
   playIn:"العب حرف اليوم بـ",playInHelp:"للعربية والإنجليزية حرف وسلسلة ولوحة ترتيب لكل منهما. تستطيع لعب الاثنين.",
   boardLangLbl:"لوحة الترتيب",
   appealHelp:"تظن أن كلمة رُفضت ظلماً؟ اعترض عليها ليعيد حَكَم أقوى النظر فيها.",appealMine:"اعترض على إجاباتك:",ydAppeal:"تظن أن إحدى إجابات الأمس رُفضت ظلماً؟ تستطيع الاعتراض عليها حتى تتغيّر الحروف الليلة."
@@ -775,7 +775,7 @@ function scoreRound(){
 // rooms and practice: a won appeal makes the answer valid and recounts my points for the round
 async function appealRoom(i){
   const c=cur;if(!c||!c.res||c.ap[i]!=null)return;
-  if(partyTv()){if(appealedN(c)>=2){c.apMsg=t("appealLimit");lastPanelKey="";render();return}c.ap[i]=0;c.apl=(c.apl||[]).concat([i]);c.apMsg=t("appealSent");pushPresence();lastPanelKey="";render();return}
+  if(partyTv()){if(appealedN(c)>=AP_MAX){c.apMsg=t("appealLimit");lastPanelKey="";render();return}c.ap[i]=0;c.apl=(c.apl||[]).concat([i]);c.apMsg=t("appealSent");pushPresence();lastPanelKey="";render();return}
   c.ap[i]=0;c.apMsg="";lastPanelKey="";render();
   try{const r=await Rush.harf.appeal(c.lg,c.L,i,c.res[i].w,false);if(cur!==c)return;
     c.ap[i]=r.ok?1:-1;
@@ -839,6 +839,7 @@ function renderLive(){renderTimer();renderActions();renderOverlay();if(mode==="r
    it's being voted on. The big screen counts the votes and tells everyone the result. */
 let voteKey="";
 // the appeals I made this round, decided or not (the pending list drops the decided ones)
+const AP_MAX=4; // appeals per player per round in a party (the word lists are still small)
 function appealedN(c){return Object.values(c.ap||{}).filter(x=>x!=null).length}
 function castVote(key,val){votes[key]=val;const ks=Object.keys(votes);if(ks.length>40)ks.slice(0,ks.length-40).forEach(x=>{delete votes[x]});pushPresence();voteKey="";lastPanelKey="";render()}
 function voting(id,i){const tv=partyTv(),V=tv&&tv.presence.vo;return!!V&&typeof V==="object"&&((id+":"+i) in V)}
@@ -1048,9 +1049,9 @@ function renderOverlay(){
         mine.forEach(({a,i})=>{const st=cur.ap[i];
           if(st===1)row.appendChild(el("span","apnote won",a.w+" ✓"));
           else if(st===-1)row.appendChild(el("span","apnote",a.w+" ✗"));
-          else{const b=el("button","apbtn",t("appeal")+": "+a.w);b.type="button";b.disabled=st===0||!!(partyTv()&&appealedN(cur)>=2);b.onclick=()=>appealRoom(i);row.appendChild(b)}});
+          else{const b=el("button","apbtn",t("appeal")+": "+a.w);b.type="button";b.disabled=st===0||!!(partyTv()&&appealedN(cur)>=AP_MAX);b.onclick=()=>appealRoom(i);row.appendChild(b)}});
         out.push(row);
-        if(partyTv()&&appealedN(cur)>=2)out.push(el("p","note",t("appealLimit")));
+        if(partyTv()&&appealedN(cur)>=AP_MAX)out.push(el("p","note",t("appealLimit")));
         if(cur.apMsg)out.push(el("p",cur.apMsg===t("appealSent")?"note":"note warn",cur.apMsg));
       }
       const won=Object.keys(cur.ap).filter(i=>cur.ap[i]===1).length;if(won)out.push(el("p","apnote won",t("appealWon")+" ×"+won));
