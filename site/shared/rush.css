@@ -334,6 +334,23 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .panel p{margin:0}
 .panel>.btn{width:100%}
 .count{font-family:var(--f-latin-hand);font-weight:800;font-size:128px;line-height:1;color:var(--accent);text-shadow:0 6px 30px rgba(0,0,0,.5)}
+/* the time left in a round or a daily (rush.js timeStrip), the first row of every game card: a clock with the
+   seconds and a bar in the game's colour that drains; red with a small pulse when time is short. It stays in view
+   (sticky) while the page scrolls to the keyboard or the answers. */
+.tstrip{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:12px;position:sticky;top:8px;z-index:1;background:var(--surface);border-radius:999px;box-shadow:0 0 0 6px var(--surface)}
+.tclock{display:inline-flex;align-items:center;gap:7px;padding:7px 13px 7px 10px;border-radius:999px;background:var(--key);color:var(--ink);transition:background-color .2s ease,color .2s ease}
+:root[dir="rtl"] .tclock{padding:7px 10px 7px 13px}
+.tclock svg{width:18px;height:18px;flex:none;color:var(--accent-hi);transition:color .2s ease}
+.tstrip .timer{font-size:19px;min-width:3.4ch;text-align:start;line-height:1}
+.tstrip .timer:empty::before{content:"–";color:var(--soft)}
+.tstrip .tbar{height:10px;background:var(--key);border-radius:999px;overflow:hidden}
+.tstrip .tbar i{display:block;height:100%;width:100%;transform-origin:left;background:var(--accent);border-radius:999px;transition:transform .2s linear,background-color .2s ease}
+:root[dir="rtl"] .tstrip .tbar i{transform-origin:right}
+.tstrip.low .tclock{background:color-mix(in srgb,var(--hot) 20%,var(--key));color:var(--hot)}
+.tstrip.low .tclock svg{color:var(--hot)}
+.tstrip.low .tbar i{background:var(--hot)}
+.tstrip.idle .tclock svg{color:var(--soft)}
+.tstrip.idle .tbar i{background:color-mix(in srgb,var(--accent) 40%,var(--key))}
 /* the shared countdown (rush.js countdown): "Get ready", a draining ring in the game's colour, the seconds left */
 .cdown{display:grid;justify-items:center;gap:14px;text-align:center;text-shadow:none;font-size:inherit;color:var(--ink);animation:cdin .26s var(--ease-out)}
 @keyframes cdin{from{opacity:0;transform:scale(.96)}}
