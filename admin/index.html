@@ -117,7 +117,7 @@ const CAT={name:"Name · إنسان",animal:"Animal · حيوان",plant:"Plant 
 const CAT1={name:"Name",animal:"Animal",plant:"Plant",object:"Object",place:"Place"};
 const LANG={ar:"عربي",en:"EN"};
 const GAME={hangman:"Hangman",trivia:"Trivia",harf:"Harf"};
-const SRC={ai:["AI, one check",""],ai2:["AI, checked twice","b-acc"],appeal:["appeal","b-acc"],mod:["team","b-good"],list:["word list","b-good"]};
+const SRC={ai:["AI, one check",""],ai2:["AI, checked twice","b-acc"],appeal:["appeal","b-acc"],vote:["party vote + AI","b-acc"],mod:["team","b-good"],list:["word list","b-good"]};
 const TYPE={rejected:["AI said no","b-hot"],unchecked:["not checked yet","b-warn"],letter:["wrong first letter","b-warn"],"letter-fix":["AI: other letter","b-warn"]};
 const dateOf=t=>{const d=new Date(t);return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})};
 // days are Saudi dates (midnight to midnight UTC+3), like the dailies
@@ -388,7 +388,7 @@ async function words(){
     h("div",{class:"ph"},h("h2",null,"Saved verdicts"),h("span",{class:"note"},r.list.length+(r.list.length>=400?"+":"")+" shown · "+num(r.known)+" words in the built-in list")),
     h("div",{class:"row"},h("input",{type:"search",class:"grow",placeholder:"Search a word",value:wd.q,onchange:e=>{wd.q=e.target.value;refresh()}}),
       sel("lg",[["","Both"],["ar","Arabic"],["en","English"]]),sel("cat",[["","All categories"],...CATS.map(c=>[c,CAT1[c]])]),
-      sel("ok",[["","Valid and not"],["1","Valid"],["0","Not valid"]]),sel("src",[["","Any source"],["ai","AI, one check"],["ai2","AI, twice"],["appeal","Appeal"],["mod","Team"]])),
+      sel("ok",[["","Valid and not"],["1","Valid"],["0","Not valid"]]),sel("src",[["","Any source"],["ai","AI, one check"],["ai2","AI, twice"],["appeal","Appeal"],["vote","Party vote"],["mod","Team"]])),
     h("div",{class:"list"},r.list.map(v=>{const [lg,c]=v.k.split("|"),s=SRC[v.src]||[v.src,""];
       return h("div",{class:"item"},h("div",{class:"ph"},h("span",{class:"w",dir:"auto"},wordOf(v.k)+(v.fix?" → "+v.fix:"")),h("span",{class:"badge "+(v.ok?"b-good":"b-hot")},v.ok?"valid":"not valid")),
         h("div",{class:"meta"},h("span",null,LANG[lg]+" · "+CAT[c]),h("span",{class:"badge "+s[1]},s[0]),h("span",null,v.at?dateOf(v.at):"")),
@@ -424,7 +424,7 @@ async function stats(){
     h("div",{class:"card"},h("h2",null,"Most turned-down answers"),s.top.length?h("div",{class:"list"},s.top.map(t=>h("div",{class:"ph"},h("span",{dir:"auto"},t.w+" · "+LANG[t.lg]+" · "+CAT1[t.cat]),h("span",{class:"row"},h("span",{class:"badge"},t.n+"×"),
       can("review")?h("button",{class:"sm yes",onclick:async e=>{const r=await act("harf.verdict",{k:t.k,ok:1},"Valid",e.target);toast("Valid · "+r.rescored+" re-scored",r.log)}},"Valid"):null)))):h("p",{class:"note"},"None.")),
     h("div",{class:"card"},h("h2",null,"Saved verdicts by who decided"),h("table",null,h("thead",null,h("tr",null,h("th",null,""),h("th",{class:"n"},"Valid"),h("th",{class:"n"},"Not valid"))),
-      h("tbody",null,["ai","ai2","appeal","mod"].map(k=>h("tr",null,srcRow(k).map((c,i)=>h("td",{class:i?"n":""},String(c)))))))),
+      h("tbody",null,["ai","ai2","appeal","vote","mod"].map(k=>h("tr",null,srcRow(k).map((c,i)=>h("td",{class:i?"n":""},String(c)))))))),
     h("div",{class:"card"},h("h2",null,"AI usage"),h("table",null,h("thead",null,h("tr",null,["","Checks","Second looks","Appeals","Est. cost"].map((x,i)=>h("th",{class:i?"n":""},x)))),
       h("tbody",null,[["24 hours","day"],["7 days","week"],["30 days","month"]].map(([l,k])=>{const t=U.periods[k];return h("tr",null,h("td",null,l),[t.check.calls,(t.second||{calls:0}).calls,t.appeal.calls].map(c=>h("td",{class:"n"},num(c))),h("td",{class:"n"},money(cost(t))))}))),
       h("p",{class:"note"},"Estimated from the tokens Claude reports, at list prices. The Claude Console has the exact bill.")),

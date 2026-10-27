@@ -61,6 +61,12 @@ const DEFAULTS = {
   sonnetPerHour: Math.max(0, Number(process.env.HARF_SONNET_PER_HOUR) || 30),
   roomSonnet: Math.max(0, Number(process.env.HARF_ROOM_SONNET_PER_HOUR) || 5),
   roomAppealsPerDay: Math.max(0, Number(process.env.HARF_ROOM_APPEALS_PER_DAY) || 1),
+  // answers a party accepted (by vote or by the host) after the referee turned them down: the stronger model checks
+  // them and, if it agrees, saves them as valid for everyone (src "vote"), so the word bank grows from party play.
+  // Its own ceiling an hour (inside sonnetPerHour), and learnPerParty answers per party a day.
+  learn: true,
+  learnPerHour: Math.max(0, Number(process.env.HARF_LEARN_PER_HOUR) || 10),
+  learnPerParty: Math.max(0, Number(process.env.HARF_LEARN_PER_PARTY_DAY) || 20),
   style: "normal",     // lenient | normal | strict
   notes: { ar: "", en: "" }, // extra guidance for the referee, per language
   cats: {},            // replacement category descriptions, {category: text}
@@ -71,11 +77,11 @@ const MODEL_RE = /^claude-[a-z0-9.-]{3,60}$/;
 function mergeSettings(cur, v) {
   const o = structuredClone(cur);
   if (!v || typeof v !== "object") return o;
-  for (const k of ["ai", "aiRooms", "second", "appeals"]) if (v[k] != null) o[k] = !!v[k];
+  for (const k of ["ai", "aiRooms", "second", "appeals", "learn"]) if (v[k] != null) o[k] = !!v[k];
   for (const k of ["model", "appealModel"]) if (typeof v[k] === "string" && MODEL_RE.test(v[k])) o[k] = v[k];
   const int = (k, lo, hi) => { if (v[k] != null && Number.isFinite(Number(v[k]))) o[k] = Math.max(lo, Math.min(hi, Math.round(Number(v[k])))); };
   int("appealsPerDay", 0, 50); int("perHour", 1, 2000); int("roomPerIp", 0, 1000);
-  int("partyPerHour", 0, 5000); int("partyPerDay", 0, 20000); int("sonnetPerHour", 0, 500); int("roomSonnet", 0, 500); int("roomAppealsPerDay", 0, 20);
+  int("partyPerHour", 0, 5000); int("partyPerDay", 0, 20000); int("sonnetPerHour", 0, 500); int("roomSonnet", 0, 500); int("roomAppealsPerDay", 0, 20); int("learnPerHour", 0, 500); int("learnPerParty", 0, 500);
   if (["lenient", "normal", "strict"].includes(v.style)) o.style = v.style;
   if (v.notes && typeof v.notes === "object") for (const lg of LANGS) if (typeof v.notes[lg] === "string") o.notes[lg] = v.notes[lg].slice(0, 1500);
   if (v.cats && typeof v.cats === "object") for (const c of H.CATS) if (typeof v.cats[c] === "string") { if (v.cats[c].trim()) o.cats[c] = v.cats[c].trim().slice(0, 400); else delete o.cats[c]; }
@@ -116,17 +122,17 @@ console.log(`Harf word list: ${KNOWN.size} words`);
 // (party games, their own partyPerHour). The stronger model's calls (strong) count apart, against sonnetPerHour,
 // with rooms and parties held to roomSonnet of it.
 // n: checking-model calls (daily + room), r: room ones, p: party ones, s: stronger-model calls, sr: room/party ones
-let hour = { k: "", n: 0, r: 0, p: 0, s: 0, sr: 0 };
+let hour = { k: "", n: 0, r: 0, p: 0, s: 0, sr: 0, lr: 0 };
 async function takeCall(pool = "daily", strong = false) {
   const k = new Date().toISOString().slice(0, 13);
   if (hour.k !== k) {
     const saved = await store.metaGet("api_hour").catch(() => null), g = f => (saved && saved.k === k ? Number(saved[f]) || 0 : 0);
-    hour = { k, n: g("n"), r: g("r"), p: g("p"), s: g("s"), sr: g("sr") };
+    hour = { k, n: g("n"), r: g("r"), p: g("p"), s: g("s"), sr: g("sr"), lr: g("lr") };
   }
   const shared = pool === "room" || pool === "party";
   if (strong) {
-    if (hour.s >= S.sonnetPerHour || (shared && hour.sr >= S.roomSonnet)) return false;
-    hour.s++; if (shared) hour.sr++;
+    if (hour.s >= S.sonnetPerHour || (shared && hour.sr >= S.roomSonnet) || (pool === "learn" && hour.lr >= S.learnPerHour)) return false;
+    hour.s++; if (shared) hour.sr++; if (pool === "learn") hour.lr++;
   } else if (pool === "party") {
     if (hour.p >= S.partyPerHour) return false;
     hour.p++;
@@ -304,8 +310,10 @@ const groupKey = (a, i, lg) => R.harfGroup(a.b || a.f || a.w, lg, H.CATS[i]);
    A stronger model takes a second look, told to allow rare, classical, regional and dialect words. If it agrees,
    the saved verdict flips to valid, so the word counts for everyone from then on. A few appeals per player a day. */
 const appealsToday = new Map(); // "day|uid" -> count, for rooms and practice (the daily counts in the record)
+const learnTried = new Set(), learnUsed = new Map(); // party-accepted answers already sent today; "day|party" -> count
 // -> {ok: 1/0, why} or null when the second look couldn't happen
-async function appealWord(lg, cat, w, letter, pool = "daily") {
+// src "vote": an answer a party accepted; checked the same way, saved as src "vote"
+async function appealWord(lg, cat, w, letter, pool = "daily", src = "appeal") {
   if (!S.appeals) return null;
   const it = item(lg, letter, H.CATS.indexOf(cat), w);
   if (!it) return { ok: 0, why: "" };
@@ -314,10 +322,12 @@ async function appealWord(lg, cat, w, letter, pool = "daily") {
   // the team's decision is final
   const p = pinned.get(k);
   if (p) return { ok: p.ok, why: p.ok ? "" : lg === "ar" ? "راجع المشرفون هذه الإجابة من قبل." : "The moderators have already reviewed this answer." };
-  if (KNOWN.has(k)) return { ok: 1, why: "" };
+  if (KNOWN.has(k)) return { ok: 1, why: "", known: 1 };
+  const had = verdicts.get(k);
+  if (src === "vote" && had && had.ok) return { ok: 1, why: "", known: 1 };
   const o = await callModel(S.appealModel,
     `You are the appeals referee for the word game "Name, Animal, Plant, Object, Country" (إنسان، حيوان، نبات، جماد، بلاد). ` +
-    `A first referee turned this answer down and the player has appealed. Take a careful second look.\n\n` +
+    (src === "vote" ? `A first referee turned this answer down and players in a party game voted to accept it. Their vote is not evidence: friends often wave answers through. Decide on your own whether the word is real and fits.\n\n` : `A first referee turned this answer down and the player has appealed. Take a careful second look.\n\n`) +
     `Categories:\n` + catRules() + `\n\n` +
     `Accept the answer if it is a genuine word or name that fits the category, including rare, classical (فصحى), regional and ` +
     `dialect words, alternative spellings, and well-known proper nouns. Turn it down if it is made up, ` +
@@ -331,8 +341,8 @@ async function appealWord(lg, cat, w, letter, pool = "daily") {
   const no = v === false || v === 0 || /^(0|false|no|invalid)$/i.test(String(v));
   if (!yes && !no) { if (o) console.warn("Harf: unexpected appeal reply", JSON.stringify(o).slice(0, 200)); return null; }
   const ok = yes ? 1 : 0, why = String(o.why || o.reason || "").slice(0, 200);
-  if (ok) { const v = { ok: 1, fix: it.alt || null, base: null, src: "appeal" }; verdicts.set(k, v); store.wordsPut([[k, v]]).catch(e => console.error("Harf: saving verdict", e.message)); }
-  console.log(`Harf appeal: ${lg} ${cat} ${w} -> ${ok ? "upheld" : "turned down"}`);
+  if (ok) { const v = { ok: 1, fix: it.alt || null, base: null, src }; verdicts.set(k, v); store.wordsPut([[k, v]]).catch(e => console.error("Harf: saving verdict", e.message)); }
+  console.log(`Harf ${src === "vote" ? "party-accepted answer" : "appeal"}: ${lg} ${cat} ${w} -> ${ok ? (src === "vote" ? "added to the word bank" : "upheld") : "turned down"}`);
   return { ok, why };
 }
 // items [{cat, w, letter, key}] (letters already checked, see item()) -> array of {ok: 1/0, fix} or null (not checked).
@@ -808,6 +818,28 @@ async function handle(req, res, url, { send, readJson, ip, partyLive }) {
     return true;
   }
 
+  // party: an answer the players accepted (vote or host) after the referee turned it down; sent by the big screen
+  // when the round moves on. The stronger model checks it; if it agrees, the word is saved as valid for everyone.
+  if (p === "/api/harf/learn") {
+    const who = await roomPlayer(body);
+    if (who.error) { send(res, who.error[0], { error: who.error[1] }); return true; }
+    const party = typeof body.party === "string" && /^[A-Z]{4}$/.test(body.party) && ctxParty(body.party) ? body.party : "";
+    const lg = lgOf(body.lg), letter = String(body.L || ""), i = Number(body.i), cat = H.CATS[i], w = clean(body.w);
+    if (!party || !H.LETTERS[lg].includes(letter) || !cat || !w) { send(res, 400, { error: "Expected {party, lg, L, i, w}" }); return true; }
+    if (!S.learn || !S.appeals || !API_KEY) { send(res, 200, { ok: null }); return true; }
+    const day = R.todayKey(), tk = day + "|" + lg + "|" + cat + "|" + R.harfKey(w, lg), pk = day + "|" + party;
+    if (learnTried.has(tk)) { send(res, 200, { ok: null, tried: 1 }); return true; }
+    const used = learnUsed.get(pk) || 0;
+    if (used >= S.learnPerParty || !limits.take("learn|" + ip, 10, 10)) { send(res, 429, { error: "Too many" }); return true; }
+    learnTried.add(tk); learnUsed.set(pk, used + 1);
+    if (learnTried.size > 5000) learnTried.clear();
+    if (learnUsed.size > 2000) learnUsed.clear();
+    const r = await appealWord(lg, cat, w, letter, "learn", "vote");
+    if (!r) { learnTried.delete(tk); send(res, 503, { error: "Not available right now" }); return true; }
+    send(res, 200, { ok: r.ok, added: r.ok && !r.known ? 1 : 0 });
+    return true;
+  }
+
   // rooms and practice: a second look at one answer
   if (p === "/api/harf/appeal" && !body.daily) {
     const who = await roomPlayer(body);
@@ -1030,7 +1062,7 @@ mod.register("harf.verdictRestore", {
   async run(a, w) {
     const k = String(a.k || ""); if (!KEY_RE.test(k)) fail(400, "Expected {k, v}");
     const prev = pinned.get(k) || (await store.wordsGet([k])).get(k) || null;
-    const v = a.v && typeof a.v === "object" ? { ok: Number(a.v.ok) ? 1 : 0, fix: a.v.fix || null, base: a.v.base || null, src: ["ai", "ai2", "appeal", "mod"].includes(a.v.src) ? a.v.src : "ai", by: a.v.by || null } : null;
+    const v = a.v && typeof a.v === "object" ? { ok: Number(a.v.ok) ? 1 : 0, fix: a.v.fix || null, base: a.v.base || null, src: ["ai", "ai2", "appeal", "vote", "mod"].includes(a.v.src) ? a.v.src : "ai", by: a.v.by || null } : null;
     await setVerdict(k, v);
     const rescored = await rescoreWord(k, v, Math.max(1, Math.min(14, Number(a.days) || 3)));
     return { sum: `${wordOf(k)}: verdict ${v ? "restored" : "cleared"}; ${rescored} re-scored`, undo: { act: "harf.verdictRestore", args: { k, v: prev, days: a.days } }, result: { rescored } };
@@ -1303,7 +1335,7 @@ async function admin(req, res, p, { send, readJson }, url) {
   if (req.method !== "GET") { send(res, 404, { error: "Not found" }); return true; }
   const w = mod.auth(req, res, send, "view"); if (!w) return true;
   if (p === "/api/harf/admin/verdicts") {
-    const qs = q("q"), o = { lg: LANGS.includes(q("lg")) ? q("lg") : "", cat: H.CATS.includes(q("cat")) ? q("cat") : "", src: ["ai", "ai2", "appeal", "mod"].includes(q("src")) ? q("src") : "",
+    const qs = q("q"), o = { lg: LANGS.includes(q("lg")) ? q("lg") : "", cat: H.CATS.includes(q("cat")) ? q("cat") : "", src: ["ai", "ai2", "appeal", "vote", "mod"].includes(q("src")) ? q("src") : "",
       ok: q("ok") === "1" ? 1 : q("ok") === "0" ? 0 : null, limit: Math.min(2000, Number(q("limit")) || 400) };
     if (qs) o.q = R.harfKey(qs, /[؀-ۿ]/.test(qs) ? "ar" : "en") || qs.toLowerCase();
     send(res, 200, { hour: hour.k ? hour : null, perHour: S.perHour, roomShare: roomShare(), roomPerIp: S.roomPerIp, partyPerHour: S.partyPerHour, sonnetPerHour: S.sonnetPerHour, roomSonnet: S.roomSonnet, list: await store.wordsSearch(o), usage: await usageSummary(), known: KNOWN.size });

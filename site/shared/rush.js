@@ -523,6 +523,8 @@
     submit: (answers, lg) => post("/api/harf/daily/submit", { answers, lg }),
     check: (lg, L, answers, party) => post("/api/harf/check", party ? { lg, L, answers, party } : { lg, L, answers }),
     appeal: (lg, L, i, w, daily, yd) => post("/api/harf/appeal", { lg, L, i, w, daily: !!daily, yd: !!yd }),
+    // party: an answer the players accepted, for the word bank (the server's stronger model has the final say)
+    learn: (lg, L, i, w, party) => post("/api/harf/learn", { lg, L, i, w, party }),
   };
 
   /* ---------- sign in with Google, the top bar and the profile sheet ----------
