@@ -1,5 +1,5 @@
 [
-["gen-01",1,"How many days are there in a leap year?","كم عدد أيام السنة الكبيسة؟",["366","365","364","367"],["366","365","364","367"]],
+["gen-01",1,"How many months are there in a year?","كم شهراً في السنة؟",["12","10","11","13"],["12","10","11","13"]],
 ["gen-02",1,"What colour do you get by mixing blue and yellow?","ما اللون الناتج عن خلط الأزرق والأصفر؟",["Green","Purple","Orange","Brown"],["الأخضر","البنفسجي","البرتقالي","البني"]],
 ["gen-03",1,"Which month has the fewest days?","أي شهر ميلادي هو الأقل أياماً؟",["February","April","June","November"],["فبراير","أبريل","يونيو","نوفمبر"]],
 ["gen-04",1,"What is a baby cat called?","ماذا يُسمّى صغير القطة؟",["Kitten","Puppy","Cub","Foal"],["الهريرة","الجرو","الشبل","المهر"]],
