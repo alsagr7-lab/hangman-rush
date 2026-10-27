@@ -34,6 +34,24 @@ try {
   console.log(`Trivia daily sets loaded: ${DAILY.days.length}`);
 } catch (e) { console.warn("Trivia daily unavailable (set TRIVIA_KEY):", e.message); }
 
+// Room and party questions are public, daily ones secret. At start-up, count the room/party questions that look like a
+// daily one (same question, or the same right answer with mostly the same words) and keep those out of rooms. The log
+// shows a count only; it should be 0 (if not, run scripts/build-trivia.js --daily with the daily list to see which).
+const CLASH = new Set();
+if (DAILY) {
+  const norm = s => String(s).toLowerCase().replace(/[^a-z0-9؀-ۿ]+/g, " ").trim();
+  const words = s => new Set(norm(s).split(" ").filter(w => w.length > 2));
+  const near = (a, b) => { const A = words(a), B = words(b); if (!A.size || !B.size) return false; let n = 0; for (const w of A) if (B.has(w)) n++; return n / Math.min(A.size, B.size) >= 0.6; };
+  const daily = DAILY.days.flat().map(q => ({ q: norm(q[2]), raw: q[2], a: norm(q[4][0]) }));
+  let pics = [];
+  try { pics = JSON.parse(fs.readFileSync(path.join(__dirname, "site", "party", "pictures.json"), "utf8")).q; } catch (e) {}
+  for (const x of BANK.concat(pics)) {
+    const q = norm(x[3]), a = norm(x[5][0]);
+    if (daily.some(d => d.q === q || (d.a === a && near(d.raw, x[3])))) CLASH.add(x[0]);
+  }
+  console.log(`Trivia room/party questions that look like a daily question: ${CLASH.size} (should be 0)`);
+}
+
 // the first daily number that has a trivia set; TRIVIA_START (YYYY-MM-DD) overrides the file
 function firstDaily() {
   const s = process.env.TRIVIA_START || (DAILY && DAILY.start);
@@ -121,7 +139,7 @@ function stateOut(uid, rec, run, n, q) {
 let lastPrune = 0;
 async function pick(uids, cat, diff, count, exclude) {
   const D = T.DIFF[diff] || T.DIFF.normal;
-  const fits = BANK.filter(x => x[1] === cat && D.pool(x[2]) && !exclude.has(x[0]));
+  const fits = BANK.filter(x => x[1] === cat && D.pool(x[2]) && !exclude.has(x[0]) && !CLASH.has(x[0]));
   if (!fits.length) return [];
   const now = Date.now();
   if (R.dayNum(now) !== R.dayNum(lastPrune)) { lastPrune = now; store.seenPrune(now - COOLDOWN_MS).catch(e => console.error("prune", e.message)); }

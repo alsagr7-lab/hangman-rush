@@ -43,6 +43,27 @@ for (const cat of TRIVIA.CATS) {
   if (easy < TRIVIA.QUESTIONS * 2 || hard < TRIVIA.QUESTIONS * 2) problems.push(`${cat}: each difficulty pool needs at least ${TRIVIA.QUESTIONS * 2} questions`);
 }
 
+// party picture questions: content/party/pictures.json, shown with a picture on the big screen
+//   [id, category, difficulty 1-3, question en, question ar, [4 answers en], [4 answers ar], image]
+// image is flag/<code> or emoji/<name> (site/party/img/<image>.svg). Same id space and checks as the room bank.
+const pictures = [];
+{
+  const file = path.join(__dirname, "..", "content", "party", "pictures.json");
+  let rows = [];
+  try { rows = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { problems.push(`pictures.json: ${e.message}`); }
+  for (const r of rows) {
+    const [id, cat, d, qen, qar, en, ar, img] = r, where = `pictures.json ${id}`;
+    if (!/^[a-z0-9-]{3,24}$/.test(id || "")) problems.push(`${where}: bad id`);
+    if (ids.has(id)) problems.push(`${where}: id used twice`);
+    ids.add(id);
+    if (!TRIVIA.CATS.includes(cat)) problems.push(`${where}: unknown category ${cat}`);
+    checkQuestion(where, d, qen, qar, en, ar);
+    if (!/^(flag|emoji)\/[a-z0-9-]+$/.test(img || "") || !fs.existsSync(path.join(__dirname, "..", "site", "party", "img", img + ".svg"))) problems.push(`${where}: image ${img} missing`);
+    pictures.push([id, cat, d, qen, qar, en, ar, img]);
+  }
+  console.log(`pictures   ${String(pictures.length).padStart(3)} questions`);
+}
+
 const di = process.argv.indexOf("--daily");
 if (di > 0) {
   const file = process.argv[di + 1];
@@ -70,3 +91,6 @@ const out = path.join(__dirname, "..", "site", "trivia", "questions.json");
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, JSON.stringify({ v: 1, q: bank }));
 console.log(`\nwrote ${path.relative(process.cwd(), out)}: ${bank.length} questions`);
+const pout = path.join(__dirname, "..", "site", "party", "pictures.json");
+fs.writeFileSync(pout, JSON.stringify({ v: 1, q: pictures }));
+console.log(`wrote ${path.relative(process.cwd(), pout)}: ${pictures.length} picture questions`);

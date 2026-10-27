@@ -65,6 +65,14 @@ const SUBSCRIPTIONS = process.env.SUBSCRIPTIONS === "on";
 // the logo files, written into the inlined stylesheet so the logo never depends on a second download
 const svgUri = svg => "data:image/svg+xml," + svg.replace(/"/g, "'").replace(/[\r\n]+/g, " ").replace(/[%#<>]/g, c => encodeURIComponent(c));
 
+// the Hangman room words (ROOM_WORDS, ROOM_WORDS_AR in the Hangman page, where the daily-word checks read them),
+// written into the party page for party Hangman and the trivia letter scrambles
+function hangmanWords(read) {
+  const src = read("hangman/index.html");
+  const grab = name => { const m = src.match(new RegExp("const " + name + "=(\\{[\\s\\S]*?\\});\\n")); if (!m) throw new Error("hangman page has no " + name); return m[1]; };
+  return `window.HM_WORDS={en:${grab("ROOM_WORDS")},ar:${grab("ROOM_WORDS_AR")}};`;
+}
+
 function build({ api = "", site = "", home = HOME, subscriptions = SUBSCRIPTIONS } = {}) {
   const read = p => fs.readFileSync(path.join(SITE, p), "utf8");
   const config = `window.RUSH_CONFIG=${JSON.stringify({ api, site, home, subscriptions })};`;
@@ -72,6 +80,7 @@ function build({ api = "", site = "", home = HOME, subscriptions = SUBSCRIPTIONS
   for (const page of PAGES) {
     let html = read(page);
     html = html.replace(/<script src="\/shared\/config\.js"><\/script>/, () => `<script>${config}</script>`);
+    html = html.replace(/<script data-hm-words><\/script>/, () => `<script>/* hangman room words */\n${safe(hangmanWords(read))}</script>`);
     html = html.replace(/<script src="\/shared\/([\w-]+\.js)"><\/script>/g, (_, f) => `<script>/* shared/${f} */\n${safe(read("shared/" + f))}</script>`);
     html = html.replace(/<link rel="stylesheet" href="\/shared\/([\w-]+\.css)">/g, (_, f) => `<style>/* shared/${f} */\n${safe(read("shared/" + f))}</style>`);
     html = html.replace(/url\("\/shared\/(logo-[\w-]+\.svg)"\)/g, (_, f) => `url("${svgUri(read("shared/" + f))}")`);
