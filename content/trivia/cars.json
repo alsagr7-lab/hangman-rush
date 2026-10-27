@@ -5,7 +5,7 @@
 ["car-04",1,"Which company makes the Mustang?","أي شركة تصنع موستانج؟",["Ford","Chevrolet","Dodge","Toyota"],["فورد","شيفروليه","دودج","تويوتا"]],
 ["car-05",1,"Which brand's logo is four linked rings?","أي علامة شعارها أربع حلقات متشابكة؟",["Audi","Volkswagen","BMW","Opel"],["أودي","فولكس فاجن","بي إم دبليو","أوبل"]],
 ["car-06",2,"What does SUV stand for?","ماذا يعني الاختصار SUV؟",["Sport Utility Vehicle","Super Urban Van","Speed Utility Vehicle","Small Utility Van"],["مركبة رياضية متعددة الاستخدامات","شاحنة حضرية فائقة","مركبة السرعة العملية","شاحنة خدمات صغيرة"]],
-["car-07",1,"Which company makes the Land Cruiser?","أي شركة تصنع لاند كروزر؟",["Toyota","Nissan","Mitsubishi","Land Rover"],["تويوتا","نيسان","ميتسوبيشي","لاند روفر"]],
+["car-07",1,"Which company makes the Corvette?","أي شركة تصنع سيارة كورفيت؟",["Chevrolet","Ford","Dodge","Cadillac"],["شفروليه","فورد","دودج","كاديلاك"]],
 ["car-08",1,"Porsche comes from which country?","من أي دولة شركة بورش؟",["Germany","Italy","Austria","Sweden"],["ألمانيا","إيطاليا","النمسا","السويد"]],
 ["car-09",2,"Which company owns Lexus?","أي شركة تملك لكزس؟",["Toyota","Honda","Nissan","Hyundai"],["تويوتا","هوندا","نيسان","هيونداي"]],
 ["car-10",1,"Tesla is best known for making what kind of cars?","تشتهر تسلا بصناعة أي نوع من السيارات؟",["Electric","Diesel","Hydrogen","Steam"],["الكهربائية","الديزل","الهيدروجينية","البخارية"]],
