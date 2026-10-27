@@ -1472,9 +1472,24 @@
     }
   }
 
+  /* the time left in a round or a daily, the same strip in every game (#tstrip: .tclock with #timer, .tbar). Call it on
+     every tick: live (counting down), left/total in ms, low (short on time: red, with a small pulse each second) and
+     the seconds text in the page's language. Not live: the strip dims and the bar shows left/total. */
+  function timeStrip(o) {
+    const st = document.getElementById("tstrip"); if (!st) return;
+    const tm = st.querySelector(".timer"), fill = st.querySelector(".tbar i"), live = !!o.live, low = live && !!o.low;
+    st.classList.toggle("idle", !live); st.classList.toggle("low", low);
+    const txt = o.text || ""; if (tm.textContent !== txt) tm.textContent = txt;
+    const f = o.total ? Math.max(0, Math.min(1, o.left / o.total)) : 0;
+    fill.style.transform = "scaleX(" + f + ")";
+    const s = live ? Math.ceil(o.left / 1000) : -1;
+    if (low && s !== st._s && tm.animate && !calm()) tm.animate([{ transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 320, easing: "cubic-bezier(.23,1,.32,1)" });
+    st._s = s;
+  }
+
   // the message shown when a name is turned down by the shared name filter (rules.js badName)
   const badNameMsg = () => (document.documentElement.lang === "ar" ? "اختر اسماً آخر، هذا الاسم غير مسموح." : "Please pick another name. That one isn't allowed.");
-  window.Rush = { now, countdown, medals, medalSvg, medalEl, whoBtn, openPlayer, badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
+  window.Rush = { now, countdown, timeStrip, medals, medalSvg, medalEl, whoBtn, openPlayer, badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, user, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };

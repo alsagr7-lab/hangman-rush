@@ -49,10 +49,6 @@
   padding:20px;background:var(--bg);border:1px solid var(--line);border-radius:20px;display:flex;align-items:center}
 :root[lang="ar"] .qtext{font-family:var(--f-ar);font-stretch:100%;line-height:1.55}
 .qwait{color:var(--muted);font-weight:600}
-.tbar{height:8px;background:var(--key);border-radius:9px;overflow:hidden}
-.tbar i{display:block;height:100%;width:100%;transform-origin:left;background:var(--accent);border-radius:9px;transition:transform .15s linear}
-:root[dir="rtl"] .tbar i{transform-origin:right}
-.tbar.low i{background:var(--hot)}
 .opts{display:grid;gap:10px}
 .opt{display:flex;align-items:center;gap:14px;text-align:start;border:1px solid var(--line2);background:var(--raised);color:var(--ink);border-radius:18px;padding:12px 14px;font-weight:700;font-size:17px;
   min-height:64px;line-height:1.3;transition:transform .12s var(--ease-out),background .15s,border-color .15s}
@@ -141,14 +137,13 @@
       <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button type="button" id="copyBtn" data-i18n="copy">Copy</button><button type="button" id="linkBtn" data-i18n="copyLink">Link</button></div>
       <span class="roundlbl" id="roundLbl"></span>
       <span class="spacer"></span>
-      <span class="timer ltr" id="timer"></span>
       <button class="langbtn" id="langGame" type="button"></button>
       <button class="btn ghost" id="leaveBtn" data-i18n="leave">Leave</button>
     </div>
     <div class="grid">
       <div class="play" id="play">
+        <div class="tstrip idle" id="tstrip" role="timer"><span class="tclock"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.6M10 2.5h4M12 2.5v3.5M18.6 6.4l1.4-1.4"/></svg><span class="timer ltr" id="timer"></span></span><div class="tbar" id="tbar"><i></i></div></div>
         <div class="qhead"><span class="lbl" id="cat"></span><span class="dots" id="dots"></span></div>
-        <div class="tbar" id="tbar"><i></i></div>
         <p class="qtext" id="qText" aria-live="polite"></p>
         <div class="opts" id="opts"></div>
         <div class="hints" id="hintRow" hidden><button type="button" id="fiftyBtn"></button></div>
@@ -778,10 +773,11 @@ function renderTop(){
   const h=hostInfo();
   $("#roundLbl").textContent=mode==="daily"?"#"+R.dailyNo():mode==="archive"?"#"+run.n:(cur?t("roundN",{n:cur.round})+" · "+diffName(cur.df):(h?diffName(h.df):""));
 }
+// the time left: the shared strip (rush.js timeStrip) at the top of the game card
 function renderTimer(){
-  const v=view(),tm=$("#timer"),bar=$("#tbar");
-  if(v.live){const s=Math.ceil(v.left/1000);tm.textContent=t("secs",{n:s});tm.classList.toggle("low",s<=5);bar.classList.toggle("low",s<=5);bar.firstChild.style.transform="scaleX("+(v.left/v.ms)+")"}
-  else{tm.textContent="";tm.classList.remove("low");bar.classList.remove("low");bar.firstChild.style.transform=v.reveal?"scaleX(0)":"none"}
+  const v=view();
+  if(v.live){const s=Math.ceil(v.left/1000);Rush.timeStrip({live:true,left:v.left,total:v.ms,low:s<=5,text:t("secs",{n:s})})}
+  else Rush.timeStrip({live:false,left:v.reveal?0:1,total:1,text:""});
 }
 // the last question shown, for the Report button
 let lastShown=null;
