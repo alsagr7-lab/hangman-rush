@@ -279,7 +279,7 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   full:"This party is full ({m} players).",noParty:"Couldn't reach that party. Check the code and try again.",connecting:"Joining…",
   inLobby:"You're in! Move around and say hi while you wait.",say:"Say something…",send:"Send",jump:"Jump",
   q1:"Hi!",q2:"Ready",q3:"Let's go!",q4:"GG",hostIs:"👑 {n} is the host",hostNone:"👑 No host yet",makeHost:"Make this player the host",makeHostHelp:"Tap a character to make them the host",youHost:"👑 You're the host",youHostHelp:"Pick the settings and start from here. You play too.",passHost:"Make someone else the host",appealsTv:"Appeals for the host {n}",voteOpen:"Vote on this answer",voteTally:"👍 {y} · 👎 {n} · {d} of {e} voted · {s}s",voteMark:"by vote",voteBadge:"voting",
-  topic:"Topic",tp_mix:"Mixed",tp_letters:"Letter scramble",tp_geography:"Geography",tp_history:"History",tp_science:"Science",tp_space:"Space",tp_animals:"Animals",tp_sports:"Sports",tp_football:"Football",tp_food:"Food & drink",tp_saudi:"Saudi Arabia",tp_tech:"Tech",tp_gaming:"Gaming",tp_cars:"Cars",
+  topic:"Topic",often:"Often picked",allTopics:"All topics",tp_mix:"Mixed",tp_letters:"Letter scramble",tp_geography:"Geography",tp_history:"History",tp_science:"Science",tp_space:"Space",tp_animals:"Animals",tp_sports:"Sports",tp_football:"Football",tp_food:"Food & drink",tp_saudi:"Saudi Arabia",tp_tech:"Tech",tp_gaming:"Gaming",tp_cars:"Cars",
   tp_general:"General knowledge",tp_gulf:"Gulf & Arab world",tp_flags:"Flags",tp_landmarks:"Landmarks",tp_islamic:"Islamic culture",tp_arabic:"Arabic language",tp_proverbs:"Proverbs",tp_riddles:"Riddles",tp_body:"Human body",tp_nature:"Plants & nature",tp_heritage:"Heritage",tp_cartoons:"Cartoons & anime",tp_movies:"Movies & TV",tp_inventions:"Inventions",tp_brands:"Brands",tp_puzzles:"Maths & puzzles",
   hc_animals:"Animals",hc_food:"Food & drink",hc_countries:"Countries",hc_cities:"Cities",hc_sports:"Sports",hc_hotel:"Hotel life",hc_jobs:"Jobs",hc_house:"Around the house",hc_space:"Space",hc_tech:"Tech",
   qn:"Question {i} of {n}",loadingQ:"Loading questions…",noBank:"Couldn't load the questions. Try again.",roundEnd:"Round {r} results",answered:"{n} of {m} answered",gotIt:"Got it: {names}",nobody:"Nobody got it",
@@ -302,7 +302,7 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   full:"الحفلة ممتلئة ({m} لاعباً).",noParty:"تعذّر الوصول للحفلة. تأكد من الرمز وحاول مرة أخرى.",connecting:"جارٍ الدخول…",
   inLobby:"دخلت! تحرّك وسلّم على الكل وأنت تنتظر.",say:"قل شيئاً…",send:"أرسل",jump:"نط",
   q1:"هلا!",q2:"جاهز",q3:"يلا!",q4:"كفو",hostIs:"👑 المضيف: {n}",hostNone:"👑 لا يوجد مضيف بعد",makeHost:"اجعل هذا اللاعب المضيف",makeHostHelp:"اضغط على شخصية لتجعلها المضيف",youHost:"👑 أنت المضيف",youHostHelp:"اختر الإعدادات وابدأ من هنا. وتلعب أيضاً.",passHost:"اجعل لاعباً آخر المضيف",appealsTv:"اعتراضات بانتظار المضيف {n}",voteOpen:"تصويت على إجابة",voteTally:"👍 {y} · 👎 {n} · صوّت {d} من {e} · {s} ث",voteMark:"بالتصويت",voteBadge:"تصويت",
-  topic:"الموضوع",tp_mix:"منوّع",tp_letters:"ترتيب الحروف",tp_geography:"جغرافيا",tp_history:"تاريخ",tp_science:"علوم",tp_space:"فضاء",tp_animals:"حيوانات",tp_sports:"رياضة",tp_football:"كرة القدم",tp_food:"أكل ومشروبات",tp_saudi:"السعودية",tp_tech:"تقنية",tp_gaming:"ألعاب الفيديو",tp_cars:"سيارات",
+  topic:"الموضوع",often:"الأكثر اختياراً",allTopics:"كل المواضيع",tp_mix:"منوّع",tp_letters:"ترتيب الحروف",tp_geography:"جغرافيا",tp_history:"تاريخ",tp_science:"علوم",tp_space:"فضاء",tp_animals:"حيوانات",tp_sports:"رياضة",tp_football:"كرة القدم",tp_food:"أكل ومشروبات",tp_saudi:"السعودية",tp_tech:"تقنية",tp_gaming:"ألعاب الفيديو",tp_cars:"سيارات",
   tp_general:"معلومات عامة",tp_gulf:"الخليج والعالم العربي",tp_flags:"أعلام",tp_landmarks:"معالم",tp_islamic:"ثقافة إسلامية",tp_arabic:"اللغة العربية",tp_proverbs:"أمثال",tp_riddles:"ألغاز",tp_body:"جسم الإنسان",tp_nature:"نباتات وطبيعة",tp_heritage:"تراث وعادات",tp_cartoons:"كرتون وأنمي",tp_movies:"أفلام ومسلسلات",tp_inventions:"اختراعات",tp_brands:"علامات تجارية",tp_puzzles:"رياضيات وألغاز",
   hc_animals:"حيوانات",hc_food:"أكل ومشروبات",hc_countries:"دول",hc_cities:"مدن",hc_sports:"رياضات",hc_hotel:"عالم الفنادق",hc_jobs:"مهن",hc_house:"في البيت",hc_space:"الفضاء",hc_tech:"تقنية",
   qn:"السؤال {i} من {n}",loadingQ:"جارٍ تحميل الأسئلة…",noBank:"تعذّر تحميل الأسئلة. حاول مرة أخرى.",roundEnd:"نتائج الجولة {r}",answered:"أجاب {n} من {m}",gotIt:"أصاب: {names}",nobody:"لم يُصب أحد",
@@ -505,8 +505,15 @@ function drawTv(){
   main.append(head,stage,bar);w.append(side,main);view.append(w);drawStage();
 }
 // the trivia topic picker (the TV lobby and the host's phone)
-function topicGrp(lc,onPick,cur){const g=el("div",lc==="lbl2"?"grp":"hg"),sl=el("select","psel");sl.setAttribute("aria-label",t("topic"));
-  TOPICS.forEach(k=>{const o=el("option",null,tpName(k));o.value=k;if(cur===k)o.selected=true;sl.append(o)});sl.onchange=()=>onPick(sl.value);g.append(el("span",lc,t("topic")),sl);return g}
+// the most picked topics lately come first, under "Often picked" (the server counts rooms and party rounds)
+let often=[],oftenAt=0;
+function loadOften(){if(Date.now()-oftenAt<60000)return;oftenAt=Date.now();
+  Rush.trivia.topics().then(r=>{const a=(r&&Array.isArray(r.top)?r.top:[]).map(x=>x.k).filter(k=>TOPICS.includes(k));
+    if(a.join()!==often.join()){often=a;lastHostKey="";if(role==="tv"&&tvMode==="lobby")draw();else if(role==="phone")phoneFollow()}}).catch(()=>{})}
+function topicGrp(lc,onPick,cur){loadOften();const g=el("div",lc==="lbl2"?"grp":"hg"),sl=el("select","psel");sl.setAttribute("aria-label",t("topic"));
+  const grp=(label,keys)=>{const og=el("optgroup");og.label=label;keys.forEach(k=>{const o=el("option",null,tpName(k));o.value=k;og.append(o)});sl.append(og)};
+  if(often.length)grp(t("often"),often);grp(t("allTopics"),TOPICS);
+  sl.value=TOPICS.includes(cur)?cur:"mix";sl.onchange=()=>onPick(sl.value);g.append(el("span",lc,t("topic")),sl);return g}
 function drawStage(){
   const st=$("#stage");if(!st)return;const list=players(),now=Date.now();
   const c=$("#tvCount");if(c)c.textContent=t("players",{n:list.length,m:MAX});
@@ -773,7 +780,7 @@ async function trEnter(){
 function trNext(){
   if(!QB||!players().length)return;
   const ids=pickRound(tvGame.tc,tvGame.lg);if(!ids.length)return;
-  rememberUsed(ids);gRound={};
+  rememberUsed(ids);gRound={};Rush.trivia.topicPicked(tvGame.tc).catch(()=>{});
   const now=Rush.now();tg={r:++trR,ids,i:0,ph:"count",qAt:now+TQ_COUNT,end:now+TQ_COUNT+TQ_MS,fast:0,lg:tvGame.lg,tp:tvGame.tc,last:null};
   pushTv();gKey="";drawGameLive();
 }

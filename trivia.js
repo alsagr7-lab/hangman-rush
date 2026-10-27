@@ -34,22 +34,26 @@ try {
   console.log(`Trivia daily sets loaded: ${DAILY.days.length}`);
 } catch (e) { console.warn("Trivia daily unavailable (set TRIVIA_KEY):", e.message); }
 
-// Room and party questions are public, daily ones secret. At start-up, count the room/party questions that look like a
-// daily one (same question, or the same right answer with mostly the same words) and keep those out of rooms. The log
-// shows a count only; it should be 0 (if not, run scripts/build-trivia.js --daily with the daily list to see which).
+// Room and party questions are public, daily ones secret. At start-up, find the room/party questions that look like a
+// daily one (same question, or the same right answer with mostly the same words) and keep them out of rooms. Only
+// dailies from today on matter (past ones are public in the archive); for those the log names the room/party
+// question ids (public ids, never the daily's text) so they can be replaced. It should say 0.
 const CLASH = new Set();
 if (DAILY) {
   const norm = s => String(s).toLowerCase().replace(/[^a-z0-9؀-ۿ]+/g, " ").trim();
   const words = s => new Set(norm(s).split(" ").filter(w => w.length > 2));
   const near = (a, b) => { const A = words(a), B = words(b); if (!A.size || !B.size) return false; let n = 0; for (const w of A) if (B.has(w)) n++; return n / Math.min(A.size, B.size) >= 0.6; };
-  const daily = DAILY.days.flat().map(q => ({ q: norm(q[2]), raw: q[2], a: norm(q[4][0]) }));
+  const f = firstDaily(), today = R.dailyNo();
+  const daily = DAILY.days.flatMap((day, i) => day.map(q => ({ q: norm(q[2]), raw: q[2], a: norm(q[4][0]), soon: f == null || f + i >= today })));
   let pics = [];
   try { pics = JSON.parse(fs.readFileSync(path.join(__dirname, "site", "party", "pictures.json"), "utf8")).q; } catch (e) {}
+  const upcoming = [];
   for (const x of BANK.concat(pics)) {
-    const q = norm(x[3]), a = norm(x[5][0]);
-    if (daily.some(d => d.q === q || (d.a === a && near(d.raw, x[3])))) CLASH.add(x[0]);
+    const q = norm(x[3]), a = norm(x[5][0]), hits = daily.filter(d => d.q === q || (d.a === a && near(d.raw, x[3])));
+    if (hits.length) CLASH.add(x[0]);
+    if (hits.some(d => d.soon)) upcoming.push(x[0]);
   }
-  console.log(`Trivia room/party questions that look like a daily question: ${CLASH.size} (should be 0)`);
+  console.log(`Trivia room/party questions like an upcoming daily question: ${upcoming.length} (should be 0)${upcoming.length ? ": " + upcoming.join(" ") : ""}; like any daily, past included: ${CLASH.size}`);
 }
 
 // the first daily number that has a trivia set; TRIVIA_START (YYYY-MM-DD) overrides the file
@@ -157,6 +161,38 @@ async function pick(uids, cat, diff, count, exclude) {
   return ids;
 }
 
+/* ---------- which topics people pick ----------
+   Every room or practice round (the topic it was played on, via /api/trivia/pick) and every party trivia round (its
+   topic, Mixed and Letter scramble included, via /api/trivia/topic) counts once. Counts are kept per day for 30 days
+   (meta trivia_topics: {day: {topic: n}}); the topic pickers show the most picked as "Often picked". */
+const TOPIC_KEYS = ["mix", "letters"].concat(T.CATS);
+let topicDays = null, topicDirty = false, topicLoad = null;
+function loadTopics() {
+  if (topicDays) return Promise.resolve();
+  if (!topicLoad) topicLoad = store.metaGet("trivia_topics").then(v => { topicDays = v && typeof v === "object" && !Array.isArray(v) ? v : {}; }).catch(() => { topicDays = {}; });
+  return topicLoad;
+}
+async function countTopic(k) {
+  if (!TOPIC_KEYS.includes(k)) return;
+  await loadTopics();
+  const d = R.todayKey(), day = topicDays[d] && typeof topicDays[d] === "object" ? topicDays[d] : (topicDays[d] = {});
+  day[k] = (Number(day[k]) || 0) + 1;
+  for (const x of Object.keys(topicDays).sort().slice(0, -30)) delete topicDays[x];
+  topicDirty = true;
+}
+async function saveTopics() {
+  if (!topicDirty) return; topicDirty = false;
+  try { await store.metaPut("trivia_topics", topicDays); } catch (e) { topicDirty = true; console.error("trivia topics", e.message); }
+}
+const topicTimer = setInterval(saveTopics, 30000); if (topicTimer.unref) topicTimer.unref();
+// the most picked topics over the last 30 days (at least 2 picks): [{k, n}]
+async function topTopics(max = 6) {
+  await loadTopics();
+  const sum = {};
+  for (const day of Object.values(topicDays)) for (const [k, v] of Object.entries(day || {})) if (TOPIC_KEYS.includes(k)) sum[k] = (sum[k] || 0) + (Number(v) || 0);
+  return Object.entries(sum).filter(([, v]) => v >= 2).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, max).map(([k, n]) => ({ k, n }));
+}
+
 /* ---------- routes ---------- */
 // returns true when it handled the request
 async function handle(req, res, url, { send, readJson, ip }) {
@@ -167,6 +203,11 @@ async function handle(req, res, url, { send, readJson, ip }) {
   if (p === "/api/trivia/info" && req.method === "GET") {
     const f = firstDaily();
     send(res, 200, { n, daily: !!dailySet(n), first: f, last: DAILY && f != null ? f + DAILY.days.length - 1 : null, bank: BANK.length, cooldownDays: COOLDOWN_MS / R.DAY });
+    return true;
+  }
+
+  if (p === "/api/trivia/topics" && req.method === "GET") {
+    send(res, 200, { top: await topTopics() });
     return true;
   }
 
@@ -183,6 +224,15 @@ async function handle(req, res, url, { send, readJson, ip }) {
   const body = await readJson(req);
   if (!body) { send(res, 400, { error: "Body must be JSON" }); return true; }
 
+  // a party trivia round started on this topic (the big screen picks its own questions)
+  if (p === "/api/trivia/topic") {
+    if (!limits.take("topic|" + ip, 10, 10)) { send(res, 429, { error: "Too many rounds. Slow down a little." }); return true; }
+    if (!TOPIC_KEYS.includes(body.k)) { send(res, 400, { error: "Unknown topic" }); return true; }
+    await countTopic(body.k);
+    send(res, 200, { ok: true });
+    return true;
+  }
+
   if (p === "/api/trivia/pick") {
     // only a real player (their own id and token) may pick, a few rounds a minute per address
     if (!limits.take("pick|" + ip, 12, 6)) { send(res, 429, { error: "Too many rounds. Slow down a little." }); return true; }
@@ -191,6 +241,7 @@ async function handle(req, res, url, { send, readJson, ip }) {
     const uids = Array.isArray(body.uids) ? [...new Set(body.uids.filter(u => ident.ID_RE.test(u || "")))].slice(0, 32) : [];
     const cat = T.CATS.includes(body.cat) ? body.cat : null;
     if (!cat) { send(res, 400, { error: "Unknown category" }); return true; }
+    countTopic(cat).catch(() => {});
     const count = Math.max(1, Math.min(10, Number(body.count) || T.QUESTIONS));
     const exclude = new Set(Array.isArray(body.exclude) ? body.exclude.slice(0, 500).map(String) : []);
     send(res, 200, { ids: await pick(uids, cat, String(body.diff || "normal"), count, exclude) });
@@ -277,4 +328,4 @@ async function handle(req, res, url, { send, readJson, ip }) {
 }
 const levelCalls = new Map();
 
-module.exports = { handle, firstDaily, tidy, publicRec, withLock };
+module.exports = { handle, firstDaily, tidy, publicRec, withLock, saveTopics };

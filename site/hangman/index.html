@@ -1014,7 +1014,8 @@ function renderBoard(){
 }
 
 let lastPanelKey="";
-function showCount(ov,panel,n){const key="cd"+n;ov.hidden=false;if(lastPanelKey===key)return;lastPanelKey=key;panel.hidden=true;let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=n;if(c.animate&&!matchMedia("(prefers-reduced-motion: reduce)").matches)c.animate([{opacity:0,transform:"scale(1.15)"},{opacity:1,transform:"none"}],{duration:180,easing:"cubic-bezier(.23,1,.32,1)"})}
+// the countdown before a round or the daily: the shared one in rush.js (Rush.countdown), left in ms
+function showCount(ov,panel,left){lastPanelKey="cd";Rush.countdown(ov,panel,left,COUNT_MS)}
 function setPanel(ov,panel,key,build){
   key=lang+"|"+key;
   const again=!ov.hidden&&!panel.hidden;ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;panel.classList.toggle("still",again);
@@ -1023,7 +1024,7 @@ function setPanel(ov,panel,key,build){
 }
 function renderOverlay(){
   const ov=$("#overlay"),panel=$("#panel");const now=Date.now();
-  if(cur&&!cur.done&&now<cur.startAt)return showCount(ov,panel,Math.ceil((cur.startAt-now)/1000));
+  if(cur&&!cur.done&&now<cur.startAt)return showCount(ov,panel,cur.startAt-now);
   if(cur&&!cur.done){if(!ov.hidden){ov.hidden=true;renderPlay()}lastPanelKey="";return}
   if(mode==="daily")return dailyOverlay(ov,panel);
   if(waitNext&&duelOn())return setPanel(ov,panel,"dwatch",()=>[el("h2",null,t("duelWatch")),el("p",null,t("duelWatchHelp"))]);
