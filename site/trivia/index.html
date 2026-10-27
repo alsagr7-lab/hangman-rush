@@ -220,7 +220,7 @@ en:{
   teamA:"Team Blue",teamB:"Team Red",colA:"Blue",colB:"Red",noOne:"Nobody yet",
   diffEasy:"Easy",diffNormal:"Normal",diffHard:"Hard",
   diffHelp_easy:"Easier questions · 20 seconds · 50/50 on",diffHelp_normal:"All questions · 15 seconds · 50/50 on",diffHelp_hard:"Harder questions · 10 seconds · no help",
-  voteTitle:"Vote for the next category",pickTitle:"Pick a category",
+  voteTitle:"Vote for the next category",often:"Often picked",pickTitle:"Pick a category",
   voteHelp:"Five categories are on offer each round. Each player's vote is split across the ones they tap, and the category is drawn by vote share.",
   pickHelp:"The next round comes from one of your picks.",anyCat:"No votes yet, so any of these could come up.",
   boardRace:"Race board",teams:"Teams",boardDaily:"Daily leaderboard",tabToday:"Today",tabYday:"Yesterday",tabSeason:"Season",
@@ -269,7 +269,7 @@ ar:{
   teamA:"الفريق الأزرق",teamB:"الفريق الأحمر",colA:"الأزرق",colB:"الأحمر",noOne:"لا أحد بعد",
   diffEasy:"سهل",diffNormal:"عادي",diffHard:"صعب",
   diffHelp_easy:"أسئلة أسهل · 20 ثانية · 50/50 متاحة",diffHelp_normal:"كل الأسئلة · 15 ثانية · 50/50 متاحة",diffHelp_hard:"أسئلة أصعب · 10 ثوانٍ · بلا مساعدة",
-  voteTitle:"صوّت لفئة الجولة التالية",pickTitle:"اختر فئة",
+  voteTitle:"صوّت لفئة الجولة التالية",often:"الأكثر اختياراً",pickTitle:"اختر فئة",
   voteHelp:"تُعرض خمس فئات في كل جولة. صوت كل لاعب يُقسم على الفئات التي يختارها، وتُسحب الفئة حسب نسبة الأصوات.",
   pickHelp:"الجولة التالية من إحدى الفئات التي اخترتها.",anyCat:"لا أصوات بعد، لذا قد تظهر أي فئة منها.",
   boardRace:"لوحة السباق",teams:"الفرق",boardDaily:"ترتيب أسئلة اليوم",tabToday:"اليوم",tabYday:"أمس",tabSeason:"الموسم",
@@ -436,7 +436,9 @@ let room=null,roomApi=null,code=null,host=false,connected=true,unsubs=[],joinedA
 let hs=freshHost(),cur=null,score=0,lastRound=0,waitNext=false,myTeam=null,closing=false;
 let myVotes=new Set((LS.get("tr-cv",[])||[]).filter(c=>T.CATS.includes(c)));
 function freshHost(){return{hr:0,st:"waiting",at:0,ids:[],cat:null,df:"normal",md:"f",ts:{A:0,B:0},tr:null,vo:offer(null),used:[],cut:{}}}
-function offer(last){const pool=T.CATS.filter(c=>c!==last);for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}return pool.slice(0,T.VOTE_OPTIONS)}
+// the most picked topics lately (server counts every round): offered first in the vote, tagged "Often picked"
+var oftenT=[];Rush.trivia.topics().then(r=>{oftenT=(r&&Array.isArray(r.top)?r.top:[]).map(x=>x.k).filter(k=>T.CATS.includes(k))}).catch(()=>{});
+function offer(last){const hot=(oftenT||[]).filter(c=>c!==last).slice(0,2),pool=T.CATS.filter(c=>c!==last&&!hot.includes(c));for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}return hot.concat(pool).slice(0,T.VOTE_OPTIONS)}
 
 function showGame(){$("#lobby").hidden=true;$("#game").hidden=false;lastPanelKey="";window.scrollTo(0,0);render()}
 function backToLobby(){
@@ -639,7 +641,7 @@ function pickCategory(vo){const sh=voteShares(vo),keys=Object.keys(sh);if(!keys.
 function voteBox(vo){
   const sh=voteShares(vo),box=el("div","votes"),chips=el("div","chips");
   box.appendChild(el("p","lbl",t(mode==="room"?"voteTitle":"pickTitle")));
-  vo.forEach(c=>{const b=el("button","catchip");b.type="button";b.setAttribute("aria-pressed",String(myVotes.has(c)));b.appendChild(el("span",null,catName(c)));
+  vo.forEach(c=>{const b=el("button","catchip");b.type="button";b.setAttribute("aria-pressed",String(myVotes.has(c)));b.appendChild(el("span",null,catName(c)));if((oftenT||[]).includes(c))b.appendChild(el("small","often",t("often")));
     if(sh[c])b.appendChild(el("span","pct",Math.round(sh[c]*100)+"%"));b.onclick=()=>toggleVote(c);chips.appendChild(b)});
   box.append(chips,el("p","diffhelp",Object.keys(sh).length?t(mode==="room"?"voteHelp":"pickHelp"):t("anyCat")));
   return box;
@@ -852,8 +854,8 @@ function renderBoard(){
 
 /* overlay panels */
 let lastPanelKey="";
-function showCount(ov,panel,n){const key="cd"+n;ov.hidden=false;if(lastPanelKey===key)return;lastPanelKey=key;panel.hidden=true;
-  let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=String(n);if(c.animate&&!matchMedia("(prefers-reduced-motion: reduce)").matches)c.animate([{opacity:0,transform:"scale(1.15)"},{opacity:1,transform:"none"}],{duration:180,easing:"cubic-bezier(.23,1,.32,1)"})}
+// the countdown before a round or the daily: the shared one in rush.js (Rush.countdown), left in ms
+function showCount(ov,panel,left){lastPanelKey="cd";Rush.countdown(ov,panel,left,T.COUNT_MS)}
 function setPanel(ov,panel,key,build){
   key=lang+"|"+key;const again=!ov.hidden&&!panel.hidden;ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;panel.classList.toggle("still",again);
   const c=ov.querySelector(".count");if(c)c.hidden=true;
@@ -864,7 +866,7 @@ function stats(items){const st=el("div","stats");items.forEach(([v,k])=>{const d
 function renderOverlay(){
   const ov=$("#overlay"),panel=$("#panel"),now=Date.now();
   if(run){
-    if(run.phase==="count")return showCount(ov,panel,Math.max(1,Math.ceil((run.countEnd-now)/1000)));
+    if(run.phase==="count")return showCount(ov,panel,run.countEnd-now);
     if(run.kind==="daily"&&run.phase==="intro")return setPanel(ov,panel,"dintro"+(dstate?dstate.streak:0)+run.i,()=>{
       const out=[el("h2",null,t("dailyTitle",{n:run.n})),...Rush.introText([el("p",null,t("dailyIntro"))],()=>{lastPanelKey="";render()})];
       const s=dstate?num(dstate.streak):0;if(s)out.push(el("p","streak",s===1?t("curStreak1"):t("curStreakN",{n:s})));
@@ -883,7 +885,7 @@ function renderOverlay(){
     return hideOverlay(ov);
   }
   if(waitNext)return setPanel(ov,panel,"wait",()=>[el("h2",null,t("roundInProgress")),el("p",null,t("jumpIn"))]);
-  if(cur){const P=phaseOf(cur,now);if(P.ph==="count")return showCount(ov,panel,Math.max(1,Math.ceil(P.left/1000)));if(P.ph!=="over")return hideOverlay(ov)}
+  if(cur){const P=phaseOf(cur,now);if(P.ph==="count")return showCount(ov,panel,P.left);if(P.ph!=="over")return hideOverlay(ov)}
   const h=hostInfo(),hp=hostPeer(),tm=teamsOn();
   const ended=!cur||(P2=>P2.ph==="over")(phaseOf(cur,now));
   const settled=!cur||(h&&h.st==="ended"&&h.hr===cur.round)||mode==="solo";

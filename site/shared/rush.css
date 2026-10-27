@@ -304,6 +304,8 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .catchip{border:1px solid var(--line3);background:var(--raised);border-radius:999px;padding:7px 12px;min-height:36px;font-size:13.5px;font-weight:700;display:inline-flex;gap:6px;align-items:center}
 .catchip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
 .catchip .pct{font-family:var(--f-num);font-size:12px;opacity:.85}
+.catchip .often{font-size:10.5px;font-weight:800;letter-spacing:.04em;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent-hi)}
+.catchip[aria-pressed="true"] .often{background:rgba(0,0,0,.14);color:inherit}
 .duelopts{display:grid;gap:8px}
 .duelw{display:flex;justify-content:space-between;align-items:baseline;gap:10px;text-align:start}
 .duelw .dw{font-family:var(--f-latin-hand);font-size:22px;letter-spacing:.08em;font-weight:800}
@@ -332,6 +334,20 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .panel p{margin:0}
 .panel>.btn{width:100%}
 .count{font-family:var(--f-latin-hand);font-weight:800;font-size:128px;line-height:1;color:var(--accent);text-shadow:0 6px 30px rgba(0,0,0,.5)}
+/* the shared countdown (rush.js countdown): "Get ready", a draining ring in the game's colour, the seconds left */
+.cdown{display:grid;justify-items:center;gap:14px;text-align:center;text-shadow:none;font-size:inherit;color:var(--ink);animation:cdin .26s var(--ease-out)}
+@keyframes cdin{from{opacity:0;transform:scale(.96)}}
+.cd-lbl{font-family:var(--f-hand);font-stretch:118%;font-weight:800;font-size:15px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-hi)}
+:root[lang="ar"] .cd-lbl{letter-spacing:0;text-transform:none;font-size:19px;font-stretch:100%}
+.cd-ring{position:relative;width:min(176px,46vw);aspect-ratio:1;display:grid;place-items:center}
+.cd-ring::before{content:"";position:absolute;inset:9%;border-radius:50%;background:var(--raised);box-shadow:0 18px 40px var(--shadow),inset 0 1px 0 rgba(255,255,255,.06)}
+.cd-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.cd-ring circle{fill:none;stroke-width:7}
+.cd-track{stroke:var(--line2)}
+.cd-prog{stroke:var(--accent);stroke-linecap:round;filter:drop-shadow(0 0 10px color-mix(in srgb,var(--accent) 55%,transparent))}
+.cd-num{position:relative;font-family:var(--f-latin-hand);font-weight:800;font-size:clamp(68px,20vw,92px);line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.cd-sub{font-size:14px;color:var(--soft);max-width:28ch}
+@media (prefers-reduced-motion:reduce){.cdown{animation:none}}
 .reveal{font-family:var(--f-latin-hand);font-weight:800;font-size:28px;letter-spacing:.08em;word-break:break-all;direction:ltr;text-align:start;color:var(--accent-hi)}
 :root[lang="ar"] .reveal{text-align:end}
 .res{display:grid;gap:6px;margin:0;padding:0;list-style:none}

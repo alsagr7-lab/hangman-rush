@@ -965,8 +965,8 @@ const baseId=id=>String(id||"").replace(/_(ar|en)$/,"");
 
 /* overlay panels */
 let lastPanelKey="";
-function showCount(ov,panel,n){const key="cd"+n;ov.hidden=false;if(lastPanelKey===key)return;lastPanelKey=key;panel.hidden=true;
-  let c=ov.querySelector(".count");if(!c){c=el("div","count");ov.appendChild(c)}c.hidden=false;c.textContent=String(n);if(c.animate&&!matchMedia("(prefers-reduced-motion: reduce)").matches)c.animate([{opacity:0,transform:"scale(1.15)"},{opacity:1,transform:"none"}],{duration:180,easing:"cubic-bezier(.23,1,.32,1)"})}
+// the countdown before a round or the daily: the shared one in rush.js (Rush.countdown), left in ms
+function showCount(ov,panel,left){lastPanelKey="cd";Rush.countdown(ov,panel,left,H.COUNT_MS)}
 function setPanel(ov,panel,key,build){
   key=lang+"|"+key;const again=!ov.hidden&&!panel.hidden;ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;panel.classList.toggle("still",again);
   const c=ov.querySelector(".count");if(c)c.hidden=true;
@@ -981,7 +981,7 @@ function seg(opts,cur,onPick){const s=el("div","seg");opts.forEach(([v,l])=>{con
 function renderOverlay(){
   const ov=$("#overlay"),panel=$("#panel"),now=nowFor();
   if(mode==="daily"&&drun){
-    if(drun.phase==="count")return showCount(ov,panel,Math.max(1,Math.ceil((drun.countEnd-now)/1000)));
+    if(drun.phase==="count")return showCount(ov,panel,drun.countEnd-now);
     if(drun.phase==="intro")return setPanel(ov,panel,"dintro"+(ds()?ds().streak:0)+drun.lg,()=>{
       const s=ds()?num(ds().streak):0;
       const out=[el("h2",null,t("dailyTitle",{n:R.dailyNo()})),...Rush.introText([el("p",null,t("dailyIntro")),el("p","diffhelp",t("playInHelp"))],()=>{lastPanelKey="";render()}),
@@ -1011,7 +1011,7 @@ function renderOverlay(){
   }
   if(mode!=="room"&&mode!=="solo")return hideOverlay(ov);
   if(waitNext)return setPanel(ov,panel,"wait",()=>[el("h2",null,t("roundInProgress")),el("p",null,t("jumpIn"))]);
-  if(cur){const P=phaseOf(cur,now);if(P.ph==="count")return showCount(ov,panel,Math.max(1,Math.ceil(P.left/1000)));if(P.ph==="write"||!cur.scored)return hideOverlay(ov)}
+  if(cur){const P=phaseOf(cur,now);if(P.ph==="count")return showCount(ov,panel,P.left);if(P.ph==="write"||!cur.scored)return hideOverlay(ov)}
   const h=hostInfo(),hp=hostPeer();
   const rows=cur?roundRows():[];
   const key=[mode,cur?cur.round:0,cur&&cur.scored,host,!!hp,h&&h.lg,h&&h.ms,h&&h.st,rows.map(r=>r.n+r.rp+(r.v||[]).join("")).join(),cur?JSON.stringify(cur.ap)+cur.apMsg:"",isCap(),capName(),!cur&&partyTv()&&num(partyTv().presence.nx)?Math.ceil((num(partyTv().presence.nx)-RN())/1000):"",JSON.stringify(rows.map(r=>r.apl||[])),JSON.stringify(hostOv()||{}),partyTv()?partyTv().presence.lg+partyTv().presence.ms:""].join("|");

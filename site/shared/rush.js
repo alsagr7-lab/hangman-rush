@@ -508,6 +508,9 @@
     archive: n => get("/api/trivia/archive/" + n),
     pick: (uids, cat, diff, count, exclude) => post("/api/trivia/pick", { uids, cat, diff, count, exclude }),
     level: (d, profile) => post("/api/trivia/level", Object.assign({ d }, profile || {})),
+    // the most picked topics lately ({top: [{k, n}]}), and a party round started on a topic
+    topics: () => get("/api/trivia/topics"),
+    topicPicked: k => post("/api/trivia/topic", { k }),
     bank: () => fetch("/trivia/questions.json", { cache: "no-cache" }).then(r => { if (!r.ok) throw new Error("bank " + r.status); return r.json(); }),
   };
 
@@ -1426,9 +1429,52 @@
   }
   function loadPriv() { if (!acct || privOn !== null) return; post("/api/player", { id: uid }).then(d => { privOn = !!(d && d.private); renderAcct(); }).catch(() => {}); }
 
+  /* the countdown before a round or a daily, the same in every game: "Get ready", a ring in the game's colour that
+     drains over the countdown, and the seconds left popping in. Call it on every tick with the time left; it builds
+     itself in the overlay once, restarts the ring when a new countdown begins, and only redraws the number when it
+     changes. ov: the game's overlay, panel: its result panel (hidden meanwhile), left/total in ms, sub: optional line. */
+  const SVG_NS = "http://www.w3.org/2000/svg", RING = 2 * Math.PI * 52;
+  const calm = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
+  function countdown(ov, panel, left, total, sub) {
+    total = total || 3000; left = Math.max(0, Math.min(total, left));
+    const fresh = ov.hidden;
+    ov.hidden = false; if (panel) panel.hidden = true;
+    let c = ov.querySelector(".cdown");
+    if (!c) {
+      c = document.createElement("div"); c.className = "count cdown"; c.setAttribute("role", "timer"); c.setAttribute("aria-live", "assertive");
+      const lbl = document.createElement("span"); lbl.className = "cd-lbl";
+      const ring = document.createElement("div"); ring.className = "cd-ring";
+      const svg = document.createElementNS(SVG_NS, "svg"); svg.setAttribute("viewBox", "0 0 120 120"); svg.setAttribute("aria-hidden", "true");
+      for (const k of ["cd-track", "cd-prog"]) { const ci = document.createElementNS(SVG_NS, "circle"); ci.setAttribute("class", k); ci.setAttribute("cx", "60"); ci.setAttribute("cy", "60"); ci.setAttribute("r", "52"); svg.appendChild(ci); }
+      const num = document.createElement("b"); num.className = "cd-num";
+      const s = document.createElement("span"); s.className = "cd-sub";
+      ring.append(svg, num); c.append(lbl, ring, s); ov.appendChild(c);
+    }
+    const now = Date.now(), end = now + left, startNew = fresh || c.hidden || !c._end || Math.abs(end - c._end) > 600;
+    c.hidden = false; c._end = end;
+    c.querySelector(".cd-lbl").textContent = document.documentElement.lang === "ar" ? "استعد" : "Get ready";
+    const sl = c.querySelector(".cd-sub"); sl.textContent = sub || ""; sl.hidden = !sub;
+    const prog = c.querySelector(".cd-prog");
+    if (startNew) {
+      // the ring empties from where this countdown is now to nothing, in step with the time left
+      if (c._ring) try { c._ring.cancel(); } catch (e) {}
+      prog.style.strokeDasharray = String(RING);
+      const from = RING * (1 - left / total);
+      prog.style.strokeDashoffset = String(from);
+      if (prog.animate && left > 0) c._ring = prog.animate([{ strokeDashoffset: from }, { strokeDashoffset: RING }], { duration: left, easing: "linear", fill: "forwards" });
+      else prog.style.strokeDashoffset = String(RING);
+      c.dataset.n = "";
+    }
+    const n = String(Math.max(1, Math.ceil(left / 1000)));
+    if (c.dataset.n !== n) {
+      c.dataset.n = n; const num = c.querySelector(".cd-num"); num.textContent = n;
+      if (num.animate && !calm()) num.animate([{ opacity: 0, transform: "scale(1.3)", filter: "blur(6px)" }, { opacity: 1, transform: "scale(1)", filter: "blur(0)" }], { duration: 260, easing: "cubic-bezier(.23,1,.32,1)" });
+    }
+  }
+
   // the message shown when a name is turned down by the shared name filter (rules.js badName)
   const badNameMsg = () => (document.documentElement.lang === "ar" ? "اختر اسماً آخر، هذا الاسم غير مسموح." : "Please pick another name. That one isn't allowed.");
-  window.Rush = { now, medals, medalSvg, medalEl, whoBtn, openPlayer, badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
+  window.Rush = { now, countdown, medals, medalSvg, medalEl, whoBtn, openPlayer, badNameMsg, introText, dailyDone, roomLink, openReport, setReportCtx: f => { reportCtx = f; }, api: API, http, uid, token, store, room, roomCode, mePeer, hostOf, trivia, harf, ready, board, mine: mineRecs, saveProfile, moveLink, shareUrl, ask, openProfile: () => openSheet(),
     server: () => serverState, onServer(f) { serverListeners.add(f); queueMicrotask(() => f(serverState)); return () => serverListeners.delete(f); } };
   const caps = { room, user, hangman };
   window.claude = { use: name => Promise.resolve(caps[name] || null) };
