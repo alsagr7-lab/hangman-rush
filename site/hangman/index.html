@@ -55,16 +55,12 @@
 .play.kbon{min-height:0;gap:10px}
 .play.kbon .keys{display:none}
 .play.kbon .gal svg{width:min(116px,30vw)}
-/* the game card, laid out so everything fits on a phone without scrolling: the time strip; the gallows (with the
-   wrong letters under it) beside the category, vowels and clue; the word on one line; the misses; the two hints
-   side by side; the keyboard */
-#play{grid-template-columns:auto minmax(0,1fr);column-gap:18px;row-gap:12px;align-items:center}
-#play>.tstrip,#play>.word,#play>.misses,#play>.hints,#play>.keys,#play>.devkb{grid-column:1/-1}
-#play>.gal{grid-column:1;flex-direction:column;align-items:center;gap:10px}
-#play>.cat{grid-column:2;justify-items:start;text-align:start;align-content:center;gap:8px}
-#play>.cat .lbl{font-size:13px}
-.gal svg{width:clamp(92px,28vw,168px)}
-.play.kbon .gal svg{width:min(84px,24vw)}
+/* the game card, centred, with room to breathe on a phone: the time strip; the gallows in the middle with the
+   wrong letters beside it; the category under it; the word on one line; the misses; the two hints side by side;
+   the keyboard */
+#play{row-gap:12px}
+.gal svg{width:clamp(120px,36vw,180px)}
+.play.kbon .gal svg{width:min(96px,26vw)}
 /* the word: slots share the width, so even a 12-letter word fits on one line */
 .word{flex-wrap:nowrap;gap:6px;min-height:0;container-type:inline-size}
 .word .slot{flex:0 1 auto;width:min(40px,calc((100cqw - (var(--n,6) - 1) * 6px) / var(--n,6)));font-size:min(36px,calc(100cqw / var(--n,6) * .78))}
@@ -74,14 +70,13 @@
 .hints{flex-wrap:wrap}
 .hints button{flex:1 1 120px;max-width:220px;padding:8px 10px;white-space:nowrap;font-size:13px}
 @media (max-width:380px){.hints button{font-size:12px;padding:8px 6px}}
-/* wider screens: the gallows and the category sit as a pair in the middle */
-@media (min-width:600px){#play{grid-template-columns:1fr 1fr}#play>.gal{justify-self:end}#play>.cat{justify-self:start}}
 .hints .hintnote{flex-basis:100%}
 @media (max-width:520px){#play .key{height:47px}#play .keys{gap:6px}#play{padding:16px 14px}}
-/* wrong letters under the gallows: one box per miss allowed, filled as they're used */
-.wrong{display:grid;grid-template-columns:repeat(var(--c,3),26px);gap:5px;align-content:center}
+/* wrong letters beside the gallows: one box per miss allowed, filled as they're used */
+.gal{align-items:center;gap:16px}
+.wrong{display:grid;grid-template-columns:repeat(2,28px);gap:6px;align-content:center}
 .wrong[hidden]{display:none}
-.wrong span{display:grid;place-items:center;height:26px;border-radius:8px;border:1.5px dashed var(--line3);font-family:var(--f-latin-hand);font-weight:800;font-size:16px;color:var(--bad,#d93c30)}
+.wrong span{display:grid;place-items:center;height:28px;border-radius:8px;border:1.5px dashed var(--line3);font-family:var(--f-latin-hand);font-weight:800;font-size:16px;color:var(--bad,#d93c30)}
 .wrong span.x{border-style:solid;border-color:currentColor;background:color-mix(in srgb,currentColor 10%,transparent)}
 .wrong.ar span{font-family:var(--f-ar);font-size:17px}
 </style>
