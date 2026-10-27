@@ -57,6 +57,9 @@
 .play.kbon .gal svg{width:min(116px,30vw)}
 /* wrong letters beside the gallows: one box per miss allowed, filled as they're used */
 .gal{align-items:center;gap:18px}
+/* the time left sits with the word in the game card (not in the top bar), so it stays in view on a tablet and while typing */
+.cat .timer{font-size:30px;min-width:0;text-align:center}
+.play.kbon .cat .timer{font-size:24px}
 .wrong{display:grid;grid-template-columns:repeat(2,30px);gap:6px;align-content:center}
 .wrong[hidden]{display:none}
 .wrong span{display:grid;place-items:center;height:30px;border-radius:8px;border:1.5px dashed var(--line3);font-family:var(--f-latin-hand);font-weight:800;font-size:16px;color:var(--bad,#d93c30)}
@@ -119,7 +122,6 @@
       <div class="chip" id="roomChip"><span class="net" id="netDot"></span><span id="roomTxt"></span><button id="copyBtn" data-i18n="copy">Copy</button><button type="button" id="linkBtn" data-i18n="copyLink">Link</button></div>
       <span class="roundlbl" id="roundLbl"></span>
       <span class="spacer"></span>
-      <span class="timer ltr" id="timer">60s</span>
       <button class="langbtn" id="langGame" type="button"></button>
       <button class="btn ghost" id="leaveBtn" data-i18n="leave">Leave</button>
     </div>
@@ -139,7 +141,7 @@
           </svg>
           <div class="wrong" id="wrongL" role="img" hidden></div>
         </div>
-        <div class="cat"><span class="lbl" id="cat">Category</span><span class="vowels" id="vowels"></span><span class="clue" id="clue" hidden></span><span class="transl" id="transl" hidden></span></div>
+        <div class="cat"><span class="timer ltr" id="timer">60s</span><span class="lbl" id="cat">Category</span><span class="vowels" id="vowels"></span><span class="clue" id="clue" hidden></span><span class="transl" id="transl" hidden></span></div>
         <div class="word" id="word" aria-live="polite"></div>
         <div class="misses" id="missTxt"></div>
         <div class="hints" id="hintRow" hidden><button type="button" id="hintLetterBtn"></button><button type="button" id="hintClueBtn"></button><p class="note hintnote" id="hintNote" hidden></p></div>

@@ -32,6 +32,7 @@
 <script src="/shared/rules.js"></script>
 <script src="/shared/rush.js"></script>
 <script src="/shared/qr.js"></script>
+<script data-hm-words></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@100..125,400..800&family=Figtree:wght@400..800&family=Cairo:wght@400..900&display=swap">
@@ -210,6 +211,52 @@ button.ans:hover{background:rgba(255,255,255,.12)}button.ans:focus-visible{outli
 .ans.u small{color:var(--mint)}.ans.s small{color:var(--yel)}.ans.x{opacity:.5;text-decoration:line-through}.ans.x small{text-decoration:none}
 .hffoot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
 .hffoot .nx{font-size:22px;font-weight:800;margin-inline-end:auto}
+/* ---------- Trivia and Hangman on the TV ---------- */
+.psel{min-height:44px;border-radius:999px;border:0;padding:0 16px;font-weight:800;font-size:17px;background:#fff;color:var(--pdark);max-width:100%}
+.tq{font-size:clamp(26px,3.2vw,50px);font-weight:800;line-height:1.2;max-width:1100px}
+.tpic{background:#fff;border-radius:28px;padding:16px;box-shadow:0 10px 0 rgba(0,0,0,.25)}
+.tpic img{display:block;width:auto;height:clamp(120px,22vh,240px)}
+.tpic.flag img{border-radius:6px;box-shadow:0 0 0 2px rgba(0,0,0,.1)}
+.tiles{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;direction:ltr}
+.tiles.ar{direction:rtl}
+.tiles span{min-width:62px;height:74px;padding:0 10px;box-sizing:border-box;display:grid;place-items:center;border-radius:18px;background:#fff;color:var(--pdark);font-weight:800;font-size:42px;box-shadow:0 6px 0 rgba(0,0,0,.25)}
+.tiles.sm span{min-width:40px;height:48px;font-size:26px;border-radius:12px}
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:min(1100px,100%)}
+.atile{display:flex;align-items:center;gap:14px;border-radius:26px;padding:14px 20px;font-weight:800;font-size:clamp(20px,2.3vw,34px);text-align:start;box-shadow:0 7px 0 rgba(0,0,0,.25);min-height:80px;transition:opacity .25s}
+.atile .ab,.pans .ab{flex:none;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.55);display:grid;place-items:center;font-size:24px;font-family:"Saira",sans-serif}
+.atile.c0,.pans .c0{background:var(--pink);color:var(--pink-ink)}.atile.c1,.pans .c1{background:var(--sky);color:var(--sky-ink)}
+.atile.c2,.pans .c2{background:var(--yel);color:var(--yel-ink)}.atile.c3,.pans .c3{background:var(--mint);color:var(--mint-ink)}
+.atile.dim{opacity:.28}.atile.win{outline:6px solid #fff;outline-offset:3px}
+.atile .cnt{margin-inline-start:auto;font-family:"Saira",sans-serif;font-size:28px}
+.gotit{font-size:24px;font-weight:800;color:var(--mint);max-width:1100px}
+.tres{width:min(900px,100%);display:grid;gap:10px}
+.trow{display:grid;grid-template-columns:48px 48px minmax(0,1fr) auto auto;align-items:center;gap:12px;background:rgba(255,255,255,.1);border-radius:22px;padding:8px 16px;font-size:22px;font-weight:800;text-align:start}
+.trow svg{width:44px;height:44px;overflow:visible}.trow b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trow .rp{color:var(--mint);font-family:"Saira",sans-serif}.trow .tt{font-family:"Saira",sans-serif;font-size:26px;min-width:3ch;text-align:end}
+.trow.lead{background:var(--yel);color:var(--yel-ink)}.trow.lead .rp{color:var(--yel-ink)}
+.hf.many .trow{padding:3px 12px;font-size:18px}.hf.many .trow svg{width:30px;height:30px}
+.hmword{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;direction:ltr}
+.hmword.ar{direction:rtl}
+.hmword span{width:clamp(40px,4.6vw,70px);height:clamp(56px,6.6vw,92px);border-bottom:8px solid rgba(255,255,255,.6);display:grid;place-items:end center;font-weight:800;font-size:clamp(36px,4.6vw,68px);line-height:1}
+.hmword.sm{gap:6px}.hmword.sm span{width:30px;height:44px;border-bottom-width:5px;font-size:28px}
+.hmcat{font-size:clamp(26px,3vw,42px);font-weight:800;color:var(--yel)}
+.hmclue{font-size:24px;font-weight:700;color:var(--pmuted);max-width:900px}
+.pg{display:grid;gap:14px}
+.pg .pq{font-size:22px;font-weight:800;line-height:1.3;color:#fff;text-align:center}
+.pg .ppic{justify-self:center;background:#fff;border-radius:20px;padding:10px}
+.pg .ppic img{display:block;height:110px;width:auto}
+.pans{display:grid;gap:12px}
+.pans button{appearance:none;border:0;border-radius:24px;min-height:72px;padding:10px 16px;font-weight:800;font-size:20px;text-align:start;display:flex;align-items:center;gap:12px;box-shadow:0 6px 0 rgba(0,0,0,.3);cursor:pointer;font-family:inherit}
+.pans button:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.pans button:disabled{opacity:.35;cursor:default;transform:none}
+.pans button.pick{opacity:1;outline:5px solid #fff;outline-offset:2px}
+.pbig{font-size:26px;font-weight:800;text-align:center;color:#fff;margin:0}
+.ptimer{height:14px;border-radius:999px;background:rgba(0,0,0,.3);overflow:hidden}.ptimer i{display:block;height:100%;background:var(--mint);border-radius:999px;transition:width .25s linear}
+.pkeys{display:grid;gap:6px;direction:ltr}.pkeys.ar{direction:rtl}
+.pkeys .kr{display:flex;gap:5px;justify-content:center}
+.pkeys button{flex:1;max-width:44px;min-width:0;height:52px;border:0;border-radius:12px;background:#fff;color:var(--pdark);font-weight:800;font-size:20px;box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer;padding:0;font-family:inherit}
+.pkeys button:disabled{cursor:default}
+.pkeys button.hit{background:var(--mint);color:var(--mint-ink)}.pkeys button.miss{background:rgba(255,255,255,.22);color:rgba(255,255,255,.55);box-shadow:none}
 </style>
 </head>
 <body>
@@ -232,6 +279,12 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   full:"This party is full ({m} players).",noParty:"Couldn't reach that party. Check the code and try again.",connecting:"Joining…",
   inLobby:"You're in! Move around and say hi while you wait.",say:"Say something…",send:"Send",jump:"Jump",
   q1:"Hi!",q2:"Ready",q3:"Let's go!",q4:"GG",hostIs:"👑 {n} is the host",hostNone:"👑 No host yet",makeHost:"Make this player the host",makeHostHelp:"Tap a character to make them the host",youHost:"👑 You're the host",youHostHelp:"Pick the settings and start from here. You play too.",passHost:"Make someone else the host",appealsTv:"Appeals for the host {n}",voteOpen:"Vote on this answer",voteTally:"👍 {y} · 👎 {n} · {d} of {e} voted · {s}s",voteMark:"by vote",voteBadge:"voting",
+  topic:"Topic",tp_mix:"Mixed",tp_letters:"Letter scramble",tp_geography:"Geography",tp_history:"History",tp_science:"Science",tp_space:"Space",tp_animals:"Animals",tp_sports:"Sports",tp_football:"Football",tp_food:"Food & drink",tp_saudi:"Saudi Arabia",tp_tech:"Tech",tp_gaming:"Gaming",tp_cars:"Cars",
+  tp_general:"General knowledge",tp_gulf:"Gulf & Arab world",tp_flags:"Flags",tp_landmarks:"Landmarks",tp_islamic:"Islamic culture",tp_arabic:"Arabic language",tp_proverbs:"Proverbs",tp_riddles:"Riddles",tp_body:"Human body",tp_nature:"Plants & nature",tp_heritage:"Heritage",tp_cartoons:"Cartoons & anime",tp_movies:"Movies & TV",tp_inventions:"Inventions",tp_brands:"Brands",tp_puzzles:"Maths & puzzles",
+  hc_animals:"Animals",hc_food:"Food & drink",hc_countries:"Countries",hc_cities:"Cities",hc_sports:"Sports",hc_hotel:"Hotel life",hc_jobs:"Jobs",hc_house:"Around the house",hc_space:"Space",hc_tech:"Tech",
+  qn:"Question {i} of {n}",loadingQ:"Loading questions…",noBank:"Couldn't load the questions. Try again.",roundEnd:"Round {r} results",answered:"{n} of {m} answered",gotIt:"Got it: {names}",nobody:"Nobody got it",
+  hmClue:"Clue: {c}",hmFin:"{n} of {m} finished",myScore:"Your score: {s}",lookTv:"Watch the big screen",thisRound:"+{p} this round",locked:"Answer locked in",noAns:"No answer",rightA:"Correct!",wrongA:"Not this time",
+  hmSolved:"Solved!",hmMissed:"Not this time",hmMiss:"Misses: {m} of {x}",hmOut:"Out of guesses",hmWait:"Waiting for the others…",hostNext:"The host or this screen starts the next round",
   chat:"Chat",chatOn:"Typing on",chatQuick:"Quick only",chatOff:"The big screen turned typing off. Quick messages still work.",chatNo:"That message isn't allowed.",chatSlow:"Slow down a little.",starting:"Starting {g}…",tvGone:"The big screen left the party.",
   round:"Round {r}",get:"Get ready…",write:"Write!",stopBy:"{n} pressed STOP!",checking:"Checking answers…",results:"Round {r}",
   total:"Score",nextIn:"Next round in {s}",nextNow:"Next round",pause:"Pause",resume:"Resume",lobby:"Back to lobby",
@@ -249,6 +302,12 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   full:"الحفلة ممتلئة ({m} لاعباً).",noParty:"تعذّر الوصول للحفلة. تأكد من الرمز وحاول مرة أخرى.",connecting:"جارٍ الدخول…",
   inLobby:"دخلت! تحرّك وسلّم على الكل وأنت تنتظر.",say:"قل شيئاً…",send:"أرسل",jump:"نط",
   q1:"هلا!",q2:"جاهز",q3:"يلا!",q4:"كفو",hostIs:"👑 المضيف: {n}",hostNone:"👑 لا يوجد مضيف بعد",makeHost:"اجعل هذا اللاعب المضيف",makeHostHelp:"اضغط على شخصية لتجعلها المضيف",youHost:"👑 أنت المضيف",youHostHelp:"اختر الإعدادات وابدأ من هنا. وتلعب أيضاً.",passHost:"اجعل لاعباً آخر المضيف",appealsTv:"اعتراضات بانتظار المضيف {n}",voteOpen:"تصويت على إجابة",voteTally:"👍 {y} · 👎 {n} · صوّت {d} من {e} · {s} ث",voteMark:"بالتصويت",voteBadge:"تصويت",
+  topic:"الموضوع",tp_mix:"منوّع",tp_letters:"ترتيب الحروف",tp_geography:"جغرافيا",tp_history:"تاريخ",tp_science:"علوم",tp_space:"فضاء",tp_animals:"حيوانات",tp_sports:"رياضة",tp_football:"كرة القدم",tp_food:"أكل ومشروبات",tp_saudi:"السعودية",tp_tech:"تقنية",tp_gaming:"ألعاب الفيديو",tp_cars:"سيارات",
+  tp_general:"معلومات عامة",tp_gulf:"الخليج والعالم العربي",tp_flags:"أعلام",tp_landmarks:"معالم",tp_islamic:"ثقافة إسلامية",tp_arabic:"اللغة العربية",tp_proverbs:"أمثال",tp_riddles:"ألغاز",tp_body:"جسم الإنسان",tp_nature:"نباتات وطبيعة",tp_heritage:"تراث وعادات",tp_cartoons:"كرتون وأنمي",tp_movies:"أفلام ومسلسلات",tp_inventions:"اختراعات",tp_brands:"علامات تجارية",tp_puzzles:"رياضيات وألغاز",
+  hc_animals:"حيوانات",hc_food:"أكل ومشروبات",hc_countries:"دول",hc_cities:"مدن",hc_sports:"رياضات",hc_hotel:"عالم الفنادق",hc_jobs:"مهن",hc_house:"في البيت",hc_space:"الفضاء",hc_tech:"تقنية",
+  qn:"السؤال {i} من {n}",loadingQ:"جارٍ تحميل الأسئلة…",noBank:"تعذّر تحميل الأسئلة. حاول مرة أخرى.",roundEnd:"نتائج الجولة {r}",answered:"أجاب {n} من {m}",gotIt:"أصاب: {names}",nobody:"لم يُصب أحد",
+  hmClue:"تلميح: {c}",hmFin:"انتهى {n} من {m}",myScore:"نقاطك: {s}",lookTv:"تابع الشاشة الكبيرة",thisRound:"+{p} في هذه الجولة",locked:"تم تثبيت إجابتك",noAns:"لم تُجب",rightA:"إجابة صحيحة!",wrongA:"ليست هذه المرة",
+  hmSolved:"حللتها!",hmMissed:"ليست هذه المرة",hmMiss:"الأخطاء: {m} من {x}",hmOut:"انتهت محاولاتك",hmWait:"بانتظار البقية…",hostNext:"المضيف أو هذه الشاشة يبدأ الجولة التالية",
   chat:"الدردشة",chatOn:"الكتابة مفعّلة",chatQuick:"السريعة فقط",chatOff:"الشاشة الكبيرة أوقفت الكتابة. الرسائل السريعة متاحة.",chatNo:"هذه الرسالة غير مسموحة.",chatSlow:"على مهلك شوي.",starting:"جارٍ بدء {g}…",tvGone:"الشاشة الكبيرة غادرت الحفلة.",
   round:"الجولة {r}",get:"استعدوا…",write:"اكتبوا!",stopBy:"{n} ضغط ستوب!",checking:"جارٍ تصحيح الإجابات…",results:"الجولة {r}",
   total:"النقاط",nextIn:"الجولة التالية بعد {s}",nextNow:"الجولة التالية",pause:"إيقاف مؤقت",resume:"استئناف",lobby:"العودة للردهة",
@@ -303,7 +362,7 @@ let role=null;          // "tv" | "phone" | null (landing)
 let code=null,pApi=null,pUnsub=[],connected=true,joinMsg="";
 let savedNs="1";try{savedNs=localStorage.getItem("rush-party-ns")||"1"}catch(e){}
 let savedCh="1";try{savedCh=localStorage.getItem("rush-party-chat")||"1"}catch(e){}
-let tvGame={g:"harf",lg:lang,ms:H.ROOM_MS[1],ns:savedNs==="0"?0:1,ch:savedCh==="0"?0:1}; // ns: 1 = no STOP, the round runs its full time; ch: 0 = quick phrases only
+let tvGame={g:"harf",lg:lang,ms:H.ROOM_MS[1],ns:savedNs==="0"?0:1,ch:savedCh==="0"?0:1,tc:"mix"}; // ns: 1 = no STOP, the round runs its full time; ch: 0 = quick phrases only
 let seen=new Map();     // peer -> {x,y,lx,mt,mi,ji,dir,walkUntil,jumpAt}
 let me=null;try{me=JSON.parse(localStorage.getItem("hr-me")||"null")}catch(e){}
 if(!me||typeof me!=="object")me={nick:"",color:R.COLORS[Math.floor(Math.random()*R.COLORS.length)]};
@@ -312,7 +371,7 @@ function saveMe(){try{localStorage.setItem("hr-me",JSON.stringify(me))}catch(e){
 
 function draw(){
   view.textContent="";
-  if(role==="tv")return tvMode==="harf"?drawHarf():drawTv();
+  if(role==="tv")return tvMode==="harf"?drawHarf():tvMode==="lobby"?drawTv():drawGame();
   if(role==="phone")return drawPhone();
   drawLanding();
 }
@@ -344,7 +403,9 @@ async function startTv(){
   pUnsub.push(pApi.onConnection(v=>{connected=v}));
   draw();
 }
-const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":"lobby",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch,ns:tvGame.ns,cap});
+// st: lobby, play (Harf: the phones open the Harf page) or game (Trivia and Hangman, played on this page: gm, tot, rp)
+const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":tvMode==="lobby"?"lobby":"game",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch,ns:tvGame.ns,tc:tvGame.tc,cap,
+  gm:gameGm(),tot:tvMode==="trivia"||tvMode==="hangman"?gTot:null,rp:gameRp()});
 let roomCount=0; // how many games this party has started (phones only follow a new one)
 const players=()=>pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv):[];
 /* ---------- the host: one player runs the party from their phone, and plays too ----------
@@ -379,10 +440,16 @@ function doCmd(c){
   if(k==="cap"){if(typeof c.u==="string"&&activePlayers().some(p=>p.presence.u===c.u))setCap(c.u);return}
   const setAll=()=>{if(c.lg==="ar"||c.lg==="en")tvGame.lg=c.lg;if(H.ROOM_MS.includes(c.ms))tvGame.ms=c.ms;
     if(c.ns===0||c.ns===1){tvGame.ns=c.ns;try{localStorage.setItem("rush-party-ns",String(c.ns))}catch(e){}}
-    if(c.ch===0||c.ch===1){tvGame.ch=c.ch;try{localStorage.setItem("rush-party-chat",String(c.ch))}catch(e){}}};
+    if(c.ch===0||c.ch===1){tvGame.ch=c.ch;try{localStorage.setItem("rush-party-chat",String(c.ch))}catch(e){}}
+    if(tvMode==="lobby"&&["harf","trivia","hangman"].includes(c.g))tvGame.g=c.g;
+    if(TOPICS.includes(c.tc))tvGame.tc=c.tc};
   if(tvMode==="lobby"){
     if(k==="set"){setAll();pushTv();draw()}
     else if(k==="start")tvStart();
+    return;
+  }
+  if(tvMode==="trivia"||tvMode==="hangman"){
+    if(k==="next")gameNext();else if(k==="lobby")backToLobby();else if(k==="set"){setAll();pushTv()}
     return;
   }
   if(tvMode!=="harf"||!hs)return;
@@ -422,7 +489,7 @@ function drawTv(){
   const stage=el("div","stage");stage.id="stage";
   const bar=el("div","tvbar");
   const g1=el("div","grp"),gs=el("div","seg2");g1.append(el("span","lbl2",t("pickGame")),gs);
-  [["harf",true],["hangman",false],["trivia",false]].forEach(([g,on])=>{const b=el("button",null,t(g));b.type="button";b.setAttribute("aria-pressed",String(tvGame.g===g));b.disabled=!on;if(!on)b.append(el("small",null,t("soon")));b.onclick=()=>{tvGame.g=g;draw()};gs.append(b)});
+  ["harf","trivia","hangman"].forEach(g=>{const b=el("button",null,t(g));b.type="button";b.setAttribute("aria-pressed",String(tvGame.g===g));b.onclick=()=>{tvGame.g=g;pushTv();draw()};gs.append(b)});
   const g2=el("div","grp"),ls=el("div","seg2");g2.append(el("span","lbl2",t("wordLang")),ls);
   [["ar","عربي"],["en","English"]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.lang=v;b.setAttribute("aria-pressed",String(tvGame.lg===v));b.onclick=()=>{tvGame.lg=v;pApi&&pApi.presence(tvPresence());draw()};ls.append(b)});
   const g3=el("div","grp"),ts=el("div","seg2");g3.append(el("span","lbl2",t("time")),ts);
@@ -434,9 +501,12 @@ function drawTv(){
   [[1,t("chatOn")],[0,t("chatQuick")]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(tvGame.ch===v));
     b.onclick=()=>{tvGame.ch=v;try{localStorage.setItem("rush-party-chat",String(v))}catch(e){}pApi&&pApi.presence(tvPresence());draw()};cs.append(b)});
   const go=el("button","pbtn pink go",t("start"));go.type="button";go.id="tvGo";go.onclick=tvStart;
-  bar.append(g1,g2,g3,g4,g5,go);
+  bar.append(g1,g2);if(tvGame.g==="harf")bar.append(g3,g4);if(tvGame.g==="trivia")bar.append(topicGrp("lbl2",v=>{tvGame.tc=v;pushTv()},tvGame.tc));bar.append(g5,go);
   main.append(head,stage,bar);w.append(side,main);view.append(w);drawStage();
 }
+// the trivia topic picker (the TV lobby and the host's phone)
+function topicGrp(lc,onPick,cur){const g=el("div",lc==="lbl2"?"grp":"hg"),sl=el("select","psel");sl.setAttribute("aria-label",t("topic"));
+  TOPICS.forEach(k=>{const o=el("option",null,tpName(k));o.value=k;if(cur===k)o.selected=true;sl.append(o)});sl.onchange=()=>onPick(sl.value);g.append(el("span",lc,t("topic")),sl);return g}
 function drawStage(){
   const st=$("#stage");if(!st)return;const list=players(),now=Date.now();
   const c=$("#tvCount");if(c)c.textContent=t("players",{n:list.length,m:MAX});
@@ -462,7 +532,7 @@ function drawStage(){
 setInterval(()=>{if(role==="tv"&&tvMode==="lobby")drawStage()},150);
 document.addEventListener("keydown",e=>{
   if(role!=="tv"||e.target&&/INPUT|TEXTAREA|BUTTON|SELECT|A/.test(e.target.tagName))return; // a focused control handles its own Enter
-  if(e.key==="Enter"){if(tvMode==="lobby"){const g=$("#tvGo");if(g&&!g.disabled)tvStart()}else if(tvMode==="harf"&&hfView==="results")hfNext()}
+  if(e.key==="Enter"){if(tvMode==="lobby"){const g=$("#tvGo");if(g&&!g.disabled)tvStart()}else if(tvMode==="harf"&&hfView==="results")hfNext();else if(tvMode==="trivia"||tvMode==="hangman")gameNext()}
 });
 
 /* ---------- phone: controller ---------- */
@@ -484,7 +554,7 @@ async function phoneJoin(){
   pUnsub.push(pApi.onPeers(()=>phoneFollow()));
   draw();phoneFollow();
 }
-const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null});
+const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null,ta:myTa.r?myTa:null,hg:myHg.r?myHg:null});
 // the host player's commands to the big screen (see runCmds on the TV side)
 let hq=[],hqN=0;
 function hostCmd(o){hqN=Math.max(Date.now(),hqN+1);hq=hq.concat([Object.assign({n:hqN},o)]).slice(-6);send()}
@@ -493,18 +563,29 @@ function drawHostPanel(P){
   const box=$("#hostPanel");if(!box)return;
   const mine=P.cap===Rush.uid,others=pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv&&p.presence.u&&p.presence.u!==Rush.uid):[];
   const capP=others.find(p=>p.presence.u===P.cap);
-  const key=JSON.stringify([mine,P.cap,capP&&capP.presence.n,P.lg,P.ms,P.ns,P.ch,others.map(p=>[p.presence.u,p.presence.n]),lang]);
+  const gph=P.gm&&typeof P.gm==="object"?P.gm.ph:"";
+  const key=JSON.stringify([mine,P.cap,capP&&capP.presence.n,P.lg,P.ms,P.ns,P.ch,P.g,P.tc,P.st,gph,others.map(p=>[p.presence.u,p.presence.n]),lang]);
   if(key===lastHostKey)return;lastHostKey=key;box.textContent="";
   if(!mine){box.className="hostline";box.textContent=capP?t("hostIs",{n:shownName(capP.presence.n)}):"";return}
   box.className="hostpanel";
   box.append(el("b",null,t("youHost")),el("p","pnote",t("youHostHelp")));
   const seg3=(label,opts,v,f)=>{const g=el("div","hg");g.append(el("span","lbl3",label));const sg=el("div","seg3");
     opts.forEach(([x,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(v===x));b.onclick=()=>{hostCmd(f(x));sg.querySelectorAll("button").forEach(y=>y.setAttribute("aria-pressed",String(y===b)))};sg.append(b)});g.append(sg);return g};
-  box.append(seg3(t("wordLang"),[["ar","عربي"],["en","English"]],P.lg,x=>({k:"set",lg:x})),
-    seg3(t("time"),H.ROOM_MS.map(x=>[x,t("secsN",{n:x/1000})]),num(P.ms),x=>({k:"set",ms:x})),
-    seg3(t("ends"),[[0,t("endStop")],[1,t("endFull")]],P.ns===0?0:1,x=>({k:"set",ns:x})),
-    seg3(t("chat"),[[1,t("chatOn")],[0,t("chatQuick")]],P.ch===0?0:1,x=>({k:"set",ch:x})));
-  const go=el("button","pbtn pink",t("start")+" · "+t("harf"));go.type="button";go.onclick=()=>{hostCmd({k:"start"});go.disabled=true;setTimeout(()=>go.disabled=false,4000)};box.append(go);
+  const g=["harf","trivia","hangman"].includes(P.g)?P.g:"harf";
+  if(P.st==="game"){
+    // during Trivia or Hangman: next round once the results are up, the topic for it, and back to the lobby
+    if(gph==="res"){if(g==="trivia")box.append(topicGrp("lbl3",v=>hostCmd({k:"set",tc:v}),P.tc));
+      const nx=el("button","pbtn pink",t("nextNow"));nx.type="button";nx.onclick=()=>{hostCmd({k:"next"});nx.disabled=true;setTimeout(()=>nx.disabled=false,3000)};box.append(nx)}
+    const lb=el("button","pbtn ghost",t("lobby"));lb.type="button";lb.style.color="var(--pdark)";lb.style.background="#EFEAFF";lb.onclick=()=>hostCmd({k:"lobby"});box.append(lb);
+    return;
+  }
+  box.append(seg3(t("pickGame"),[["harf",t("harf")],["trivia",t("trivia")],["hangman",t("hangman")]],g,x=>({k:"set",g:x})),
+    seg3(t("wordLang"),[["ar","عربي"],["en","English"]],P.lg,x=>({k:"set",lg:x})));
+  if(g==="harf")box.append(seg3(t("time"),H.ROOM_MS.map(x=>[x,t("secsN",{n:x/1000})]),num(P.ms),x=>({k:"set",ms:x})),
+    seg3(t("ends"),[[0,t("endStop")],[1,t("endFull")]],P.ns===0?0:1,x=>({k:"set",ns:x})));
+  if(g==="trivia")box.append(topicGrp("lbl3",v=>hostCmd({k:"set",tc:v}),P.tc));
+  box.append(seg3(t("chat"),[[1,t("chatOn")],[0,t("chatQuick")]],P.ch===0?0:1,x=>({k:"set",ch:x})));
+  const go=el("button","pbtn pink",t("start")+" · "+t(g));go.type="button";go.onclick=()=>{hostCmd({k:"start"});go.disabled=true;setTimeout(()=>go.disabled=false,4000)};box.append(go);
   if(others.length){const g=el("div","hg");g.append(el("span","lbl3",t("passHost")));const sg=el("div","seg3");
     others.forEach(p=>{const b=el("button",null,shownName(p.presence.n));b.type="button";b.onclick=()=>hostCmd({k:"cap",u:String(p.presence.u)});sg.append(b)});g.append(sg);box.append(g)}
 }
@@ -528,6 +609,9 @@ function phoneFollow(){
     setTimeout(()=>{location.href=(lang==="ar"?"/ar":"")+"/harf/#room="+code},400);
     return;
   }
+  const game=P.st==="game"&&P.gm&&typeof P.gm==="object"&&(P.gm.k==="tr"||P.gm.k==="hm"),pg=$("#phGame"),pc=$("#phCard");
+  if(pg&&pc&&pg.hidden===!!game){pg.hidden=!game;pc.hidden=!!game;phKey=""}
+  if(game){if(st)st.textContent=t(P.gm.k==="tr"?"trivia":"hangman");drawPhGame();return}
   if(st)st.textContent=t("inLobby");
 }
 function drawPhone(){
@@ -570,7 +654,8 @@ function drawPhone(){
   cb.onclick=()=>say(ci.value);ci.addEventListener("keydown",e=>{if(e.key==="Enter")say(ci.value)});chat.append(ci,cb);
   const quick=el("div","quick");["q1","q2","q3","q4"].forEach(k=>{const b=el("button",null,t(k));b.type="button";b.onclick=()=>say(t(k));quick.append(b)});
   const hpn=el("div");hpn.id="hostPanel";lastHostKey="";
-  card.append(prev,pad,chat,quick,cn);w.append(st,hpn,card);view.append(w);phoneFollow();
+  const pg=el("div","pg");pg.id="phGame";pg.hidden=true;pg.setAttribute("aria-live","polite");phKey="";card.id="phCard";
+  card.append(prev,pad,chat,quick,cn);w.append(st,hpn,pg,card);view.append(w);phoneFollow();
 }
 // moving: arrows on the pad (or the keyboard on a laptop), sent a few times a second
 const KEYS={ArrowUp:"u",ArrowDown:"d",ArrowLeft:"l",ArrowRight:"r"};
@@ -595,14 +680,333 @@ setInterval(()=>{
   pos.x=Math.min(1,Math.max(0,pos.x));pos.y=Math.min(1,Math.max(0,pos.y));send(false);
 },50);
 
+/* ---------- Trivia and Hangman on the TV ----------
+   Unlike Harf, these run in the party room itself: phones stay on this page and turn into answer pads and keyboards.
+   The big screen keeps the round on the shared clock (Rush.now) in its presence (gm) and scores everything; each phone
+   puts its own answers in its presence (ta: trivia answers for the round, hg: hangman guesses). Scores are kept by
+   player id for the whole game (gTot), so a new name or a reload never loses points. */
+const TQ=R.TRIVIA,TQ_N=TQ.QUESTIONS,TQ_MS=TQ.DIFF.normal.ms,TQ_REV=TQ.REVEAL_MS,TQ_COUNT=TQ.COUNT_MS,TQ_FAST=TQ.FAST_MS;
+const HMW=window.HM_WORDS&&HM_WORDS.en?HM_WORDS:{en:{},ar:{}},HM_MS=60000,HM_MISS=6,HM_COUNT=3000;
+const AR_SAME={"أ":"ا","إ":"ا","آ":"ا","ٱ":"ا","ة":"ه","ى":"ي","ئ":"ي","ؤ":"و"},keyOf=ch=>AR_SAME[ch]||ch;
+const ROWS_EN=["QWERTYUIOP","ASDFGHJKL","ZXCVBNM"],ROWS_AR=["ضصثقفغعهخحج","شسيبلاتنمك","ءرزوظطذد"];
+const KEYSET={en:new Set(ROWS_EN.join("")),ar:new Set(ROWS_AR.join(""))};
+const TOPICS=["mix","letters"].concat(TQ.CATS);
+const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const pickOf=a=>a[Math.floor(Math.random()*a.length)];
+let gTot={},gRound={}; // game totals by player id; this round's points by player id (one entry per question)
+const pid=p=>String(p.presence.u||p.peer);
+
+/* the question banks: the room bank (site/trivia/questions.json) and the party's picture questions, by id */
+let QB=null,QB_LOAD=null;
+function loadBank(){
+  if(QB)return Promise.resolve(QB);
+  if(!QB_LOAD)QB_LOAD=Promise.all([Rush.trivia.bank(),fetch("/party/pictures.json",{cache:"no-cache"}).then(r=>r.ok?r.json():{q:[]}).catch(()=>({q:[]}))])
+    .then(([a,b])=>{const m=new Map();
+      for(const x of a.q||[])m.set(x[0],{id:x[0],c:x[1],d:x[2],q:[x[3],x[4]],a:[x[5],x[6]]});
+      for(const x of b.q||[])if(/^(flag|emoji)\/[a-z0-9-]+$/.test(x[7]||""))m.set(x[0],{id:x[0],c:x[1],d:x[2],q:[x[3],x[4]],a:[x[5],x[6]],img:x[7]});
+      QB=m;return m})
+    .catch(e=>{QB_LOAD=null;throw e});
+  return QB_LOAD;
+}
+/* letter scramble: a Hangman word with its letters shuffled; the answers are that word and three words of the same
+   category and similar length. Everything is in the id (language, category, the four word numbers), so every phone
+   builds the same question. */
+function letterQ(lg){
+  const L=HMW[lg]||{},cats=Object.keys(L).filter(c=>L[c].length>=4);if(!cats.length)return null;
+  const c=pickOf(cats),list=L[c],i=Math.floor(Math.random()*list.length),n=[...list[i][0]].length;
+  let others=list.map((e,k)=>k).filter(k=>k!==i&&Math.abs([...list[k][0]].length-n)<=1&&list[k][0]!==list[i][0]);
+  if(others.length<3)others=list.map((e,k)=>k).filter(k=>k!==i&&list[k][0]!==list[i][0]);
+  if(others.length<3)return null;
+  return "lw:"+lg+":"+c+":"+[i].concat(shuf(others).slice(0,3)).join(".");
+}
+function qById(id){
+  if(typeof id!=="string")return null;
+  if(id.startsWith("lw:")){
+    const [,lg,c,nums]=id.split(":"),L=HMW[lg]&&HMW[lg][c];if(!L)return null;
+    const ks=String(nums||"").split(".").map(Number);if(ks.length!==4||ks.some(k=>!L[k]))return null;
+    const words=ks.map(k=>L[k][0]),letters=[...words[0]];
+    let ord=R.shuffledOrder(letters.length,id).map(k=>letters[k]);
+    if(ord.join("")===letters.join("")&&letters.length>1)ord=ord.slice(1).concat(ord[0]);
+    return{id,c:"letters",d:2,lw:{lg,tiles:ord},q:["Unscramble the letters. Which word is it?","رتّب الحروف: ما الكلمة؟"],a:[words,words]};
+  }
+  return QB?QB.get(id)||null:null;
+}
+// the order the four answers are shown in, the same on the big screen and every phone: ord[slot] = answer number
+const qOrder=(r,i,id)=>R.shuffledOrder(4,code+"|"+r+"|"+i+"|"+id);
+const qText=(q,l)=>q.q[l==="ar"?1:0];
+const qAns=(q,l)=>q.a[l==="ar"?1:0];
+const tpName=k=>t("tp_"+k);
+
+/* ---------- trivia: picking a round ---------- */
+let trUsed=new Set();try{trUsed=new Set(JSON.parse(localStorage.getItem("rush-party-tq")||"[]"))}catch(e){}
+function rememberUsed(ids){ids.forEach(id=>{if(!id.startsWith("lw:"))trUsed.add(id)});const a=[...trUsed].slice(-500);trUsed=new Set(a);try{localStorage.setItem("rush-party-tq",JSON.stringify(a))}catch(e){}}
+function pickRound(topic,lg){
+  const all=[...QB.values()],plan=[1,1,2,2,3],out=[];
+  const take=(pool,d)=>{let p=pool.filter(x=>!trUsed.has(x.id)&&!out.includes(x.id));if(!p.length)p=pool.filter(x=>!out.includes(x.id));if(!p.length)return null;
+    const exact=p.filter(x=>x.d===d);const q=pickOf(exact.length?exact:p);out.push(q.id);return q};
+  if(topic==="letters"){for(let k=0;k<TQ_N;k++){const id=letterQ(lg);if(id)out.push(id)}return out}
+  if(topic==="mix"){
+    // five topics, one of them shown as a picture, and one letter scramble in the middle
+    const cats=shuf(TQ.CATS.slice()),picSlot=Math.random()<.5?1:3;
+    plan.forEach((d,k)=>{
+      if(k===2){const id=letterQ(lg);if(id){out.push(id);return}}
+      if(k===picSlot&&take(all.filter(x=>x.img),d))return;
+      take(all.filter(x=>!x.img&&x.c===cats[k]),d)||take(all.filter(x=>!x.img),d);
+    });
+    return out;
+  }
+  // one topic: its picture questions mixed in (flags: mostly pictures)
+  const pics=all.filter(x=>x.c===topic&&x.img),text=all.filter(x=>x.c===topic&&!x.img);
+  const nPic=Math.min(pics.length,topic==="flags"?3:pics.length?2:0),slots=shuf([0,1,2,3,4]).slice(0,nPic);
+  plan.forEach((d,k)=>{if(slots.includes(k)&&take(pics,d))return;take(text,d)||take(pics,d)});
+  return out;
+}
+
+/* ---------- trivia on the big screen ---------- */
+let tg=null; // {r, ids, i, ph: count|q|rev|res, qAt, end, fast, revAt, lg, tp, last: {cor, picks, hits}}
+let trR=0;
+async function trEnter(){
+  gTot={};gRound={};tg=null;draw();
+  try{await loadBank()}catch(e){tvErr=t("noBank");backToLobby();return}
+  trNext();
+}
+function trNext(){
+  if(!QB||!players().length)return;
+  const ids=pickRound(tvGame.tc,tvGame.lg);if(!ids.length)return;
+  rememberUsed(ids);gRound={};
+  const now=Rush.now();tg={r:++trR,ids,i:0,ph:"count",qAt:now+TQ_COUNT,end:now+TQ_COUNT+TQ_MS,fast:0,lg:tvGame.lg,tp:tvGame.tc,last:null};
+  pushTv();gKey="";drawGameLive();
+}
+function trAns(p,i){const a=p.presence.ta;if(!tg||!a||typeof a!=="object"||num(a.r)!==tg.r||!a.a||typeof a.a!=="object")return null;
+  const v=a.a[i];return Array.isArray(v)&&Number.isInteger(v[0])&&v[0]>=0&&v[0]<4?[v[0],num(v[1])]:null}
+function trScore(){
+  const i=tg.i,id=tg.ids[i],q=qById(id);if(!q)return;const ord=qOrder(tg.r,i,id),cor=ord.indexOf(0),picks=[0,0,0,0],hits=[];
+  for(const p of players()){
+    const a=trAns(p,i),who=pid(p);if(!gRound[who])gRound[who]=[];
+    let pts=0;
+    if(a){picks[a[0]]++;if(ord[a[0]]===0){pts=R.triviaPoints(true,Math.min(TQ_MS,Math.max(0,a[1]-tg.qAt)),TQ_MS,false,0);hits.push(shownName(p.presence.n)+" +"+pts)}}
+    gRound[who][i]=pts;gTot[who]=(gTot[who]||0)+pts;
+  }
+  tg.last={i,cor,picks,hits};
+}
+function trTick(){
+  if(!tg||tg.ph==="res")return;const now=Rush.now();let ch=false;
+  if(tg.ph==="count"&&now>=tg.qAt){tg.ph="q";ch=true}
+  if(tg.ph==="q"){
+    const act=players();
+    if(!tg.fast&&act.length&&act.every(p=>trAns(p,tg.i))){tg.fast=1;tg.end=Math.min(tg.end,now+TQ_FAST);ch=true}
+    if(now>=tg.end){trScore();tg.ph="rev";tg.revAt=now;ch=true}
+  }else if(tg.ph==="rev"&&now>=tg.revAt+TQ_REV){
+    if(tg.i<tg.ids.length-1){tg.i++;tg.ph="q";tg.qAt=now;tg.end=now+TQ_MS;tg.fast=0}else tg.ph="res";
+    ch=true;
+  }
+  if(ch){pushTv();gKey=""}
+}
+const trGm=()=>tg?{k:"tr",r:tg.r,i:tg.i,n:tg.ids.length,ph:tg.ph,id:tg.ids[tg.i],qAt:tg.qAt,end:tg.end,lg:tg.lg,tp:tg.tp,cor:tg.ph==="rev"&&tg.last?tg.last.cor:-1}:{k:"tr",ph:"load"};
+
+/* ---------- hangman on the big screen ---------- */
+let hg=null,hmR=0,hmUsed=new Set(); // {r, ph: count|play|res, at, end, lg, c, w, cl: [en, ar], m}
+function hmEnter(){gTot={};gRound={};hg=null;hmNext()}
+function hmNext(){
+  if(!players().length)return;
+  const lg=tvGame.lg,L=HMW[lg]||{},cats=Object.keys(L).filter(c=>L[c].length);if(!cats.length)return;
+  const c=pickOf(cats);let pool=L[c].map((e,k)=>k).filter(k=>!hmUsed.has(lg+c+k));if(!pool.length){pool=L[c].map((e,k)=>k);[...hmUsed].filter(x=>x.startsWith(lg+c)).forEach(x=>hmUsed.delete(x))}
+  const k=pickOf(pool),e=L[c][k];hmUsed.add(lg+c+k);gRound={};
+  const now=Rush.now();hg={r:++hmR,ph:"count",at:now+HM_COUNT,end:now+HM_COUNT+HM_MS,lg,c,w:e[0],cl:[e[1],e[2]],m:e[3]};
+  pushTv();gKey="";drawGameLive();
+}
+// one player's state from their guesses: letters found, misses, solved or out of guesses
+function hmState(w,g){
+  const need=new Set([...w].map(keyOf)),set=new Set([...String(g||"")].filter(ch=>KEYSET.en.has(ch)||KEYSET.ar.has(ch)));
+  let hit=0,miss=0;for(const k of set){if(need.has(k))hit++;else miss++}
+  return{need:need.size,hit,miss,solved:hit===need.size,out:miss>=HM_MISS,set};
+}
+function hmPlayer(p){const h=p.presence.hg;if(!hg||!h||typeof h!=="object"||num(h.r)!==hg.r)return{need:new Set([...hg.w].map(keyOf)).size,hit:0,miss:0,solved:false,out:false,t:0,set:new Set()};
+  return Object.assign(hmState(hg.w,h.g),{t:num(h.t)})}
+function hmTick(){
+  if(!hg||hg.ph==="res")return;const now=Rush.now();let ch=false;
+  if(hg.ph==="count"&&now>=hg.at){hg.ph="play";ch=true}
+  if(hg.ph==="play"){
+    const act=players(),done=act.length&&act.every(p=>{const s=hmPlayer(p);return s.solved||s.out});
+    if(done||now>=hg.end+800){
+      for(const p of act){const s=hmPlayer(p),who=pid(p);let pts=0;
+        if(s.solved){const used=Math.min(HM_MS,Math.max(0,(s.t||now)-hg.at));pts=Math.max(20,100+Math.round(240*(HM_MS-used)/HM_MS)-s.miss*10)}
+        gRound[who]=[pts];gTot[who]=(gTot[who]||0)+pts}
+      hg.ph="res";ch=true}
+  }
+  if(ch){pushTv();gKey=""}
+}
+const hmGm=()=>hg?{k:"hm",r:hg.r,ph:hg.ph,at:hg.at,end:hg.end,lg:hg.lg,c:hg.c,w:hg.w,cl:hg.cl,m:hg.m}:{k:"hm",ph:"load"};
+const gameGm=()=>tvMode==="trivia"?trGm():tvMode==="hangman"?hmGm():null;
+// this round's points per player, sent with each answer reveal and the results
+const gameRp=()=>{const ph=tvMode==="trivia"?tg&&tg.ph:hg&&hg.ph;if(ph!=="res"&&ph!=="rev")return null;const o={};for(const id of Object.keys(gRound))o[id]=gRound[id].reduce((a,b)=>a+(b||0),0);return o};
+setInterval(()=>{if(role!=="tv")return;if(tvMode==="trivia")trTick();else if(tvMode==="hangman")hmTick();else return;drawGameLive()},200);
+function gameNext(){if(tvMode==="trivia"&&(!tg||tg.ph==="res"))trNext();else if(tvMode==="hangman"&&(!hg||hg.ph==="res"))hmNext()}
+
+/* ---------- drawing the big screen ---------- */
+let gKey="",gSideKey="",gFootKey="";
+function drawGame(){
+  const w=el("section","hf"),head=el("div","hfhead"),mini=el("div","mini");
+  mini.append(qrSvg(partyUrl(code)),el("span","code ltrx",code));
+  const hd=el("div");hd.style.cssText="display:flex;gap:10px;align-items:center";const rl=el("span","pchip");rl.id="gRound";hd.append(rl,langBtn());head.append(mini,hd);
+  const body=el("div","hfbody"),center=el("div","hfcenter");center.id="gCenter";const side=el("div","plist");side.id="gSide";body.append(center,side);
+  const foot=el("div","hffoot");foot.id="gFoot";w.append(head,body,foot);view.append(w);gKey="";gSideKey="";gFootKey="";drawGameLive();
+}
+function rankRows(){return players().map(p=>({p,id:pid(p),n:shownName(p.presence.n),c:R.safeColor(p.presence.c),s:gTot[pid(p)]||0,rp:(gRound[pid(p)]||[]).reduce((a,b)=>a+(b||0),0)})).sort((a,b)=>b.s-a.s||a.n.localeCompare(b.n))}
+function tvTimer(center,left,total){const bar=el("div","tbar");bar.append(el("i"));bar.id="gBar";const s=el("div","secs");s.id="gSecs";center.append(bar,s);tvTimerSet(left,total)}
+function tvTimerSet(left,total){const b=$("#gBar"),s=$("#gSecs");if(b)b.firstChild.style.width=Math.max(0,Math.min(100,100*left/total))+"%";if(s)s.textContent=String(Math.max(0,Math.ceil(left/1000)))}
+function answerTiles(q,ord,lg,opts){
+  const g=el("div","agrid");
+  ord.forEach((k,slot)=>{const tl=el("div","atile c"+slot);tl.append(el("span","ab","ABCD"[slot]));const tx=el("span",null,qAns(q,lg)[k]);tx.dir="auto";tl.append(tx);
+    if(opts&&opts.cor>=0){tl.classList.add(slot===opts.cor?"win":"dim");tl.append(el("span","cnt ltrx",String(opts.picks[slot]||0)))}g.append(tl)});
+  return g;
+}
+function qVisual(q){
+  if(q.img){const b=el("div","tpic"+(q.img.startsWith("flag/")?" flag":""));const im=el("img");im.src="/party/img/"+q.img+".svg";im.alt="";b.append(im);return b}
+  if(q.lw){const b=el("div","tiles"+(q.lw.lg==="ar"?" ar":""));q.lw.tiles.forEach(ch=>b.append(el("span",null,ch)));return b}
+  return null;
+}
+function drawGameLive(){
+  const center=$("#gCenter");if(!center)return;
+  const now=Rush.now(),rows=rankRows(),rl=$("#gRound");
+  const hfEl=center.closest(".hf");if(hfEl)hfEl.classList.toggle("many",rows.length>7);
+  if(tvMode==="trivia")drawTrCenter(center,now,rows,rl);else drawHmCenter(center,now,rows,rl);
+  // players: live progress during a question or a word, scores otherwise
+  const side=$("#gSide"),live=tvMode==="trivia"?tg&&tg.ph==="q":hg&&hg.ph==="play";
+  const prog=r=>tvMode==="trivia"?(trAns(r.p,tg.i)?"✓":""):(()=>{const s=hmPlayer(r.p);return s.solved?"✓":s.out?"✗":s.hit+"/"+s.need})();
+  const skey=JSON.stringify([lang,cap,live,rows.map(r=>[r.id,r.n,r.c,r.s,live?prog(r):""])]);
+  if(side&&skey!==gSideKey){gSideKey=skey;side.textContent="";
+    rows.forEach((r,i)=>{const row=el("div","prow"+(!live&&i===0&&r.s>0?" lead":""));row.append(blob(r.c),el("b",null,(r.id===cap?"👑 ":"")+r.n));
+      if(live){const v=prog(r);row.append(el("span","st"+(v==="✓"?" done":""),v))}else row.append(el("span","sc ltrx",String(r.s)));side.append(row)});
+    if(!rows.length)side.append(el("p","pnote",t("noPlayers")))}
+  // foot: next round after the results, back to the lobby
+  const foot=$("#gFoot"),res=tvMode==="trivia"?tg&&tg.ph==="res":hg&&hg.ph==="res";
+  const fkey=lang+"|"+res;
+  if(foot&&fkey!==gFootKey){gFootKey=fkey;foot.textContent="";
+    if(res){foot.append(el("span","nx",t("hostNext")));const nb=el("button","pbtn",t("nextNow"));nb.type="button";nb.onclick=gameNext;foot.append(nb)}else foot.append(el("span","nx"));
+    const lb=el("button","pbtn ghost",t("lobby"));lb.type="button";lb.onclick=backToLobby;foot.append(lb)}
+}
+function drawTrCenter(center,now,rows,rl){
+  if(rl)rl.textContent=tg?t("round",{r:tg.r})+(tg.ph==="q"||tg.ph==="rev"?" · "+t("qn",{i:tg.i+1,n:tg.ids.length}):""):t("trivia");
+  if(!tg){const key="load|"+lang;if(key!==gKey){gKey=key;center.textContent="";center.append(el("div","bigmsg",t("loadingQ")))}return}
+  const q=qById(tg.ids[tg.i]),lg=tg.lg,ord=qOrder(tg.r,tg.i,tg.ids[tg.i]);
+  const answered=players().filter(p=>trAns(p,tg.i)).length;
+  const key=[tg.r,tg.i,tg.ph,lang,tg.ph==="q"?answered+"/"+players().length:"",tg.ph==="res"?JSON.stringify(rows.map(r=>[r.id,r.s,r.rp])):""].join("|");
+  if(key!==gKey){gKey=key;center.textContent="";
+    if(tg.ph==="count"){center.append(el("div","bigmsg",t("get")),el("span","pchip",tpName(tg.tp)));const s=el("div","secs");s.id="gSecs";center.append(s)}
+    else if(tg.ph==="res"){center.append(el("div","bigmsg",t("roundEnd",{r:tg.r})));const tb=el("div","tres");
+      rows.forEach((r,i)=>{const row=el("div","trow"+(i===0&&r.s>0?" lead":""));row.append(el("span","ltrx","#"+(i+1)),blob(r.c),el("b",null,r.n),el("span","rp ltrx","+"+r.rp),el("span","tt ltrx",String(r.s)));tb.append(row)});
+      center.append(tb)}
+    else if(q){
+      center.append(el("span","pchip",tpName(q.c==="letters"?"letters":q.c)));
+      const v=qVisual(q);if(v)center.append(v);
+      const qt=el("div","tq",qText(q,lg));qt.dir="auto";center.append(qt);
+      center.append(answerTiles(q,ord,lg,tg.ph==="rev"&&tg.last?{cor:tg.last.cor,picks:tg.last.picks}:null));
+      if(tg.ph==="q"){tvTimer(center,tg.end-now,TQ_MS);center.append(el("p","pnote",t("answered",{n:answered,m:players().length})))}
+      else center.append(el("div","gotit",tg.last&&tg.last.hits.length?t("gotIt",{names:tg.last.hits.join(" · ")}):t("nobody")));
+    }
+  }
+  if(tg.ph==="q")tvTimerSet(tg.end-now,TQ_MS);
+  else if(tg.ph==="count"){const s=$("#gSecs");if(s)s.textContent=String(Math.max(0,Math.ceil((tg.qAt-now)/1000)))}
+}
+function hmCatName(c){return t("hc_"+c)}
+function hmWordBox(w,lg,showAll,set){const b=el("div","hmword"+(lg==="ar"?" ar":""));[...w].forEach(ch=>b.append(el("span",null,showAll||(set&&set.has(keyOf(ch)))?ch:"")));return b}
+function drawHmCenter(center,now,rows,rl){
+  if(rl)rl.textContent=hg?t("round",{r:hg.r}):t("hangman");
+  if(!hg)return;
+  const act=players(),fin=act.filter(p=>{const s=hmPlayer(p);return s.solved||s.out}).length,clue=hg.ph==="play"&&now>=hg.at+HM_MS/2;
+  const key=[hg.r,hg.ph,lang,hg.ph==="play"?fin+"/"+act.length+"|"+clue:"",hg.ph==="res"?JSON.stringify(rows.map(r=>[r.id,r.s,r.rp])):""].join("|");
+  if(key!==gKey){gKey=key;center.textContent="";
+    if(hg.ph==="count"){center.append(el("div","bigmsg",t("get")),el("div","hmcat",hmCatName(hg.c)));const s=el("div","secs");s.id="gSecs";center.append(s)}
+    else if(hg.ph==="play"){center.append(el("div","hmcat",hmCatName(hg.c)),hmWordBox(hg.w,hg.lg,false,null));
+      if(clue)center.append(el("div","hmclue",t("hmClue",{c:hg.cl[lang==="ar"?1:0]})));
+      tvTimer(center,hg.end-now,HM_MS);center.append(el("p","pnote",t("hmFin",{n:fin,m:act.length})))}
+    else{center.append(el("div","hmcat",hmCatName(hg.c)),hmWordBox(hg.w,hg.lg,true,null));
+      const m=hg.lg==="ar"?hg.m:hg.cl[lang==="ar"?1:0];if(m)center.append(el("div","hmclue",m));
+      const tb=el("div","tres");
+      rows.forEach((r,i)=>{const s=hmPlayer(r.p),row=el("div","trow"+(i===0&&r.s>0?" lead":""));row.append(el("span","ltrx","#"+(i+1)),blob(r.c),el("b",null,r.n+(s.solved?" ✓":" ✗")),el("span","rp ltrx","+"+r.rp),el("span","tt ltrx",String(r.s)));tb.append(row)});
+      center.append(tb)}
+  }
+  if(hg.ph==="play")tvTimerSet(hg.end-now,HM_MS);
+  else if(hg.ph==="count"){const s=$("#gSecs");if(s)s.textContent=String(Math.max(0,Math.ceil((hg.at-now)/1000)))}
+}
+
+/* ---------- phones: answer pad and keyboard ---------- */
+let myTa={r:0,a:{}},myHg={r:0,g:"",t:0},phKey="";
+function trAnswer(slot){
+  const tv=tvPeer(),g=tv&&tv.presence.gm;if(!g||g.k!=="tr"||g.ph!=="q"||Rush.now()>num(g.end))return;
+  if(myTa.r!==num(g.r))myTa={r:num(g.r),a:{}};if(myTa.a[g.i])return;
+  myTa.a[g.i]=[slot,Math.round(Rush.now())];send();phKey="";drawPhGame();
+}
+function hmGuess(L){
+  const tv=tvPeer(),g=tv&&tv.presence.gm;if(!g||g.k!=="hm"||g.ph!=="play"||Rush.now()>num(g.end))return;
+  if(myHg.r!==num(g.r))myHg={r:num(g.r),g:"",t:0};
+  const s0=hmState(g.w,myHg.g);if(s0.solved||s0.out||s0.set.has(L))return;
+  myHg.g+=L;const s=hmState(g.w,myHg.g);if(s.solved||s.out)myHg.t=Math.round(Rush.now());
+  try{navigator.vibrate&&navigator.vibrate(new Set([...g.w].map(keyOf)).has(L)?15:[40,30,40])}catch(e){}
+  send();phKey="";drawPhGame();
+}
+const ansBtn=(q,ord,lg,picked,cor)=>{const box=el("div","pans");
+  ord.forEach((k,slot)=>{const b=el("button","c"+slot);b.type="button";b.append(el("span","ab","ABCD"[slot]));const tx=el("span",null,qAns(q,lg)[k]);tx.dir="auto";b.append(tx);
+    if(picked!=null){b.disabled=true;if(slot===picked)b.classList.add("pick")}
+    if(cor!=null&&cor>=0){b.disabled=true;if(slot===cor)b.classList.add("pick")}
+    b.onclick=()=>trAnswer(slot);box.append(b)});return box};
+function drawPhGame(){
+  const box=$("#phGame"),tv=tvPeer();if(!box||!tv)return;const g=tv.presence.gm;if(!g||typeof g!=="object")return;
+  const now=Rush.now(),T=tv.presence.tot&&typeof tv.presence.tot==="object"?tv.presence.tot:{},mine=num(T[Rush.uid]);
+  const scoreLine=()=>el("p","pnote",t("myScore",{s:mine}));
+  if(g.k==="tr"){
+    const q=g.ph==="load"?null:qById(g.id);
+    if(!q&&g.ph!=="load"&&g.ph!=="res"&&!QB)loadBank().then(()=>{phKey="";drawPhGame()}).catch(()=>{});
+    const mineA=myTa.r===num(g.r)?myTa.a[g.i]:null,ord=q?qOrder(num(g.r),num(g.i),g.id):null;
+    const left=g.ph==="q"?Math.max(0,num(g.end)-now):0;
+    const key=[g.k,g.r,g.i,g.ph,!!q,mineA?mineA[0]:"",lang,mine,g.ph==="q"?Math.ceil(left/1000):""].join("|");if(key===phKey)return;phKey=key;box.textContent="";
+    if(g.ph==="load"||g.ph==="count"){box.append(el("div","pbig",t("get")),el("p","pnote",t("lookTv")),scoreLine());return}
+    if(g.ph==="res"){const rp=(gRoundPhone(tv)[Rush.uid]);box.append(el("div","pbig",t("roundEnd",{r:g.r})),el("p","pbig",t("myScore",{s:mine})));if(rp!=null)box.append(el("p","pnote",t("thisRound",{p:rp})));return}
+    if(!q){box.append(el("div","pbig",t("loadingQ")));return}
+    const head=el("p","pnote",t("qn",{i:num(g.i)+1,n:num(g.n)})+" · "+tpName(q.c==="letters"?"letters":q.c));box.append(head);
+    if(q.img){const p=el("div","ppic");const im=el("img");im.src="/party/img/"+q.img+".svg";im.alt="";p.append(im);box.append(p)}
+    if(q.lw){const b=el("div","tiles sm"+(q.lw.lg==="ar"?" ar":""));q.lw.tiles.forEach(ch=>b.append(el("span",null,ch)));box.append(b)}
+    const qt=el("div","pq",qText(q,g.lg));qt.dir="auto";box.append(qt);
+    if(g.ph==="q"){const tb=el("div","ptimer"),i=el("i");i.style.width=Math.max(0,100*left/TQ_MS)+"%";tb.append(i);box.append(tb)}
+    box.append(ansBtn(q,ord,g.lg,mineA?mineA[0]:null,g.ph==="rev"?num(g.cor):null));
+    if(g.ph==="q"&&mineA)box.append(el("p","pbig",t("locked")));
+    if(g.ph==="rev"){const right=mineA&&ord[mineA[0]]===0;box.append(el("p","pbig",!mineA?t("noAns"):right?t("rightA"):t("wrongA")))}
+    box.append(scoreLine());return;
+  }
+  if(g.k==="hm"){
+    if(g.ph==="load"){box.textContent="";box.append(el("div","pbig",t("get")));phKey="";return}
+    if(myHg.r!==num(g.r))myHg={r:num(g.r),g:"",t:0};
+    const s=hmState(g.w,myHg.g),left=g.ph==="play"?Math.max(0,num(g.end)-now):0,clue=g.ph==="play"&&now>=num(g.at)+HM_MS/2;
+    const key=[g.k,g.r,g.ph,myHg.g,lang,mine,clue,g.ph==="play"?Math.ceil(left/1000):""].join("|");if(key===phKey)return;phKey=key;box.textContent="";
+    if(g.ph==="count"){box.append(el("div","pbig",t("get")),el("p","pnote",hmCatName(g.c)),scoreLine());return}
+    box.append(el("p","pnote",hmCatName(g.c)));
+    const wb=hmWordBox(g.w,g.lg,g.ph==="res",s.set);wb.classList.add("sm");box.append(wb);
+    if(g.ph==="res"){const rp=gRoundPhone(tv)[Rush.uid];box.append(el("p","pbig",s.solved?t("hmSolved"):t("hmMissed")));if(rp!=null)box.append(el("p","pnote",t("thisRound",{p:rp})));box.append(scoreLine());return}
+    const tb=el("div","ptimer"),ti=el("i");ti.style.width=Math.max(0,100*left/HM_MS)+"%";tb.append(ti);box.append(tb);
+    box.append(el("p","pnote",t("hmMiss",{m:s.miss,x:HM_MISS})));
+    if(clue)box.append(el("p","pnote",t("hmClue",{c:g.cl[lang==="ar"?1:0]})));
+    if(s.solved||s.out){box.append(el("p","pbig",s.solved?t("hmSolved"):t("hmOut")),el("p","pnote",t("hmWait")));box.append(scoreLine());return}
+    const kb=el("div","pkeys"+(g.lg==="ar"?" ar":"")),need=new Set([...g.w].map(keyOf));
+    (g.lg==="ar"?ROWS_AR:ROWS_EN).forEach(r=>{const row=el("div","kr");for(const L of r){const b=el("button",null,L);b.type="button";
+      if(s.set.has(L)){b.disabled=true;b.classList.add(need.has(L)?"hit":"miss")}b.onclick=()=>hmGuess(L);row.append(b)}kb.append(row)});
+    box.append(kb,scoreLine());
+  }
+}
+// this round's points per player, which the big screen sends with the results (rp)
+function gRoundPhone(tv){const r=tv.presence.rp;return r&&typeof r==="object"?r:{}}
+setInterval(()=>{if(role==="phone"&&phoneJoined&&!$("#phGame")?.hidden)drawPhGame()},250);
+
 /* ---------- start a game from the TV ---------- */
 function tvStart(){
   if(!players().length)return;
+  if(tvGame.g==="trivia"){tvErr="";tvMode="trivia";pushTv();trEnter();return}
+  if(tvGame.g==="hangman"){tvErr="";tvMode="hangman";pushTv();draw();hmEnter();return}
   roomCount++;tvMode="harf";pApi.presence(tvPresence());
   hfEnter();
 }
 function backToLobby(){
-  hfLeave();tvMode="lobby";pApi&&pApi.presence(tvPresence());draw();
+  hfLeave();tg=null;hg=null;tvMode="lobby";pApi&&pApi.presence(tvPresence());draw();
 }
 
 /* ---------- Harf on the TV: this screen hosts the room and doesn't play ----------

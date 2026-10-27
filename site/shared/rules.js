@@ -153,7 +153,8 @@
       normal: { ms: 15000, help: true, pool: () => true },
       hard: { ms: 10000, help: false, pool: d => d >= 2 },
     },
-    CATS: ["geography", "history", "science", "space", "animals", "sports", "football", "food", "saudi", "tech", "gaming", "cars"],
+    CATS: ["geography", "history", "science", "space", "animals", "sports", "football", "food", "saudi", "tech", "gaming", "cars",
+      "general", "gulf", "flags", "landmarks", "islamic", "arabic", "proverbs", "riddles", "body", "nature", "heritage", "cartoons", "movies", "inventions", "brands", "puzzles"],
     VOTE_OPTIONS: 5,       // categories offered in each vote
   };
   // points for one trivia question; the 50/50 takes cluePct% of it, unless it was free
