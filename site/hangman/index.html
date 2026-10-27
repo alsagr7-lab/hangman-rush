@@ -55,11 +55,33 @@
 .play.kbon{min-height:0;gap:10px}
 .play.kbon .keys{display:none}
 .play.kbon .gal svg{width:min(116px,30vw)}
-/* wrong letters beside the gallows: one box per miss allowed, filled as they're used */
-.gal{align-items:center;gap:18px}
-.wrong{display:grid;grid-template-columns:repeat(2,30px);gap:6px;align-content:center}
+/* the game card, laid out so everything fits on a phone without scrolling: the time strip; the gallows (with the
+   wrong letters under it) beside the category, vowels and clue; the word on one line; the misses; the two hints
+   side by side; the keyboard */
+#play{grid-template-columns:auto minmax(0,1fr);column-gap:18px;row-gap:12px;align-items:center}
+#play>.tstrip,#play>.word,#play>.misses,#play>.hints,#play>.keys,#play>.devkb{grid-column:1/-1}
+#play>.gal{grid-column:1;flex-direction:column;align-items:center;gap:10px}
+#play>.cat{grid-column:2;justify-items:start;text-align:start;align-content:center;gap:8px}
+#play>.cat .lbl{font-size:13px}
+.gal svg{width:clamp(92px,28vw,168px)}
+.play.kbon .gal svg{width:min(84px,24vw)}
+/* the word: slots share the width, so even a 12-letter word fits on one line */
+.word{flex-wrap:nowrap;gap:6px;min-height:0;container-type:inline-size}
+.word .slot{flex:0 1 auto;width:min(40px,calc((100cqw - (var(--n,6) - 1) * 6px) / var(--n,6)));font-size:min(36px,calc(100cqw / var(--n,6) * .78))}
+.word.ar .slot{font-size:min(34px,calc(100cqw / var(--n,6) * .74))}
+#play>.misses{font-size:13px;min-height:18px;margin-top:-4px}
+/* the hints in one row */
+.hints{flex-wrap:wrap}
+.hints button{flex:1 1 120px;max-width:220px;padding:8px 10px;white-space:nowrap;font-size:13px}
+@media (max-width:380px){.hints button{font-size:12px;padding:8px 6px}}
+/* wider screens: the gallows and the category sit as a pair in the middle */
+@media (min-width:600px){#play{grid-template-columns:1fr 1fr}#play>.gal{justify-self:end}#play>.cat{justify-self:start}}
+.hints .hintnote{flex-basis:100%}
+@media (max-width:520px){#play .key{height:47px}#play .keys{gap:6px}#play{padding:16px 14px}}
+/* wrong letters under the gallows: one box per miss allowed, filled as they're used */
+.wrong{display:grid;grid-template-columns:repeat(var(--c,3),26px);gap:5px;align-content:center}
 .wrong[hidden]{display:none}
-.wrong span{display:grid;place-items:center;height:30px;border-radius:8px;border:1.5px dashed var(--line3);font-family:var(--f-latin-hand);font-weight:800;font-size:16px;color:var(--bad,#d93c30)}
+.wrong span{display:grid;place-items:center;height:26px;border-radius:8px;border:1.5px dashed var(--line3);font-family:var(--f-latin-hand);font-weight:800;font-size:16px;color:var(--bad,#d93c30)}
 .wrong span.x{border-style:solid;border-color:currentColor;background:color-mix(in srgb,currentColor 10%,transparent)}
 .wrong.ar span{font-family:var(--f-ar);font-size:17px}
 </style>
@@ -960,12 +982,12 @@ function renderPlay(){
     hm.append(document.createTextNode(t("hintClue")+" "),el("b",null,"−"+cur.cluePct+"%"));hm.disabled=cur.clue;
     const hn=$("#hintNote");hn.hidden=!cur.bonus;hn.textContent=cur.bonus?t("bonusNote",{n:cur.bonus}):"";
   }
-  const w=$("#word");w.textContent="";w.classList.toggle("ar",!!cur&&cur.lg==="ar");
+  const w=$("#word");w.textContent="";w.classList.toggle("ar",!!cur&&cur.lg==="ar");w.style.setProperty("--n",String(live?[...cur.word].length:6));
   if(live){const seen=slotSeen.w===cur.word?slotSeen.k:new Set();[...cur.word].forEach((ch,i)=>{const known=cur.g.has(keyOf(ch));const s=el("span","slot",known||cur.done?ch:"");if(!known&&cur.done)s.classList.add("miss");else if(known&&!seen.has(i)&&slotSeen.w===cur.word)s.classList.add("pop");if(known)seen.add(i);w.appendChild(s)});slotSeen={w:cur.word,k:seen}}
   else for(let i=0;i<6;i++)w.appendChild(el("span","slot",""));
   $("#missTxt").textContent=cur?(cur.miss?t("missesOf",{n:cur.miss,m:cur.maxMiss}):t("noMisses")):"";
   // the wrong letters so far, beside the gallows: one box per miss allowed
-  const wl=$("#wrongL");wl.textContent="";wl.hidden=!live;
+  const wl=$("#wrongL");wl.textContent="";wl.hidden=!live;if(live)wl.style.setProperty("--c",String(Math.ceil(cur.maxMiss/2)));
   if(live){const bad=[...cur.g].filter(L=>![...cur.word].some(ch=>keyOf(ch)===L));
     wl.classList.toggle("ar",cur.lg==="ar");wl.setAttribute("aria-label",t("wrongAria",{l:bad.join(lang==="ar"?"، ":", ")||"—"}));
     for(let i=0;i<cur.maxMiss;i++){const b=el("span",bad[i]?"x":null,bad[i]||"");b.setAttribute("aria-hidden","true");wl.appendChild(b)}}
