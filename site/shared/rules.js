@@ -268,7 +268,7 @@
   const BLUFF = { Q_PER_ROUND: 3, WRITE_MS: 45000, PICK_MS: 20000, COUNT_MS: 3000, FAST_MS: 1500, SHOW_MS: 2600, TRUTH_MS: 4000,
     MIN_OPTS: 4, MAXLEN: 40, TRUTH_PTS: 100, FOOL_PTS: 50,
     CATS: ["animals", "food", "history", "inventions", "words", "body", "places", "space", "sport"] };
-  /* ---------- Imposter Rush (party, برّا السالفة) ----------
+  /* ---------- Imposter Rush (party, مو منّا؟) ----------
      Everyone but the imposter gets the secret word; the imposter gets only its category (or, as a host option, a
      different word from the same category, without knowing they're the imposter). One-word clues in turn, a talk,
      a vote; a caught imposter can still win by picking the word from 8. */
