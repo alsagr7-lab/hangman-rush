@@ -261,6 +261,39 @@
     return out;
   }
 
+  /* ---------- Bluff Rush (party): fake answers to strange-but-true facts ----------
+     Everyone writes a fake answer, then everyone picks the one they think is true. A fake that is really the true
+     answer (or one of its other spellings), give or take a letter, isn't allowed; two fakes that match become one
+     option written by both players. */
+  const BLUFF = { Q_PER_ROUND: 3, WRITE_MS: 45000, PICK_MS: 20000, COUNT_MS: 3000, FAST_MS: 1500, SHOW_MS: 2600, TRUTH_MS: 4000,
+    MIN_OPTS: 4, MAXLEN: 40, TRUTH_PTS: 100, FOOL_PTS: 50,
+    CATS: ["animals", "food", "history", "inventions", "words", "body", "places", "space", "sport"] };
+  const AR_DIGITS = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9", "٫": ".", "٪": "%" };
+  // the comparable form: folded letters, Arabic digits as 0-9, no "the/a/an" or Arabic ال, no spaces or punctuation
+  function bluffKey(s) {
+    return fold0(String(s || "").replace(/[٠-٩٫٪]/g, c => AR_DIGITS[c])).split(/[^a-z0-9ء-ي.%]+/).filter(Boolean)
+      .filter(w => !/^(the|a|an)$/.test(w)).map(w => w.length > 3 ? w.replace(/^(وال|ال)/, "") : w).join("").replace(/\.(?!\d)/g, "");
+  }
+  // the same answer, allowing one slip (two in long answers)
+  function bluffSame(a, b) {
+    const x = bluffKey(a), y = bluffKey(b);
+    if (!x || !y) return false;
+    if (x === y) return true;
+    if (/\d/.test(x) || /\d/.test(y)) return false; // numbers must match exactly
+    const p = [...x], q = [...y], lim = Math.min(p.length, q.length) >= 10 ? 2 : 1;
+    if (Math.min(p.length, q.length) < 5 || Math.abs(p.length - q.length) > lim) return false;
+    let prev = Array.from({ length: q.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= p.length; i++) {
+      const cur = [i];
+      for (let j = 1; j <= q.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (p[i - 1] === q[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+    return prev[q.length] <= lim;
+  }
+  // the true answer in every accepted form: as shown, without its note in brackets, and the other spellings
+  const bluffTruths = (ans, alts) => [ans, String(ans || "").replace(/\s*\([^)]*\)\s*/g, " ").trim(), String(ans || "").replace(/^.*\(([^)]*)\).*$/, "$1")].concat(alts || []).filter(Boolean);
+  const bluffIsTrue = (fake, ans, alts) => bluffTruths(ans, alts).some(t => bluffSame(fake, t));
+
   /* ---------- tags: a short, permanent code per player so same-named players stay distinguishable ---------- */
   const TAG_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   function tagOf(id) {
@@ -280,5 +313,6 @@
     COLORS, safeColor, nm16, badName, junkText, cleanChat, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
     HARF, harfNorm, harfStem, harfKey, harfGroup, harfNear, harfLetterOk, harfRoomPoints,
+    BLUFF, bluffKey, bluffSame, bluffIsTrue,
   };
 });

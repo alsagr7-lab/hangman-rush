@@ -44,3 +44,24 @@ test("the built party page has the Hangman room words", () => {
     assert.ok(cats.every(c => W[lg][c].length >= 4), lg + " every category has words");
   }
 });
+
+test("Bluff Rush: the facts build, and the decoys never count as the truth", () => {
+  execFileSync(process.execPath, [path.join(ROOT, "scripts", "build-trivia.js")], { stdio: "pipe" });
+  const facts = JSON.parse(fs.readFileSync(path.join(ROOT, "site", "party", "bluff.json"), "utf8")).q;
+  assert.ok(facts.length >= 120, "facts: " + facts.length);
+  assert.ok(facts.filter(f => f[3]).length >= 120, "Arabic facts: " + facts.filter(f => f[3]).length);
+  for (const [id, cat, qen, qar, aen, aar, alen, alar, den, dar] of facts) {
+    assert.ok(R.BLUFF.CATS.includes(cat), id + " topic");
+    assert.ok(qen.includes("____"), id + " blank");
+    for (const d of den) assert.ok(!R.bluffIsTrue(d, aen, alen), id + " decoy " + d);
+    if (qar) for (const d of dar) assert.ok(!R.bluffIsTrue(d, aar, alar), id + " decoy " + d);
+  }
+});
+
+test("Bluff Rush: a fake that is the truth is caught, other fakes are not", () => {
+  const yes = [["Cubes", "cubes", []], ["the cube", "cubes", ["cube"]], ["المكعبات", "مكعبات", []], ["١٠٠٠٠٠", "100,000", ["100000"]],
+    ["flamboyence", "flamboyance", []], ["مرتان", "مرتين", []], ["Lamborghini", "supercars", ["lamborghini"]], ["silk", "silk", []], ["safar", "safar (travel)", []]];
+  for (const [f, a, al] of yes) assert.ok(R.bluffIsTrue(f, a, al), f + " should match " + a);
+  const no = [["ten years", "two years", []], ["hats", "cats", []], ["98%", "99.8%", []], ["peacock", "peach", []], ["", "x", []]];
+  for (const [f, a, al] of no) assert.ok(!R.bluffIsTrue(f, a, al), f + " should not match " + a);
+});

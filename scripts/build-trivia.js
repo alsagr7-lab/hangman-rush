@@ -64,6 +64,41 @@ const pictures = [];
   console.log(`pictures   ${String(pictures.length).padStart(3)} questions`);
 }
 
+// Bluff Rush (party): content/party/bluff.json, strange-but-true facts with a blank (____):
+//   [id, topic, question en, question ar, answer en, answer ar, [other ways to write it, en], [same, ar], [2 decoys en], [2 decoys ar]]
+// A row with no Arabic question is English-only (collective nouns and other English word facts). The decoys are the
+// game's own lies, added when the players' fakes leave fewer than four options; they must not count as the truth.
+const RR = require("../site/shared/rules");
+const bluff = [];
+{
+  const file = path.join(__dirname, "..", "content", "party", "bluff.json"), seenQ = new Set();
+  let rows = [];
+  try { rows = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { problems.push(`bluff.json: ${e.message}`); }
+  for (const r of rows) {
+    const [id, cat, qen, qar, aen, aar, alen, alar, den, dar] = r, where = `bluff.json ${id}`;
+    if (!/^bl-[a-z]{3}-\d{2}$/.test(id || "")) problems.push(`${where}: bad id`);
+    if (ids.has(id)) problems.push(`${where}: id used twice`);
+    ids.add(id);
+    if (!RR.BLUFF.CATS.includes(cat)) problems.push(`${where}: unknown topic ${cat}`);
+    const langs = [["en", qen, aen, alen, den]].concat(qar == null ? [] : [["ar", qar, aar, alar, dar]]);
+    if (qar == null && (aar != null || (alar || []).length || (dar || []).length)) problems.push(`${where}: English-only rows leave the Arabic empty`);
+    for (const [lg, q, a, al, de] of langs) {
+      if (typeof q !== "string" || !q.includes("____")) problems.push(`${where}: ${lg} question needs a ____ blank`);
+      if (lg === "ar" && !/[؀-ۿ]/.test(q)) problems.push(`${where}: Arabic question has no Arabic text`);
+      if (typeof a !== "string" || !a.trim() || a.length > RR.BLUFF.MAXLEN) problems.push(`${where}: ${lg} answer missing or too long`);
+      if (!Array.isArray(al) || al.some(x => typeof x !== "string")) problems.push(`${where}: ${lg} other spellings must be a list`);
+      if (!Array.isArray(de) || de.length !== 2 || de.some(x => typeof x !== "string" || !x.trim() || x.length > RR.BLUFF.MAXLEN)) { problems.push(`${where}: needs 2 ${lg} decoys`); continue; }
+      for (const x of de) if (RR.bluffIsTrue(x, a, al)) problems.push(`${where}: ${lg} decoy "${x}" counts as the true answer`);
+      if (RR.bluffSame(de[0], de[1])) problems.push(`${where}: ${lg} decoys are the same`);
+      // a question that names its own answer gives the game away
+      if (RR.bluffKey(a).length >= 4 && RR.bluffKey(q).includes(RR.bluffKey(a))) problems.push(`${where}: ${lg} question contains its answer`);
+    }
+    const k = norm(qen); if (seenQ.has(k)) problems.push(`${where}: same question twice`); seenQ.add(k);
+    bluff.push(r);
+  }
+  console.log(`bluff      ${String(bluff.length).padStart(3)} facts (${bluff.filter(r => r[3] != null).length} in Arabic)`);
+}
+
 const di = process.argv.indexOf("--daily");
 if (di > 0) {
   const file = process.argv[di + 1];
@@ -94,3 +129,6 @@ console.log(`\nwrote ${path.relative(process.cwd(), out)}: ${bank.length} questi
 const pout = path.join(__dirname, "..", "site", "party", "pictures.json");
 fs.writeFileSync(pout, JSON.stringify({ v: 1, q: pictures }));
 console.log(`wrote ${path.relative(process.cwd(), pout)}: ${pictures.length} picture questions`);
+const bout = path.join(__dirname, "..", "site", "party", "bluff.json");
+fs.writeFileSync(bout, JSON.stringify({ v: 1, q: bluff }));
+console.log(`wrote ${path.relative(process.cwd(), bout)}: ${bluff.length} Bluff Rush facts`);
