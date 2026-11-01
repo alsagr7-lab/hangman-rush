@@ -268,6 +268,26 @@ button.ans:hover{background:rgba(255,255,255,.12)}button.ans:focus-visible{outli
 .pkeys button{flex:1;max-width:44px;min-width:0;height:52px;border:0;border-radius:12px;background:#fff;color:var(--pdark);font-weight:800;font-size:20px;box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer;padding:0;font-family:inherit}
 .pkeys button:disabled{cursor:default}
 .pkeys button.hit{background:var(--mint);color:var(--mint-ink)}.pkeys button.miss{background:rgba(255,255,255,.22);color:rgba(255,255,255,.55);box-shadow:none}
+/* ---------- Bluff Rush ---------- */
+.blank{display:inline-block;min-width:3.2em;height:.85em;border-bottom:.13em solid var(--yel);margin:0 .2em;vertical-align:baseline}
+.blank.fill{min-width:0;height:auto;border-bottom-color:var(--mint);color:var(--mint);padding:0 .12em;animation:pop .45s cubic-bezier(.3,1.6,.6,1)}
+.bltell{font-size:clamp(20px,2vw,30px);font-weight:800;color:var(--yel);margin:0}
+.agrid.bl{grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))}
+.agrid.bl.many{gap:10px}.agrid.bl.many .atile{font-size:clamp(16px,1.6vw,24px);min-height:54px;padding:8px 14px;border-radius:20px}
+.agrid.bl.many .atile .ab{width:36px;height:36px;font-size:18px}
+.blrev{background:#fff;color:var(--pdark);border-radius:36px;padding:26px 34px;display:grid;gap:12px;justify-items:center;box-shadow:0 10px 0 rgba(0,0,0,.25);
+  width:min(820px,92%);box-sizing:border-box;animation:pop .35s cubic-bezier(.3,1.6,.6,1)}
+.blrev .blx{font-size:clamp(34px,4.4vw,64px);font-weight:800;line-height:1.1}
+.blrev .blpk{font-size:clamp(18px,1.8vw,26px);font-weight:700;color:#5B5480}
+.blrev .bltag{font-weight:800;font-size:clamp(22px,2.4vw,34px);border-radius:999px;padding:6px 24px;background:var(--pink);color:var(--pink-ink)}
+.blrev.truth{outline:6px solid var(--mint);outline-offset:4px}.blrev.truth .bltag{background:var(--mint);color:var(--mint-ink)}
+.blrev.ours .bltag{background:var(--yel);color:var(--yel-ink)}
+.blrev .blpts{font-family:"Saira","Baloo Bhaijaan 2",sans-serif;font-weight:800;font-size:clamp(22px,2.2vw,32px)}
+.blsteps{display:flex;gap:8px;justify-content:center}.blsteps i{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.25)}.blsteps i.on{background:var(--yel)}
+.pfake{display:grid;gap:10px}.pfake .row{display:flex;gap:8px}.pfake .pin{flex:1;min-width:0;width:0;font-size:20px}
+.pfake .lie{background:#fff;color:var(--pdark);border-radius:22px;padding:12px 16px;font-size:22px;font-weight:800;text-align:center}
+.pans button.mine{opacity:.4}.pans button small{margin-inline-start:auto;font-size:14px;font-weight:800;opacity:.8}
+.pmsg{color:#FFD1E3;font-weight:800;text-align:center;margin:0;min-height:1.4em}
 </style>
 </head>
 <body>
@@ -304,7 +324,14 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   rules:"10 points for an answer nobody else wrote, 5 if someone wrote the same. First to fill all five can press STOP.",
   full2:"Party full",wake:"Keep this screen on",ends:"Round ends",endStop:"STOP",endFull:"Full time",
   rulesFull:"10 points for an answer nobody else wrote, 5 if someone wrote the same. No STOP: everyone writes until the time is up.",
-  fullOn:"No STOP this game: the round runs the full time",ovHint:"Tap an answer to accept or reject it",ovMark:"host",notChecked:"not checked",accept:"Accept",reject:"Reject"},
+  fullOn:"No STOP this game: the round runs the full time",ovHint:"Tap an answer to accept or reject it",ovMark:"host",notChecked:"not checked",accept:"Accept",reject:"Reject",
+  bluff:"Bluff Rush",blHelp:"A strange but true fact with a blank. Everyone writes a fake answer that sounds real, then tries to find the truth.",
+  blRules:"Write a fake answer that sounds real. Then find the truth: +100 for finding it, +50 for every player your lie fools.",
+  blWriteTv:"Write a fake answer on your phone",blPickTv:"Which one is true? Pick on your phone",blIn:"{n} of {m} lies in",blPicked:"{n} of {m} picked",blNextQ:"Next fact…",
+  blPh:"Your fake answer",blSend:"Lock it in",blLie:"Your lie:",blChange:"Change it",blTruthNo:"That's the real answer! Write a fake one.",blBad:"That answer isn't allowed.",
+  blPick:"Which one is true?",blMine:"your lie",blPickedBy:"Picked by {names}",blNoneT:"Nobody found the truth",blTruth:"The truth!",blOurs:"Our lie",blLieBy:"{n}'s lie",
+  blFoundT:"+{p} each",blFooledPts:"+{p}",blRight:"You found the truth!",blFell:"You fell for {n}'s lie",blFellOurs:"You fell for our lie",blNoPick:"You didn't pick",blFooled:"Your lie fooled {n}",blFooled1:"Your lie fooled 1 player",blWait:"Waiting for the others…",
+  bc_animals:"Animals",bc_food:"Food",bc_history:"History",bc_inventions:"Inventions",bc_words:"Words",bc_body:"Human body",bc_places:"Places",bc_space:"Space",bc_sport:"Sport"},
 ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب؟",tagline:"شاشة كبيرة واحدة، والكل بجواله.",host:"استضف على هذه الشاشة",hostSub:"شغّلها على التلفزيون أو اللابتوب، والكل ينضم بمسح الرمز بجواله.",
   joinTitle:"انضم لحفلة",codePh:"ABCD",join:"انضم",codeBad:"رمز الحفلة 4 أحرف إنجليزية.",langBtn:"English",
   scan:"امسح للانضمام",orGo:"أو افتح {u} واكتب",players:"{n}/{m} لاعب",waiting:"بانتظار اللاعبين… امسح الرمز بجوالك",
@@ -327,7 +354,14 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   rules:"10 نقاط للإجابة التي لم يكتبها غيرك، و5 إذا كتبها أحد غيرك. أول من يملأ الخانات الخمس يقدر يضغط ستوب.",
   full2:"الحفلة ممتلئة",wake:"أبقِ الشاشة مضاءة",ends:"نهاية الجولة",endStop:"ستوب",endFull:"الوقت كامل",
   rulesFull:"10 نقاط للإجابة التي لم يكتبها غيرك، و5 إذا كتبها أحد غيرك. بدون ستوب: الكل يكتب حتى ينتهي الوقت.",
-  fullOn:"بدون ستوب في هذه اللعبة: الجولة تكمل وقتها كاملاً",ovHint:"اضغط على أي إجابة لقبولها أو رفضها",ovMark:"المضيف",notChecked:"لم تُصحَّح",accept:"اقبل",reject:"ارفض"}};
+  fullOn:"بدون ستوب في هذه اللعبة: الجولة تكمل وقتها كاملاً",ovHint:"اضغط على أي إجابة لقبولها أو رفضها",ovMark:"المضيف",notChecked:"لم تُصحَّح",accept:"اقبل",reject:"ارفض",
+  bluff:"سباق الكذب",blHelp:"معلومة غريبة لكنها صحيحة وفيها فراغ. الكل يكتب إجابة كاذبة تبدو حقيقية، وبعدها تحاولون تعرفون الصح.",
+  blRules:"اكتب إجابة كاذبة تبدو حقيقية، وبعدها اكتشف الصحيحة: +100 إذا عرفتها، و+50 عن كل لاعب تنطلي عليه كذبتك.",
+  blWriteTv:"اكتب إجابة كاذبة في جوالك",blPickTv:"أي وحدة هي الصحيحة؟ اختر من جوالك",blIn:"وصلت {n} من {m} كذبات",blPicked:"اختار {n} من {m}",blNextQ:"المعلومة التالية…",
+  blPh:"إجابتك الكاذبة",blSend:"ثبّتها",blLie:"كذبتك:",blChange:"غيّرها",blTruthNo:"هذي الإجابة الصحيحة! اكتب وحدة كاذبة.",blBad:"هذه الإجابة غير مسموحة.",
+  blPick:"أي وحدة هي الصحيحة؟",blMine:"كذبتك",blPickedBy:"اختارها: {names}",blNoneT:"ما أحد عرف الصحيحة",blTruth:"هذي الصحيحة!",blOurs:"كذبتنا",blLieBy:"كذبة {n}",
+  blFoundT:"+{p} لكل واحد",blFooledPts:"+{p}",blRight:"عرفت الصحيحة!",blFell:"انطلت عليك كذبة {n}",blFellOurs:"انطلت عليك كذبتنا",blNoPick:"ما اخترت شيء",blFooled:"كذبتك انطلت على {n}",blFooled1:"كذبتك انطلت على لاعب واحد",blWait:"بانتظار البقية…",
+  bc_animals:"حيوانات",bc_food:"أكل",bc_history:"تاريخ",bc_inventions:"اختراعات",bc_words:"كلمات",bc_body:"جسم الإنسان",bc_places:"أماكن",bc_space:"فضاء",bc_sport:"رياضة"}};
 let lang;try{lang=localStorage.getItem("hr-lang")}catch(e){}
 if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en";
 const t=(k,v)=>{let s=I18N[lang][k]!=null?I18N[lang][k]:I18N.en[k]!=null?I18N.en[k]:k;if(v)s=s.replace(/\{(\w+)\}/g,(_,n)=>v[n]!=null?v[n]:"");return s};
@@ -418,7 +452,7 @@ async function startTv(){
 }
 // st: lobby, play (Harf: the phones open the Harf page) or game (Trivia and Hangman, played on this page: gm, tot, rp)
 const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":tvMode==="lobby"?"lobby":"game",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch,ns:tvGame.ns,tc:tvGame.tc,pm:tvGame.pm,cap,
-  gm:gameGm(),tot:tvMode==="trivia"||tvMode==="hangman"?gTot:null,rp:gameRp()});
+  gm:gameGm(),tot:tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"?gTot:null,rp:gameRp()});
 let roomCount=0; // how many games this party has started (phones only follow a new one)
 const players=()=>pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv):[];
 /* ---------- the host: one player runs the party from their phone, and plays too ----------
@@ -454,7 +488,7 @@ function doCmd(c){
   const setAll=()=>{if(c.lg==="ar"||c.lg==="en")tvGame.lg=c.lg;if(H.ROOM_MS.includes(c.ms))tvGame.ms=c.ms;
     if(c.ns===0||c.ns===1){tvGame.ns=c.ns;try{localStorage.setItem("rush-party-ns",String(c.ns))}catch(e){}}
     if(c.ch===0||c.ch===1){tvGame.ch=c.ch;try{localStorage.setItem("rush-party-chat",String(c.ch))}catch(e){}}
-    if(tvMode==="lobby"&&["harf","trivia","hangman"].includes(c.g))tvGame.g=c.g;
+    if(tvMode==="lobby"&&["harf","trivia","hangman","bluff"].includes(c.g))tvGame.g=c.g;
     if(TOPICS.includes(c.tc))tvGame.tc=c.tc;
     if(["vote","last","host"].includes(c.pm)){tvGame.pm=c.pm;try{localStorage.setItem("rush-party-pm",c.pm)}catch(e){}}};
   if(tvMode==="lobby"){
@@ -462,7 +496,7 @@ function doCmd(c){
     else if(k==="start")tvStart();
     return;
   }
-  if(tvMode==="trivia"||tvMode==="hangman"){
+  if(tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"){
     if(k==="next")gameNext();else if(k==="lobby")backToLobby();else if(k==="set"){setAll();pushTv()}
     return;
   }
@@ -503,7 +537,7 @@ function drawTv(){
   const stage=el("div","stage");stage.id="stage";
   const bar=el("div","tvbar");
   const g1=el("div","grp"),gs=el("div","seg2");g1.append(el("span","lbl2",t("pickGame")),gs);
-  ["harf","trivia","hangman"].forEach(g=>{const b=el("button",null,t(g));b.type="button";b.setAttribute("aria-pressed",String(tvGame.g===g));b.onclick=()=>{tvGame.g=g;pushTv();draw()};gs.append(b)});
+  ["harf","trivia","hangman","bluff"].forEach(g=>{const b=el("button",null,t(g));b.type="button";b.setAttribute("aria-pressed",String(tvGame.g===g));b.onclick=()=>{tvGame.g=g;pushTv();draw()};gs.append(b)});
   const g2=el("div","grp"),ls=el("div","seg2");g2.append(el("span","lbl2",t("wordLang")),ls);
   [["ar","عربي"],["en","English"]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.lang=v;b.setAttribute("aria-pressed",String(tvGame.lg===v));b.onclick=()=>{tvGame.lg=v;pApi&&pApi.presence(tvPresence());draw()};ls.append(b)});
   const g3=el("div","grp"),ts=el("div","seg2");g3.append(el("span","lbl2",t("time")),ts);
@@ -515,7 +549,7 @@ function drawTv(){
   [[1,t("chatOn")],[0,t("chatQuick")]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(tvGame.ch===v));
     b.onclick=()=>{tvGame.ch=v;try{localStorage.setItem("rush-party-chat",String(v))}catch(e){}pApi&&pApi.presence(tvPresence());draw()};cs.append(b)});
   const go=el("button","pbtn pink go",t("start"));go.type="button";go.id="tvGo";go.onclick=tvStart;
-  bar.append(g1,g2);if(tvGame.g==="harf")bar.append(g3,g4);if(tvGame.g==="trivia"){bar.append(pmGrpTv());if(tvGame.pm==="host")bar.append(topicGrp("lbl2",v=>{tvGame.tc=v;pushTv()},tvGame.tc))}bar.append(g5,go);
+  bar.append(g1,g2);if(tvGame.g==="harf")bar.append(g3,g4);if(tvGame.g==="bluff"){const gb=el("div","grp");gb.append(el("span","lbl2",t("bluff")),el("p","tvhelp",t("blHelp")));bar.append(gb)}if(tvGame.g==="trivia"){bar.append(pmGrpTv());if(tvGame.pm==="host")bar.append(topicGrp("lbl2",v=>{tvGame.tc=v;pushTv()},tvGame.tc))}bar.append(g5,go);
   main.append(head,stage,bar);w.append(side,main);view.append(w);drawStage();
 }
 // the trivia topic picker (the TV lobby and the host's phone)
@@ -558,7 +592,7 @@ function drawStage(){
 setInterval(()=>{if(role==="tv"&&tvMode==="lobby")drawStage()},150);
 document.addEventListener("keydown",e=>{
   if(role!=="tv"||e.target&&/INPUT|TEXTAREA|BUTTON|SELECT|A/.test(e.target.tagName))return; // a focused control handles its own Enter
-  if(e.key==="Enter"){if(tvMode==="lobby"){const g=$("#tvGo");if(g&&!g.disabled)tvStart()}else if(tvMode==="harf"&&hfView==="results")hfNext();else if(tvMode==="trivia"||tvMode==="hangman")gameNext()}
+  if(e.key==="Enter"){if(tvMode==="lobby"){const g=$("#tvGo");if(g&&!g.disabled)tvStart()}else if(tvMode==="harf"&&hfView==="results")hfNext();else if(tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff")gameNext()}
 });
 
 /* ---------- phone: controller ---------- */
@@ -580,7 +614,7 @@ async function phoneJoin(){
   pUnsub.push(pApi.onPeers(()=>phoneFollow()));
   draw();phoneFollow();
 }
-const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null,ta:myTa.r?myTa:null,tpv:myTpv.r?myTpv:null,hg:myHg.r?myHg:null});
+const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null,ta:myTa.r?myTa:null,tpv:myTpv.r?myTpv:null,hg:myHg.r?myHg:null,bl:myBl.r?myBl:null});
 // the host player's commands to the big screen (see runCmds on the TV side)
 let hq=[],hqN=0;
 function hostCmd(o){hqN=Math.max(Date.now(),hqN+1);hq=hq.concat([Object.assign({n:hqN},o)]).slice(-6);send()}
@@ -597,7 +631,7 @@ function drawHostPanel(P){
   box.append(el("b",null,t("youHost")),el("p","pnote",t("youHostHelp")));
   const seg3=(label,opts,v,f)=>{const g=el("div","hg");g.append(el("span","lbl3",label));const sg=el("div","seg3");
     opts.forEach(([x,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(v===x));b.onclick=()=>{hostCmd(f(x));sg.querySelectorAll("button").forEach(y=>y.setAttribute("aria-pressed",String(y===b)))};sg.append(b)});g.append(sg);return g};
-  const g=["harf","trivia","hangman"].includes(P.g)?P.g:"harf";
+  const g=["harf","trivia","hangman","bluff"].includes(P.g)?P.g:"harf";
   if(P.st==="game"){
     // during Trivia or Hangman: next round once the results are up, the topic for it, and back to the lobby
     if(gph==="res"){if(g==="trivia"&&P.pm==="host")box.append(topicGrp("lbl3",v=>hostCmd({k:"set",tc:v}),P.tc));
@@ -605,13 +639,14 @@ function drawHostPanel(P){
     const lb=el("button","pbtn ghost",t("lobby"));lb.type="button";lb.style.color="var(--pdark)";lb.style.background="#EFEAFF";lb.onclick=()=>hostCmd({k:"lobby"});box.append(lb);
     return;
   }
-  box.append(seg3(t("pickGame"),[["harf",t("harf")],["trivia",t("trivia")],["hangman",t("hangman")]],g,x=>({k:"set",g:x})),
+  box.append(seg3(t("pickGame"),[["harf",t("harf")],["trivia",t("trivia")],["hangman",t("hangman")],["bluff",t("bluff")]],g,x=>({k:"set",g:x})),
     seg3(t("wordLang"),[["ar","عربي"],["en","English"]],P.lg,x=>({k:"set",lg:x})));
   if(g==="harf")box.append(seg3(t("time"),H.ROOM_MS.map(x=>[x,t("secsN",{n:x/1000})]),num(P.ms),x=>({k:"set",ms:x})),
     seg3(t("ends"),[[0,t("endStop")],[1,t("endFull")]],P.ns===0?0:1,x=>({k:"set",ns:x})));
   if(g==="trivia"){const pm=["vote","last","host"].includes(P.pm)?P.pm:"vote";
     box.append(seg3(t("pickBy"),[["vote",t("pmVote")],["last",t("pmLast")],["host",t("pmHost")]],pm,x=>({k:"set",pm:x})));
     if(pm==="host")box.append(topicGrp("lbl3",v=>hostCmd({k:"set",tc:v}),P.tc));box.append(el("p","pnote",t(pmHelpKey(pm))))}
+  if(g==="bluff")box.append(el("p","pnote",t("blHelp")));
   box.append(seg3(t("chat"),[[1,t("chatOn")],[0,t("chatQuick")]],P.ch===0?0:1,x=>({k:"set",ch:x})));
   const go=el("button","pbtn pink",t("start")+" · "+t(g));go.type="button";go.onclick=()=>{hostCmd({k:"start"});go.disabled=true;setTimeout(()=>go.disabled=false,4000)};box.append(go);
   if(others.length){const g=el("div","hg");g.append(el("span","lbl3",t("passHost")));const sg=el("div","seg3");
@@ -637,9 +672,9 @@ function phoneFollow(){
     setTimeout(()=>{location.href=(lang==="ar"?"/ar":"")+"/harf/#room="+code},400);
     return;
   }
-  const game=P.st==="game"&&P.gm&&typeof P.gm==="object"&&(P.gm.k==="tr"||P.gm.k==="hm"),pg=$("#phGame"),pc=$("#phCard");
+  const game=P.st==="game"&&P.gm&&typeof P.gm==="object"&&(P.gm.k==="tr"||P.gm.k==="hm"||P.gm.k==="bl"),pg=$("#phGame"),pc=$("#phCard");
   if(pg&&pc&&pg.hidden===!!game){pg.hidden=!game;pc.hidden=!!game;phKey=""}
-  if(game){if(st)st.textContent=t(P.gm.k==="tr"?"trivia":"hangman");drawPhGame();return}
+  if(game){if(st)st.textContent=t(P.gm.k==="tr"?"trivia":P.gm.k==="hm"?"hangman":"bluff");drawPhGame();return}
   if(st)st.textContent=t("inLobby");
 }
 function drawPhone(){
@@ -883,11 +918,97 @@ function hmTick(){
   if(ch){pushTv();gKey=""}
 }
 const hmGm=()=>hg?{k:"hm",r:hg.r,ph:hg.ph,at:hg.at,end:hg.end,lg:hg.lg,c:hg.c,w:hg.w,cl:hg.cl,m:hg.m}:{k:"hm",ph:"load"};
-const gameGm=()=>tvMode==="trivia"?trGm():tvMode==="hangman"?hmGm():null;
+const gameGm=()=>tvMode==="trivia"?trGm():tvMode==="hangman"?hmGm():tvMode==="bluff"?blGm():null;
 // this round's points per player, sent with each answer reveal and the results
-const gameRp=()=>{const ph=tvMode==="trivia"?tg&&tg.ph:hg&&hg.ph;if(ph!=="res"&&ph!=="rev")return null;const o={};for(const id of Object.keys(gRound))o[id]=gRound[id].reduce((a,b)=>a+(b||0),0);return o};
-setInterval(()=>{if(role!=="tv")return;if(tvMode==="trivia")trTick();else if(tvMode==="hangman")hmTick();else return;drawGameLive()},200);
-function gameNext(){if(tvMode==="trivia"&&(!tg||tg.ph==="res"))trNext();else if(tvMode==="hangman"&&(!hg||hg.ph==="res"))hmNext()}
+const gameRp=()=>{const ph=tvMode==="trivia"?tg&&tg.ph:tvMode==="bluff"?bg&&bg.ph:hg&&hg.ph;if(ph!=="res"&&ph!=="rev"&&ph!=="show")return null;const o={};for(const id of Object.keys(gRound))o[id]=gRound[id].reduce((a,b)=>a+(b||0),0);return o};
+setInterval(()=>{if(role!=="tv")return;if(tvMode==="trivia")trTick();else if(tvMode==="hangman")hmTick();else if(tvMode==="bluff")blTick();else return;drawGameLive()},200);
+function gameNext(){if(tvMode==="trivia"&&(!tg||tg.ph==="res"))trNext();else if(tvMode==="hangman"&&(!hg||hg.ph==="res"))hmNext();else if(tvMode==="bluff"&&(!bg||bg.ph==="res"))blNext()}
+
+/* ---------- Bluff Rush on the big screen ----------
+   A round is three strange-but-true facts with a blank. For each: everyone writes a fake answer on their phone (bl.w),
+   then the big screen shows the fakes, the truth and, when there are fewer than four, a lie of our own, shuffled;
+   everyone picks the one they think is true (bl.p, an option number; never their own lie). Then the picked lies are
+   revealed one by one, the truth last. +100 for finding the truth, +50 to a lie's writer for each player it fooled.
+   Phones never see who wrote which lie until the reveal. Fakes that match each other count as one option with two
+   writers; a fake that is really the truth is refused on the phone and ignored here. */
+const BL=R.BLUFF,blL=lg=>lg==="ar"?1:0;
+let BQ=null,BQ_LOAD=null;
+function loadBluff(){
+  if(BQ)return Promise.resolve(BQ);
+  if(!BQ_LOAD)BQ_LOAD=fetch("/party/bluff.json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("bluff "+r.status);return r.json()})
+    .then(b=>{const m=new Map();for(const x of b.q||[])m.set(x[0],{id:x[0],c:x[1],q:[x[2],x[3]],a:[x[4],x[5]],al:[x[6]||[],x[7]||[]],d:[x[8]||[],x[9]||[]]});BQ=m;return m})
+    .catch(e=>{BQ_LOAD=null;throw e});
+  return BQ_LOAD;
+}
+const blQ=id=>BQ&&BQ.get(id)||null;
+let blUsed=new Set();try{blUsed=new Set(JSON.parse(localStorage.getItem("rush-party-bl")||"[]"))}catch(e){}
+// three facts in the party's language, from different topics when there are enough, not used on this screen lately
+function blPickFacts(lg){
+  const all=[...BQ.values()].filter(q=>q.q[blL(lg)]);let pool=all.filter(q=>!blUsed.has(q.id));if(pool.length<BL.Q_PER_ROUND*3)pool=all;
+  const out=[],cats=new Set();
+  for(const q of shuf(pool.slice())){if(out.length>=BL.Q_PER_ROUND)break;if(cats.has(q.c))continue;out.push(q.id);cats.add(q.c)}
+  for(const q of shuf(pool.slice())){if(out.length>=BL.Q_PER_ROUND)break;if(!out.includes(q.id))out.push(q.id)}
+  out.forEach(id=>blUsed.add(id));const a=[...blUsed].slice(-120);blUsed=new Set(a);try{localStorage.setItem("rush-party-bl",JSON.stringify(a))}catch(e){}
+  return out;
+}
+let bg=null,blR=0;const blNames={}; // bg: {r, ids, i, ph: count|write|pick|show|res, end, fast, lg, opts: [{x, own: [ids], t, d}], rv: [{k, pk: [ids]}], si, siAt}
+async function blEnter(){gTot={};gRound={};bg=null;draw();
+  try{await loadBluff()}catch(e){tvErr=t("noBank");backToLobby();return}
+  blNext()}
+function blNext(){
+  if(!BQ||!players().length)return;
+  const ids=blPickFacts(tvGame.lg);if(!ids.length)return;gRound={};
+  const now=Rush.now();bg={r:++blR,ids,i:0,ph:"count",end:now+BL.COUNT_MS,fast:0,lg:tvGame.lg,opts:null,rv:null,si:0,siAt:0};
+  pushTv();gKey="";drawGameLive();
+}
+function blOf(p){const b=p.presence.bl;return bg&&b&&typeof b==="object"&&num(b.r)===bg.r&&num(b.i)===bg.i?b:null}
+// a player's fake for this fact, if it's allowed: clean, and not the truth
+function blFake(p){const b=blOf(p),q=bg&&blQ(bg.ids[bg.i]);if(!b||!q)return "";const w=R.cleanChat(b.w);if(!w)return "";const l=blL(bg.lg);return R.bluffIsTrue(w,q.a[l],q.al[l])?"":w}
+function blPickOf(p){const b=blOf(p);if(!b||!bg.opts)return -1;const k=b.p;if(!Number.isInteger(k)||k<0||k>=bg.opts.length)return -1;return bg.opts[k].own.includes(pid(p))?-1:k}
+function blBuild(){
+  const q=blQ(bg.ids[bg.i]),l=blL(bg.lg),opts=[];
+  for(const p of players()){const w=blFake(p);if(!w)continue;const o=opts.find(o=>R.bluffSame(o.x,w));if(o)o.own.push(pid(p));else opts.push({x:w,own:[pid(p)],t:0,d:0})}
+  opts.push({x:q.a[l],own:[],t:1,d:0});
+  for(const d of shuf(q.d[l].slice())){if(opts.length>=BL.MIN_OPTS)break;if(!opts.some(o=>R.bluffSame(o.x,d)))opts.push({x:d,own:[],t:0,d:1})}
+  bg.opts=shuf(opts);
+}
+function blScore(){
+  const act=players(),picks=bg.opts.map(()=>[]),pts={};
+  for(const p of act){const k=blPickOf(p);if(k>=0)picks[k].push(pid(p))}
+  const add=(id,n)=>{pts[id]=(pts[id]||0)+n};
+  bg.opts.forEach((o,k)=>{if(o.t)picks[k].forEach(id=>add(id,BL.TRUTH_PTS));else if(!o.d)o.own.forEach(id=>add(id,BL.FOOL_PTS*picks[k].length))});
+  for(const p of act){const who=pid(p);if(!gRound[who])gRound[who]=[];gRound[who][bg.i]=pts[who]||0}
+  for(const id of Object.keys(pts))gTot[id]=(gTot[id]||0)+pts[id];
+  // the reveal: lies that fooled someone (fewest first), then the truth
+  const order=bg.opts.map((o,k)=>k).filter(k=>!bg.opts[k].t&&picks[k].length).sort((a,b)=>picks[a].length-picks[b].length);
+  order.push(bg.opts.findIndex(o=>o.t));
+  bg.rv=order.map(k=>({k,pk:picks[k]}));
+}
+function blTick(){
+  if(!bg||bg.ph==="res")return;const now=Rush.now();let ch=false;
+  for(const p of players())blNames[pid(p)]=shownName(p.presence.n);
+  if(bg.ph==="count"){if(now>=bg.end){bg.ph="write";bg.end=now+BL.WRITE_MS;bg.fast=0;ch=true}}
+  else if(bg.ph==="write"){const act=players();
+    if(!bg.fast&&act.length&&act.every(p=>blFake(p))){bg.fast=1;bg.end=Math.min(bg.end,now+BL.FAST_MS);ch=true}
+    if(now>=bg.end){blBuild();bg.ph="pick";bg.end=now+BL.PICK_MS;bg.fast=0;ch=true}}
+  else if(bg.ph==="pick"){const act=players();
+    if(!bg.fast&&act.length&&act.every(p=>blPickOf(p)>=0)){bg.fast=1;bg.end=Math.min(bg.end,now+BL.FAST_MS);ch=true}
+    if(now>=bg.end){blScore();bg.ph="show";bg.si=0;bg.siAt=now;ch=true}}
+  else if(bg.ph==="show"){const cur=bg.rv[bg.si],dur=bg.opts[cur.k].t?BL.TRUTH_MS:BL.SHOW_MS;
+    if(now>=bg.siAt+dur){
+      if(bg.si<bg.rv.length-1){bg.si++;bg.siAt=now}
+      else if(bg.i<bg.ids.length-1){bg.i++;bg.ph="count";bg.end=now+BL.COUNT_MS;bg.opts=null;bg.rv=null;bg.fast=0}
+      else bg.ph="res";
+      ch=true}}
+  if(ch){pushTv();gKey=""}
+}
+// what the phones see: the options during the pick and the reveal; who wrote and who picked only as each is revealed
+const blGm=()=>bg?{k:"bl",r:bg.r,i:bg.i,n:bg.ids.length,ph:bg.ph,id:bg.ids[bg.i],end:bg.end,lg:bg.lg,
+  o:bg.opts&&(bg.ph==="pick"||bg.ph==="show")?bg.opts.map(o=>o.x):null,
+  rv:bg.ph==="show"?bg.rv.slice(0,bg.si+1).map(v=>({k:v.k,t:bg.opts[v.k].t,d:bg.opts[v.k].d,by:bg.opts[v.k].own,pk:v.pk})):null}:{k:"bl",ph:"load"};
+const blName=id=>{const p=players().find(p=>pid(p)===id);return p?shownName(p.presence.n):blNames[id]||"?"};
+// the fact with its blank; the truth fills the blank once it's revealed
+function blText(cls,q,lg,fill){const d=el("div",cls);d.dir="auto";String(q.q[blL(lg)]||"").split("____").forEach((part,k)=>{if(k)d.append(fill?el("span","blank fill",fill):el("span","blank"));d.append(document.createTextNode(part))});return d}
 
 /* ---------- drawing the big screen ---------- */
 let gKey="",gSideKey="",gFootKey="";
@@ -916,17 +1037,17 @@ function drawGameLive(){
   const center=$("#gCenter");if(!center)return;
   const now=Rush.now(),rows=rankRows(),rl=$("#gRound");
   const hfEl=center.closest(".hf");if(hfEl)hfEl.classList.toggle("many",rows.length>7);
-  if(tvMode==="trivia")drawTrCenter(center,now,rows,rl);else drawHmCenter(center,now,rows,rl);
+  if(tvMode==="trivia")drawTrCenter(center,now,rows,rl);else if(tvMode==="bluff")drawBlCenter(center,now,rows,rl);else drawHmCenter(center,now,rows,rl);
   // players: live progress during a question or a word, scores otherwise
-  const side=$("#gSide"),live=tvMode==="trivia"?tg&&tg.ph==="q":hg&&hg.ph==="play";
-  const prog=r=>tvMode==="trivia"?(trAns(r.p,tg.i)?"✓":""):(()=>{const s=hmPlayer(r.p);return s.solved?"✓":s.out?"✗":s.hit+"/"+s.need})();
+  const side=$("#gSide"),live=tvMode==="trivia"?tg&&tg.ph==="q":tvMode==="bluff"?bg&&(bg.ph==="write"||bg.ph==="pick"):hg&&hg.ph==="play";
+  const prog=r=>tvMode==="trivia"?(trAns(r.p,tg.i)?"✓":""):tvMode==="bluff"?((bg.ph==="write"?blFake(r.p):blPickOf(r.p)>=0)?"✓":""):(()=>{const s=hmPlayer(r.p);return s.solved?"✓":s.out?"✗":s.hit+"/"+s.need})();
   const skey=JSON.stringify([lang,cap,live,rows.map(r=>[r.id,r.n,r.c,r.s,live?prog(r):""])]);
   if(side&&skey!==gSideKey){gSideKey=skey;side.textContent="";
     rows.forEach((r,i)=>{const row=el("div","prow"+(!live&&i===0&&r.s>0?" lead":""));row.append(blob(r.c),el("b",null,(r.id===cap?"👑 ":"")+r.n));
       if(live){const v=prog(r);row.append(el("span","st"+(v==="✓"?" done":""),v))}else row.append(el("span","sc ltrx",String(r.s)));side.append(row)});
     if(!rows.length)side.append(el("p","pnote",t("noPlayers")))}
   // foot: next round after the results, back to the lobby
-  const foot=$("#gFoot"),res=tvMode==="trivia"?tg&&tg.ph==="res":hg&&hg.ph==="res";
+  const foot=$("#gFoot"),res=tvMode==="trivia"?tg&&tg.ph==="res":tvMode==="bluff"?bg&&bg.ph==="res":hg&&hg.ph==="res";
   const fkey=lang+"|"+res;
   if(foot&&fkey!==gFootKey){gFootKey=fkey;foot.textContent="";
     if(res){foot.append(el("span","nx",t("hostNext")));const nb=el("button","pbtn",t("nextNow"));nb.type="button";nb.onclick=gameNext;foot.append(nb)}else foot.append(el("span","nx"));
@@ -980,8 +1101,43 @@ function drawHmCenter(center,now,rows,rl){
   else if(hg.ph==="count"){const s=$("#gSecs");if(s)s.textContent=String(Math.max(0,Math.ceil((hg.at-now)/1000)))}
 }
 
+function drawBlCenter(center,now,rows,rl){
+  if(rl)rl.textContent=bg?t("round",{r:bg.r})+(bg.ph!=="res"?" · "+t("qn",{i:bg.i+1,n:bg.ids.length}):""):t("bluff");
+  if(!bg){const key="load|"+lang;if(key!==gKey){gKey=key;center.textContent="";center.append(el("div","bigmsg",t("loadingQ")))}return}
+  const q=blQ(bg.ids[bg.i]),act=players(),l=blL(bg.lg);
+  const nIn=bg.ph==="write"?act.filter(p=>blFake(p)).length:bg.ph==="pick"?act.filter(p=>blPickOf(p)>=0).length:0;
+  const key=[bg.r,bg.i,bg.ph,lang,nIn+"/"+act.length,bg.ph==="show"?bg.si:"",bg.ph==="res"?JSON.stringify(rows.map(r=>[r.id,r.s,r.rp])):""].join("|");
+  if(key!==gKey){gKey=key;center.textContent="";
+    const steps=()=>{const s=el("div","blsteps");bg.ids.forEach((x,k)=>s.append(el("i",k<=bg.i?"on":null)));return s};
+    if(bg.ph==="count"){center.append(el("div","bigmsg",bg.i?t("blNextQ"):t("get")),el("span","pchip",t("bluff")),steps());const s=el("div","secs");s.id="gSecs";center.append(s);if(!bg.i)center.append(el("p","pnote",t("blRules")))}
+    else if(bg.ph==="res"){center.append(el("div","bigmsg",t("roundEnd",{r:bg.r})));const tb=el("div","tres");
+      rows.forEach((r,i)=>{const row=el("div","trow"+(i===0&&r.s>0?" lead":""));row.append(el("span","ltrx","#"+(i+1)),blob(r.c),el("b",null,r.n),el("span","rp ltrx","+"+r.rp),el("span","tt ltrx",String(r.s)));tb.append(row)});
+      center.append(tb)}
+    else if(q){
+      const v=bg.ph==="show"?bg.rv[bg.si]:null,o=v?bg.opts[v.k]:null;
+      center.append(el("span","pchip",t("bc_"+q.c)));
+      center.append(blText("tq",q,bg.lg,o&&o.t?q.a[l]:null));
+      if(bg.ph==="write"){center.append(el("p","bltell",t("blWriteTv")));tvTimer(center,bg.end-now,BL.WRITE_MS);center.append(el("p","pnote",t("blIn",{n:nIn,m:act.length})))}
+      else if(bg.ph==="pick"){center.append(el("p","bltell",t("blPickTv")));const g=el("div","agrid bl"+(bg.opts.length>6?" many":""));
+        bg.opts.forEach((x,k)=>{const tl=el("div","atile c"+(k%4));tl.append(el("span","ab",String(k+1)));const tx=el("span",null,x.x);tx.dir="auto";tl.append(tx);g.append(tl)});
+        center.append(g);tvTimer(center,bg.end-now,BL.PICK_MS);center.append(el("p","pnote",t("blPicked",{n:nIn,m:act.length})))}
+      else if(o){const names=ids=>ids.map(blName).join(" · ");
+        const card=el("div","blrev"+(o.t?" truth":o.d?" ours":" lie")),x=el("div","blx",o.x);x.dir="auto";card.append(x);
+        card.append(el("div","blpk",v.pk.length?t("blPickedBy",{names:names(v.pk)}):t("blNoneT")));
+        card.append(el("div","bltag",o.t?t("blTruth"):o.d?t("blOurs"):t("blLieBy",{n:names(o.own)})));
+        if(o.t&&v.pk.length)card.append(el("div","blpts ltrx",t("blFoundT",{p:BL.TRUTH_PTS})));
+        else if(!o.t&&!o.d)card.append(el("div","blpts ltrx",t("blFooledPts",{p:BL.FOOL_PTS*v.pk.length})));
+        center.append(card)}
+    }
+  }
+  if(bg.ph==="write")tvTimerSet(bg.end-now,BL.WRITE_MS);
+  else if(bg.ph==="pick")tvTimerSet(bg.end-now,BL.PICK_MS);
+  else if(bg.ph==="count"){const s=$("#gSecs");if(s)s.textContent=String(Math.max(0,Math.ceil((bg.end-now)/1000)))}
+}
+
 /* ---------- phones: answer pad and keyboard ---------- */
 let myTpv={r:0,k:""},myTa={r:0,a:{}},myHg={r:0,g:"",t:0},phKey="";
+let myBl={r:0,i:0,w:"",p:-1},blDraft="",blMsg=""; // this phone's Bluff Rush lie and pick for the current fact
 function trAnswer(slot){
   const tv=tvPeer(),g=tv&&tv.presence.gm;if(!g||g.k!=="tr"||g.ph!=="q"||Rush.now()>num(g.end))return;
   if(myTa.r!==num(g.r))myTa={r:num(g.r),a:{}};if(myTa.a[g.i])return;
@@ -1004,6 +1160,7 @@ function drawPhGame(){
   const box=$("#phGame"),tv=tvPeer();if(!box||!tv)return;const g=tv.presence.gm;if(!g||typeof g!=="object")return;
   const now=Rush.now(),T=tv.presence.tot&&typeof tv.presence.tot==="object"?tv.presence.tot:{},mine=num(T[Rush.uid]);
   const scoreLine=()=>el("p","pnote",t("myScore",{s:mine}));
+  if(g.k==="bl")return drawPhBluff(box,tv,g,now,mine,scoreLine);
   if(g.k==="tr"){
     const q=g.ph==="load"?null:qById(g.id);
     if(!q&&g.ph!=="load"&&g.ph!=="res"&&!QB)loadBank().then(()=>{phKey="";drawPhGame()}).catch(()=>{});
@@ -1048,6 +1205,59 @@ function drawPhGame(){
     box.append(kb,scoreLine());
   }
 }
+/* Bluff Rush on a phone: write a lie (checked here: clean, and not the truth), pick the true one, see how it went.
+   The writing box is only rebuilt when something changes, never while the clock ticks, so typing is never lost. */
+function blSubmit(v,g,quiet){
+  const q=blQ(g.id),w=R.cleanChat(v),l=blL(g.lg);
+  if(!w){if(!quiet){blMsg=t("blBad");phKey=""}return false}
+  if(q&&R.bluffIsTrue(w,q.a[l],q.al[l])){if(!quiet){blMsg=t("blTruthNo");phKey=""}return false}
+  myBl.w=w;blMsg="";send();phKey="";return true;
+}
+function drawPhBluff(box,tv,g,now,mine,scoreLine){
+  const q=g.ph==="load"?null:blQ(g.id);
+  if(!q&&g.ph!=="load"&&!BQ)loadBluff().then(()=>{phKey="";drawPhGame()}).catch(()=>{});
+  if(myBl.r!==num(g.r)||myBl.i!==num(g.i)){myBl={r:num(g.r),i:num(g.i),w:"",p:-1};blDraft="";blMsg=""}
+  const left=Math.max(0,num(g.end)-now),opts=Array.isArray(g.o)?g.o.map(x=>String(x||"")):[],rv=Array.isArray(g.rv)?g.rv:[];
+  // a lie still being typed when the time is nearly up goes in by itself
+  if(g.ph==="write"&&!myBl.w&&blDraft.trim()&&left<1200)blSubmit(blDraft,g,true);
+  const truthOut=rv.length&&rv[rv.length-1].t;
+  const key=["bl",g.r,g.i,g.ph,!!q,lang,mine,myBl.w,myBl.p,blMsg,opts.length,rv.length].join("|");
+  if(key!==phKey){phKey=key;box.textContent="";
+    if(g.ph==="load"||g.ph==="count"){box.append(el("div","pbig",t("get")),el("p","pnote",t("lookTv")),scoreLine());return}
+    if(g.ph==="res"){const rp=gRoundPhone(tv)[Rush.uid];box.append(el("div","pbig",t("roundEnd",{r:g.r})),el("p","pbig",t("myScore",{s:mine})));if(rp!=null)box.append(el("p","pnote",t("thisRound",{p:rp})));return}
+    if(!q){box.append(el("div","pbig",t("loadingQ")));return}
+    box.append(el("p","pnote",t("qn",{i:num(g.i)+1,n:num(g.n)})+" · "+t("bc_"+q.c)));
+    box.append(blText("pq",q,g.lg,truthOut?q.a[blL(g.lg)]:null));
+    if(g.ph==="write"||g.ph==="pick"){const tb=el("div","ptimer"),ti=el("i");tb.id="blBar";tb.append(ti);box.append(tb)}
+    if(g.ph==="write"){
+      const f=el("div","pfake");
+      if(myBl.w){const lie=el("div","lie");lie.append(el("span","pnote",t("blLie")+" "));const b=el("b",null,myBl.w);b.dir="auto";lie.append(b);
+        const ch=el("button","pbtn ghost",t("blChange"));ch.type="button";ch.onclick=()=>{blDraft=myBl.w;myBl.w="";send();phKey="";drawPhGame()};
+        f.append(lie,ch,el("p","pnote",t("blWait")))}
+      else{const row=el("div","row"),inp=el("input","pin");inp.id="blIn";inp.maxLength=BL.MAXLEN;inp.placeholder=t("blPh");inp.value=blDraft;inp.autocomplete="off";inp.dir="auto";inp.enterKeyHint="done";
+        inp.lang=g.lg;inp.setAttribute("aria-label",t("blPh"));inp.oninput=()=>{blDraft=inp.value;if(blMsg){blMsg="";const m=$("#blMsg");if(m)m.textContent=""}};
+        const sb=el("button","pbtn pink",t("blSend"));sb.type="button";const go=()=>{blSubmit(inp.value,g,false);drawPhGame()};
+        sb.onclick=go;inp.addEventListener("keydown",e=>{if(e.key==="Enter")go()});row.append(inp,sb);
+        const m=el("p","pmsg",blMsg);m.id="blMsg";m.setAttribute("aria-live","polite");f.append(row,m);
+        setTimeout(()=>{const i=$("#blIn");if(i&&document.activeElement!==i)try{i.focus()}catch(e){}},30)}
+      box.append(f,scoreLine());return}
+    if(g.ph==="pick"){
+      box.append(el("p","pbig",t("blPick")));const list=el("div","pans");
+      opts.forEach((x,k)=>{const mineO=!!myBl.w&&R.bluffSame(x,myBl.w),b=el("button","c"+(k%4)+(mineO?" mine":""));b.type="button";
+        b.append(el("span","ab",String(k+1)));const tx=el("span",null,x);tx.dir="auto";b.append(tx);if(mineO)b.append(el("small",null,t("blMine")));
+        if(mineO||myBl.p>=0)b.disabled=true;if(myBl.p===k)b.classList.add("pick");
+        b.onclick=()=>{if(myBl.p>=0||mineO)return;myBl.p=k;send();phKey="";drawPhGame()};list.append(b)});
+      box.append(list);if(myBl.p>=0)box.append(el("p","pbig",t("locked")));box.append(scoreLine());return}
+    // the reveal: how it went for this phone, once the truth is out
+    if(!truthOut){box.append(el("p","pbig",t("lookTv")),scoreLine());return}
+    const me=Rush.uid,picked=rv.find(v=>Array.isArray(v.pk)&&v.pk.includes(me)),fooled=rv.filter(v=>Array.isArray(v.by)&&v.by.includes(me)).reduce((a,v)=>a+(Array.isArray(v.pk)?v.pk.length:0),0);
+    const byName=ids=>(ids||[]).map(id=>{const p=pApi&&pApi.peers().find(p=>p.presence&&p.presence.u===id);return p?shownName(p.presence.n):"?"}).join(" · ");
+    box.append(el("p","pbig",!picked?t("blNoPick"):picked.t?t("blRight"):picked.d?t("blFellOurs"):t("blFell",{n:byName(picked.by)})));
+    if(fooled)box.append(el("p","pbig",fooled===1?t("blFooled1"):t("blFooled",{n:fooled})));
+    box.append(scoreLine());
+  }
+  const bar=$("#blBar");if(bar)bar.firstChild.style.width=Math.max(0,100*left/(g.ph==="write"?BL.WRITE_MS:BL.PICK_MS))+"%";
+}
 // this round's points per player, which the big screen sends with the results (rp)
 function gRoundPhone(tv){const r=tv.presence.rp;return r&&typeof r==="object"?r:{}}
 setInterval(()=>{if(role==="phone"&&phoneJoined&&!$("#phGame")?.hidden)drawPhGame()},250);
@@ -1057,12 +1267,13 @@ function tvStart(){
   if(!players().length)return;
   if(tvGame.g==="trivia"){tvErr="";tvMode="trivia";pushTv();trEnter();return}
   if(tvGame.g==="hangman"){tvErr="";tvMode="hangman";pushTv();draw();hmEnter();return}
+  if(tvGame.g==="bluff"){tvErr="";tvMode="bluff";pushTv();blEnter();return}
   roomCount++;tvMode="harf";pApi.presence(tvPresence());
   hfEnter();
 }
 function backToLobby(){
   if(hfRound&&hs.vo){for(const k of Object.keys(hs.vo))hfCloseVote(k,true);hfLearn()}
-  hfLeave();tg=null;hg=null;tvMode="lobby";pApi&&pApi.presence(tvPresence());draw();
+  hfLeave();tg=null;hg=null;bg=null;tvMode="lobby";pApi&&pApi.presence(tvPresence());draw();
 }
 
 /* ---------- Harf on the TV: this screen hosts the room and doesn't play ----------
