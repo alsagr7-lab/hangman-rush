@@ -273,6 +273,7 @@
         onBody(showReplaced); return;
       }
       if (m.t === "error") { if (s.pending) { s.pending.reject({ code: m.code, message: "Room limit reached" }); s.pending = null; joined.delete(m.room); } return; }
+      if (m.t === "msg") { s.msgs.forEach(f => { try { f(m.from, m.data); } catch (e) { console.error(e); } }); return; }
       if (m.t !== "peers") return;
       const now = Date.now(), prev = new Map(s.peers.map(p => [p.peer, p]));
       s.peers = Object.freeze(m.peers.map(p => {
@@ -293,7 +294,7 @@
       if (!/^[a-z0-9][a-z0-9_.-]{0,47}$/.test(name)) return Promise.reject({ code: "invalid_argument", message: "Bad room name" });
       if (joined.has(name)) return Promise.resolve(joined.get(name).api);
       if (!ws) connect();
-      const s = { presence: {}, peers: Object.freeze([]), listeners: new Set(), conn: new Set(), pending: null };
+      const s = { presence: {}, peers: Object.freeze([]), listeners: new Set(), conn: new Set(), msgs: new Set(), pending: null };
       s.api = {
         name,
         presence(patch) {
@@ -304,10 +305,13 @@
         peers() { return s.peers; },
         onPeers(fn) { s.listeners.add(fn); queueMicrotask(() => { if (s.listeners.has(fn)) fn({ peers: s.peers, joined: s.peers, left: [], updated: [] }); }); return () => s.listeners.delete(fn); },
         connected() { return open; },
+        // private messages: to one peer in this room (the server says who sent it); onMessage(fn(fromPeer, data))
+        sendTo(peer, data) { sendRaw({ t: "to", room: name, to: peer, data }); },
+        onMessage(fn) { s.msgs.add(fn); return () => s.msgs.delete(fn); },
         onConnection(fn) { s.conn.add(fn); queueMicrotask(() => fn(open)); return () => s.conn.delete(fn); },
         emit() { return Promise.reject({ code: "not_permitted", message: "Events are not used in this build" }); },
         on() { return () => {}; },
-        leave() { joined.delete(name); sendRaw({ t: "leave", room: name }); s.listeners.clear(); s.conn.clear(); return Promise.resolve(); },
+        leave() { joined.delete(name); sendRaw({ t: "leave", room: name }); s.listeners.clear(); s.conn.clear(); s.msgs.clear(); return Promise.resolve(); },
       };
       joined.set(name, s);
       return new Promise((resolve, reject) => {

@@ -268,6 +268,17 @@
   const BLUFF = { Q_PER_ROUND: 3, WRITE_MS: 45000, PICK_MS: 20000, COUNT_MS: 3000, FAST_MS: 1500, SHOW_MS: 2600, TRUTH_MS: 4000,
     MIN_OPTS: 4, MAXLEN: 40, TRUTH_PTS: 100, FOOL_PTS: 50,
     CATS: ["animals", "food", "history", "inventions", "words", "body", "places", "space", "sport"] };
+  /* ---------- Imposter Rush (party, برّا السالفة) ----------
+     Everyone but the imposter gets the secret word; the imposter gets only its category (or, as a host option, a
+     different word from the same category, without knowing they're the imposter). One-word clues in turn, a talk,
+     a vote; a caught imposter can still win by picking the word from 8. */
+  const IMPOSTER = { ROLE_MS: 7000, TURN_MS: 30000, ALL_MS: 40000, TALK_MS: 60000, VOTE_MS: 30000, CAUGHT_MS: 6000, GUESS_MS: 20000, FAST_MS: 1200,
+    CLUE_MAX: 24, GUESS_OPTS: 8, ESCAPE_PTS: 200, STEAL_PTS: 150, CATCH_PTS: 100, SURVIVE_PTS: 100, TWO_MIN: 6 };
+  // a clue: one or two words, clean, at most CLUE_MAX characters, or "" when it isn't allowed
+  function imposterClue(v) {
+    const s = cleanChat(v).slice(0, IMPOSTER.CLUE_MAX).trim();
+    return s && s.split(/\s+/).length <= 2 ? s : "";
+  }
   const AR_DIGITS = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9", "٫": ".", "٪": "%" };
   // the comparable form: folded letters, Arabic digits as 0-9, no "the/a/an" or Arabic ال, no spaces or punctuation
   function bluffKey(s) {
@@ -313,6 +324,6 @@
     COLORS, safeColor, nm16, badName, junkText, cleanChat, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
     HARF, harfNorm, harfStem, harfKey, harfGroup, harfNear, harfLetterOk, harfRoomPoints,
-    BLUFF, bluffKey, bluffSame, bluffIsTrue,
+    BLUFF, bluffKey, bluffSame, bluffIsTrue, IMPOSTER, imposterClue,
   };
 });

@@ -230,6 +230,12 @@ wss.on("connection", (ws, req) => {
       entry.presence = next;
       if ("u" in msg.patch) dropOlder(name, ws);
       broadcast(name);
+    } else if (msg.t === "to") {
+      // a private message to one peer in the same room (the party TV telling each phone its secret role); the
+      // server stamps who sent it, so it can't be faked, and nobody else in the room sees it
+      const room = rooms.get(name), target = room && typeof msg.to === "string" && room.get(msg.to);
+      if (!room || !room.has(ws.peerId) || !target || !msg.data || typeof msg.data !== "object" || JSON.stringify(msg.data).length > 2048) return;
+      if (target.ws.readyState === 1) target.ws.send(JSON.stringify({ t: "msg", room: name, from: ws.peerId, data: msg.data }));
     } else if (msg.t === "leave") {
       leave(ws, name);
     }
