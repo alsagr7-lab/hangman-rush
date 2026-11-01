@@ -288,6 +288,24 @@ button.ans:hover{background:rgba(255,255,255,.12)}button.ans:focus-visible{outli
 .pfake .lie{background:#fff;color:var(--pdark);border-radius:22px;padding:12px 16px;font-size:22px;font-weight:800;text-align:center}
 .pans button.mine{opacity:.4}.pans button small{margin-inline-start:auto;font-size:14px;font-weight:800;opacity:.8}
 .pmsg{color:#FFD1E3;font-weight:800;text-align:center;margin:0;min-height:1.4em}
+/* ---------- Imposter Rush ---------- */
+.imcat{font-size:clamp(28px,3.4vw,52px);font-weight:800;color:var(--yel)}
+.imbig{font-size:clamp(40px,5.4vw,84px);font-weight:800;line-height:1.05}
+.imboard{width:min(980px,100%);display:grid;gap:8px}
+.imrow{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,1.3fr) minmax(0,1.3fr);align-items:center;gap:12px;background:rgba(255,255,255,.1);border-radius:20px;padding:6px 14px;font-weight:800;font-size:clamp(18px,1.9vw,28px);text-align:start}
+.imrow.one{grid-template-columns:44px minmax(0,1fr) minmax(0,2fr)}
+.imrow svg{width:40px;height:40px;overflow:visible}.imrow b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imrow .cl{background:#fff;color:var(--pdark);border-radius:14px;padding:4px 12px;min-height:1.4em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imrow .cl.no{background:rgba(255,255,255,.12);color:var(--pmuted);font-weight:700}
+.imrow.now{background:var(--yel);color:var(--yel-ink);animation:pop .3s cubic-bezier(.3,1.6,.6,1)}
+.imrow.imp{background:var(--pink);color:var(--pink-ink)}
+.imrow .vt{font-size:16px;color:inherit;opacity:.85}
+.hf.many .imrow{padding:3px 12px;font-size:17px}.hf.many .imrow svg{width:28px;height:28px}
+.imcard{background:#fff;color:var(--pdark);border-radius:28px;padding:20px;text-align:center;display:grid;gap:8px;box-shadow:0 8px 0 rgba(0,0,0,.25)}
+.imcard .w{font-size:34px;font-weight:800;line-height:1.1}.imcard.imp{background:var(--pink);color:var(--pink-ink)}
+.imcard small{font-size:15px;font-weight:700;opacity:.8}
+.pcl{display:grid;gap:6px}.pcl div{display:flex;justify-content:space-between;gap:10px;background:rgba(255,255,255,.12);border-radius:14px;padding:6px 12px;font-weight:800}
+.pcl div span:last-child{opacity:.9}.pcl div.now{background:var(--yel);color:var(--yel-ink)}
 </style>
 </head>
 <body>
@@ -331,7 +349,16 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   blPh:"Your fake answer",blSend:"Lock it in",blLie:"Your lie:",blChange:"Change it",blTruthNo:"That's the real answer! Write a fake one.",blBad:"That answer isn't allowed.",
   blPick:"Which one is true?",blMine:"your lie",blPickedBy:"Picked by {names}",blNoneT:"Nobody found the truth",blTruth:"The truth!",blOurs:"Our lie",blLieBy:"{n}'s lie",
   blFoundT:"+{p} each",blFooledPts:"+{p}",blRight:"You found the truth!",blFell:"You fell for {n}'s lie",blFellOurs:"You fell for our lie",blNoPick:"You didn't pick",blFooled:"Your lie fooled {n}",blFooled1:"Your lie fooled 1 player",blWait:"Waiting for the others…",
-  bc_animals:"Animals",bc_food:"Food",bc_history:"History",bc_inventions:"Inventions",bc_words:"Words",bc_body:"Human body",bc_places:"Places",bc_space:"Space",bc_sport:"Sport"},
+  bc_animals:"Animals",bc_food:"Food",bc_history:"History",bc_inventions:"Inventions",bc_words:"Words",bc_body:"Human body",bc_places:"Places",bc_space:"Space",bc_sport:"Sport",
+  imposter:"Imposter Rush",imHelp:"Everyone gets a secret word except the imposter, who only knows the category. Give one-word clues, then vote. A caught imposter can still win by guessing the word.",
+  imRounds:"Clue rounds",imFirst:"Round 1 clues",imTurns:"In turns",imAll:"All at once",imGets:"Imposter gets",imGetsCat:"The category",imGetsSim:"A similar word",imCount:"Imposters",imTwoNote:"2 imposters needs 6+ players",
+  imNeed3:"Imposter Rush needs at least 3 players.",imCheck:"Check your phone 🤫",imRules:"One-word clues about the secret word. Don't make it too easy, or the imposter will guess it!",
+  imAllTv:"Everyone: write a one-word clue",imWritten:"{n} of {m} written",imTurn:"{n}'s turn",imTalk:"Who's the imposter? Talk it out!",imVoteTv:"Vote on your phones",imVoted:"{n} of {m} voted",imVoteNow:"Vote now",
+  imVotesFor:"{n}: {v}",imWas:"{n} WAS the imposter!",imWasNot:"{n} was NOT the imposter…",imTie:"A tie! Nobody was caught.",imGuessing:"{n} gets one guess at the word…",
+  imWordWas:"The word was",imImpWas:"The imposter:",imImpsWas:"The imposters:",imHad:"(they had: {w})",imOutEscape:"The imposter got away! +{p}",imOutSteal:"Caught, but guessed the word! +{p}",imOutCaught:"Caught! +{p} for everyone who voted right",imGuessed:"Guessed: {w}",imNoGuess:"No guess",
+  imYourWord:"Your word",imYouImp:"You're the imposter 🤫",imCatIs:"Category: {c}",imBlend:"Nobody knows. Blend in!",imShow:"Show my card",imHide:"Hide my card",imWait:"Waiting for your card…",imNextRound:"You'll be in the next round.",
+  imClueRound:"Clue {r}",imYourTurn:"Your turn: one word",imCluePh:"Your clue",imSendClue:"Send",imClueIn:"Your clue:",imNoWord:"Don't say the word itself!",imDup:"Someone already said that.",imBadClue:"One or two words, nothing rude.",
+  imPickImp:"Who's the imposter?",imYouCaught:"You were caught! Guess the word:",imYouGot:"You got away! +{p}",imYouStole:"You guessed it! +{p}",imYouLost:"Caught…",imYouWere:"You were the imposter",imCrewWon:"You caught the imposter! +{p}",imCrewMissed:"The imposter fooled you",imSkip:"no clue"},
 ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب؟",tagline:"شاشة كبيرة واحدة، والكل بجواله.",host:"استضف على هذه الشاشة",hostSub:"شغّلها على التلفزيون أو اللابتوب، والكل ينضم بمسح الرمز بجواله.",
   joinTitle:"انضم لحفلة",codePh:"ABCD",join:"انضم",codeBad:"رمز الحفلة 4 أحرف إنجليزية.",langBtn:"English",
   scan:"امسح للانضمام",orGo:"أو افتح {u} واكتب",players:"{n}/{m} لاعب",waiting:"بانتظار اللاعبين… امسح الرمز بجوالك",
@@ -361,7 +388,16 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   blPh:"إجابتك الكاذبة",blSend:"ثبّتها",blLie:"كذبتك:",blChange:"غيّرها",blTruthNo:"هذي الإجابة الصحيحة! اكتب وحدة كاذبة.",blBad:"هذه الإجابة غير مسموحة.",
   blPick:"أي وحدة هي الصحيحة؟",blMine:"كذبتك",blPickedBy:"اختارها: {names}",blNoneT:"ما أحد عرف الصحيحة",blTruth:"هذي الصحيحة!",blOurs:"كذبتنا",blLieBy:"كذبة {n}",
   blFoundT:"+{p} لكل واحد",blFooledPts:"+{p}",blRight:"عرفت الصحيحة!",blFell:"انطلت عليك كذبة {n}",blFellOurs:"انطلت عليك كذبتنا",blNoPick:"ما اخترت شيء",blFooled:"كذبتك انطلت على {n}",blFooled1:"كذبتك انطلت على لاعب واحد",blWait:"بانتظار البقية…",
-  bc_animals:"حيوانات",bc_food:"أكل",bc_history:"تاريخ",bc_inventions:"اختراعات",bc_words:"كلمات",bc_body:"جسم الإنسان",bc_places:"أماكن",bc_space:"فضاء",bc_sport:"رياضة"}};
+  bc_animals:"حيوانات",bc_food:"أكل",bc_history:"تاريخ",bc_inventions:"اختراعات",bc_words:"كلمات",bc_body:"جسم الإنسان",bc_places:"أماكن",bc_space:"فضاء",bc_sport:"رياضة",
+  imposter:"برّا السالفة",imHelp:"الكل يعرف كلمة سرية إلا اللي برّا السالفة، يعرف بس التصنيف. كل واحد يقول كلمة وحدة، وبعدها تصوّتون. ولو انكشف يقدر يفوز إذا خمّن الكلمة.",
+  imRounds:"جولات التلميح",imFirst:"تلميحات الجولة الأولى",imTurns:"بالدور",imAll:"الكل مرة وحدة",imGets:"اللي برّا السالفة ياخذ",imGetsCat:"التصنيف",imGetsSim:"كلمة قريبة",imCount:"عدد اللي برّا السالفة",imTwoNote:"اثنين يحتاجون 6 لاعبين أو أكثر",
+  imNeed3:"برّا السالفة تحتاج 3 لاعبين على الأقل.",imCheck:"شوف جوالك 🤫",imRules:"كل واحد يقول كلمة وحدة عن الكلمة السرية. لا تسهّلها مرة، ترى اللي برّا السالفة بيعرفها!",
+  imAllTv:"الكل: اكتبوا تلميح بكلمة وحدة",imWritten:"كتب {n} من {m}",imTurn:"دور {n}",imTalk:"مين برّا السالفة؟ تناقشوا!",imVoteTv:"صوّتوا من جوالاتكم",imVoted:"صوّت {n} من {m}",imVoteNow:"صوّتوا الحين",
+  imVotesFor:"{n}: {v}",imWas:"{n} كان برّا السالفة!",imWasNot:"{n} ما كان برّا السالفة…",imTie:"تعادل! ما انكشف أحد.",imGuessing:"{n} عنده محاولة وحدة يخمّن الكلمة…",
+  imWordWas:"الكلمة كانت",imImpWas:"اللي برّا السالفة:",imImpsWas:"اللي برّا السالفة:",imHad:"(كانت عنده: {w})",imOutEscape:"اللي برّا السالفة نجا! +{p}",imOutSteal:"انكشف بس خمّن الكلمة! +{p}",imOutCaught:"انكشف! +{p} لكل اللي صوّتوا صح",imGuessed:"خمّن: {w}",imNoGuess:"ما خمّن",
+  imYourWord:"كلمتك",imYouImp:"أنت برّا السالفة 🤫",imCatIs:"التصنيف: {c}",imBlend:"ما أحد يدري. اندمج معهم!",imShow:"اعرض بطاقتي",imHide:"اخفِ بطاقتي",imWait:"بانتظار بطاقتك…",imNextRound:"بتدخل الجولة الجاية.",
+  imClueRound:"التلميح {r}",imYourTurn:"دورك: كلمة وحدة",imCluePh:"تلميحك",imSendClue:"أرسل",imClueIn:"تلميحك:",imNoWord:"لا تقول الكلمة نفسها!",imDup:"أحد قالها قبلك.",imBadClue:"كلمة أو كلمتين، وبدون كلام بذيء.",
+  imPickImp:"مين برّا السالفة؟",imYouCaught:"انكشفت! خمّن الكلمة:",imYouGot:"نجوت! +{p}",imYouStole:"خمّنتها! +{p}",imYouLost:"انكشفت…",imYouWere:"كنت برّا السالفة",imCrewWon:"كشفتوه! +{p}",imCrewMissed:"اللي برّا السالفة ضحك عليكم",imSkip:"ما قال شيء"}};
 let lang;try{lang=localStorage.getItem("hr-lang")}catch(e){}
 if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en";
 const t=(k,v)=>{let s=I18N[lang][k]!=null?I18N[lang][k]:I18N.en[k]!=null?I18N.en[k]:k;if(v)s=s.replace(/\{(\w+)\}/g,(_,n)=>v[n]!=null?v[n]:"");return s};
@@ -410,6 +446,9 @@ let savedCh="1";try{savedCh=localStorage.getItem("rush-party-chat")||"1"}catch(e
 let savedPm="vote";try{savedPm=localStorage.getItem("rush-party-pm")||"vote"}catch(e){}
 // pm: who picks each trivia round's topic: vote (everyone votes on 4), last (the player in last place picks from 4) or host
 let tvGame={g:"harf",lg:lang,ms:H.ROOM_MS[1],ns:savedNs==="0"?0:1,ch:savedCh==="0"?0:1,tc:"mix",pm:["vote","last","host"].includes(savedPm)?savedPm:"vote"}; // ns: 1 = no STOP, the round runs its full time; ch: 0 = quick phrases only
+// Imposter Rush settings (saved on the TV): i2 clue rounds 1|2, ia round 1 all at once 0|1, is imposter gets a similar word 0|1, in imposters 1|2
+try{const v=JSON.parse(localStorage.getItem("rush-party-im")||"{}");tvGame.i2=v.i2===1?1:2;tvGame.ia=v.ia===1?1:0;tvGame.is=v.is===1?1:0;tvGame.in=v.in===2?2:1}catch(e){tvGame.i2=2;tvGame.ia=0;tvGame.is=0;tvGame.in=1}
+const saveIm=()=>{try{localStorage.setItem("rush-party-im",JSON.stringify({i2:tvGame.i2,ia:tvGame.ia,is:tvGame.is,in:tvGame.in}))}catch(e){}};
 let seen=new Map();     // peer -> {x,y,lx,mt,mi,ji,dir,walkUntil,jumpAt}
 let me=null;try{me=JSON.parse(localStorage.getItem("hr-me")||"null")}catch(e){}
 if(!me||typeof me!=="object")me={nick:"",color:R.COLORS[Math.floor(Math.random()*R.COLORS.length)]};
@@ -451,8 +490,8 @@ async function startTv(){
   draw();
 }
 // st: lobby, play (Harf: the phones open the Harf page) or game (Trivia and Hangman, played on this page: gm, tot, rp)
-const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":tvMode==="lobby"?"lobby":"game",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch,ns:tvGame.ns,tc:tvGame.tc,pm:tvGame.pm,cap,
-  gm:gameGm(),tot:tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"?gTot:null,rp:gameRp()});
+const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":tvMode==="lobby"?"lobby":"game",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch,ns:tvGame.ns,tc:tvGame.tc,pm:tvGame.pm,i2:tvGame.i2,ia:tvGame.ia,is:tvGame.is,in:tvGame.in,cap,
+  gm:gameGm(),tot:tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"||tvMode==="imposter"?gTot:null,rp:gameRp()});
 let roomCount=0; // how many games this party has started (phones only follow a new one)
 const players=()=>pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv):[];
 /* ---------- the host: one player runs the party from their phone, and plays too ----------
@@ -488,7 +527,8 @@ function doCmd(c){
   const setAll=()=>{if(c.lg==="ar"||c.lg==="en")tvGame.lg=c.lg;if(H.ROOM_MS.includes(c.ms))tvGame.ms=c.ms;
     if(c.ns===0||c.ns===1){tvGame.ns=c.ns;try{localStorage.setItem("rush-party-ns",String(c.ns))}catch(e){}}
     if(c.ch===0||c.ch===1){tvGame.ch=c.ch;try{localStorage.setItem("rush-party-chat",String(c.ch))}catch(e){}}
-    if(tvMode==="lobby"&&["harf","trivia","hangman","bluff"].includes(c.g))tvGame.g=c.g;
+    if(tvMode==="lobby"&&["harf","trivia","hangman","bluff","imposter"].includes(c.g))tvGame.g=c.g;
+    if(c.i2===1||c.i2===2)tvGame.i2=c.i2;if(c.ia===0||c.ia===1)tvGame.ia=c.ia;if(c.is===0||c.is===1)tvGame.is=c.is;if(c.in===1||c.in===2)tvGame.in=c.in;saveIm();
     if(TOPICS.includes(c.tc))tvGame.tc=c.tc;
     if(["vote","last","host"].includes(c.pm)){tvGame.pm=c.pm;try{localStorage.setItem("rush-party-pm",c.pm)}catch(e){}}};
   if(tvMode==="lobby"){
@@ -496,7 +536,7 @@ function doCmd(c){
     else if(k==="start")tvStart();
     return;
   }
-  if(tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"){
+  if(tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"||tvMode==="imposter"){
     if(k==="next")gameNext();else if(k==="lobby")backToLobby();else if(k==="set"){setAll();pushTv()}
     return;
   }
@@ -537,7 +577,7 @@ function drawTv(){
   const stage=el("div","stage");stage.id="stage";
   const bar=el("div","tvbar");
   const g1=el("div","grp"),gs=el("div","seg2");g1.append(el("span","lbl2",t("pickGame")),gs);
-  ["harf","trivia","hangman","bluff"].forEach(g=>{const b=el("button",null,t(g));b.type="button";b.setAttribute("aria-pressed",String(tvGame.g===g));b.onclick=()=>{tvGame.g=g;pushTv();draw()};gs.append(b)});
+  ["harf","trivia","hangman","bluff","imposter"].forEach(g=>{const b=el("button",null,t(g));b.type="button";b.setAttribute("aria-pressed",String(tvGame.g===g));b.onclick=()=>{tvGame.g=g;pushTv();draw()};gs.append(b)});
   const g2=el("div","grp"),ls=el("div","seg2");g2.append(el("span","lbl2",t("wordLang")),ls);
   [["ar","عربي"],["en","English"]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.lang=v;b.setAttribute("aria-pressed",String(tvGame.lg===v));b.onclick=()=>{tvGame.lg=v;pApi&&pApi.presence(tvPresence());draw()};ls.append(b)});
   const g3=el("div","grp"),ts=el("div","seg2");g3.append(el("span","lbl2",t("time")),ts);
@@ -549,7 +589,11 @@ function drawTv(){
   [[1,t("chatOn")],[0,t("chatQuick")]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(tvGame.ch===v));
     b.onclick=()=>{tvGame.ch=v;try{localStorage.setItem("rush-party-chat",String(v))}catch(e){}pApi&&pApi.presence(tvPresence());draw()};cs.append(b)});
   const go=el("button","pbtn pink go",t("start"));go.type="button";go.id="tvGo";go.onclick=tvStart;
-  bar.append(g1,g2);if(tvGame.g==="harf")bar.append(g3,g4);if(tvGame.g==="bluff"){const gb=el("div","grp");gb.append(el("span","lbl2",t("bluff")),el("p","tvhelp",t("blHelp")));bar.append(gb)}if(tvGame.g==="trivia"){bar.append(pmGrpTv());if(tvGame.pm==="host")bar.append(topicGrp("lbl2",v=>{tvGame.tc=v;pushTv()},tvGame.tc))}bar.append(g5,go);
+  bar.append(g1,g2);if(tvGame.g==="harf")bar.append(g3,g4);if(tvGame.g==="bluff"){const gb=el("div","grp");gb.append(el("span","lbl2",t("bluff")),el("p","tvhelp",t("blHelp")));bar.append(gb)}
+  if(tvGame.g==="imposter"){const seg=(label,key,opts)=>{const g=el("div","grp"),sg=el("div","seg2");g.append(el("span","lbl2",label),sg);
+      opts.forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(tvGame[key]===v));b.onclick=()=>{tvGame[key]=v;saveIm();pushTv();draw()};sg.append(b)});return g};
+    bar.append(seg(t("imRounds"),"i2",[[1,"1"],[2,"2"]]),seg(t("imFirst"),"ia",[[0,t("imTurns")],[1,t("imAll")]]),seg(t("imGets"),"is",[[0,t("imGetsCat")],[1,t("imGetsSim")]]),seg(t("imCount"),"in",[[1,"1"],[2,"2"]]));
+    const gb=el("div","grp");gb.append(el("span","lbl2",t("imposter")),el("p","tvhelp",t("imHelp")+(tvGame.in===2?" "+t("imTwoNote"):"")));bar.append(gb)}if(tvGame.g==="trivia"){bar.append(pmGrpTv());if(tvGame.pm==="host")bar.append(topicGrp("lbl2",v=>{tvGame.tc=v;pushTv()},tvGame.tc))}bar.append(g5,go);
   main.append(head,stage,bar);w.append(side,main);view.append(w);drawStage();
 }
 // the trivia topic picker (the TV lobby and the host's phone)
@@ -592,7 +636,7 @@ function drawStage(){
 setInterval(()=>{if(role==="tv"&&tvMode==="lobby")drawStage()},150);
 document.addEventListener("keydown",e=>{
   if(role!=="tv"||e.target&&/INPUT|TEXTAREA|BUTTON|SELECT|A/.test(e.target.tagName))return; // a focused control handles its own Enter
-  if(e.key==="Enter"){if(tvMode==="lobby"){const g=$("#tvGo");if(g&&!g.disabled)tvStart()}else if(tvMode==="harf"&&hfView==="results")hfNext();else if(tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff")gameNext()}
+  if(e.key==="Enter"){if(tvMode==="lobby"){const g=$("#tvGo");if(g&&!g.disabled)tvStart()}else if(tvMode==="harf"&&hfView==="results")hfNext();else if(tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"||tvMode==="imposter")gameNext()}
 });
 
 /* ---------- phone: controller ---------- */
@@ -612,9 +656,10 @@ async function phoneJoin(){
   phoneJoined=true;joinMsg="";
   pApi.presence(phonePresence());
   pUnsub.push(pApi.onPeers(()=>phoneFollow()));
+  if(pApi.onMessage)pUnsub.push(pApi.onMessage(imOnMessage));
   draw();phoneFollow();
 }
-const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null,ta:myTa.r?myTa:null,tpv:myTpv.r?myTpv:null,hg:myHg.r?myHg:null,bl:myBl.r?myBl:null});
+const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null,ta:myTa.r?myTa:null,tpv:myTpv.r?myTpv:null,hg:myHg.r?myHg:null,bl:myBl.r?myBl:null,ia:myIm.r||null,ic:myIc.r?myIc:null,iv:myIv.r?myIv:null,ig:myIg.r?myIg:null});
 // the host player's commands to the big screen (see runCmds on the TV side)
 let hq=[],hqN=0;
 function hostCmd(o){hqN=Math.max(Date.now(),hqN+1);hq=hq.concat([Object.assign({n:hqN},o)]).slice(-6);send()}
@@ -624,22 +669,23 @@ function drawHostPanel(P){
   const mine=P.cap===Rush.uid,others=pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv&&p.presence.u&&p.presence.u!==Rush.uid):[];
   const capP=others.find(p=>p.presence.u===P.cap);
   const gph=P.gm&&typeof P.gm==="object"?P.gm.ph:"";
-  const key=JSON.stringify([mine,P.cap,capP&&capP.presence.n,P.lg,P.ms,P.ns,P.ch,P.g,P.tc,P.pm,P.st,gph,others.map(p=>[p.presence.u,p.presence.n]),lang]);
+  const key=JSON.stringify([mine,P.cap,capP&&capP.presence.n,P.lg,P.ms,P.ns,P.ch,P.g,P.tc,P.pm,P.i2,P.ia,P.is,P.in,P.st,gph,others.map(p=>[p.presence.u,p.presence.n]),lang]);
   if(key===lastHostKey)return;lastHostKey=key;box.textContent="";
   if(!mine){box.className="hostline";box.textContent=capP?t("hostIs",{n:shownName(capP.presence.n)}):"";return}
   box.className="hostpanel";
   box.append(el("b",null,t("youHost")),el("p","pnote",t("youHostHelp")));
   const seg3=(label,opts,v,f)=>{const g=el("div","hg");g.append(el("span","lbl3",label));const sg=el("div","seg3");
     opts.forEach(([x,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(v===x));b.onclick=()=>{hostCmd(f(x));sg.querySelectorAll("button").forEach(y=>y.setAttribute("aria-pressed",String(y===b)))};sg.append(b)});g.append(sg);return g};
-  const g=["harf","trivia","hangman","bluff"].includes(P.g)?P.g:"harf";
+  const g=["harf","trivia","hangman","bluff","imposter"].includes(P.g)?P.g:"harf";
   if(P.st==="game"){
     // during Trivia or Hangman: next round once the results are up, the topic for it, and back to the lobby
+    if(gph==="talk"){const vb=el("button","pbtn pink",t("imVoteNow"));vb.type="button";vb.onclick=()=>{hostCmd({k:"next"});vb.disabled=true;setTimeout(()=>vb.disabled=false,3000)};box.append(vb)}
     if(gph==="res"){if(g==="trivia"&&P.pm==="host")box.append(topicGrp("lbl3",v=>hostCmd({k:"set",tc:v}),P.tc));
       const nx=el("button","pbtn pink",t("nextNow"));nx.type="button";nx.onclick=()=>{hostCmd({k:"next"});nx.disabled=true;setTimeout(()=>nx.disabled=false,3000)};box.append(nx)}
     const lb=el("button","pbtn ghost",t("lobby"));lb.type="button";lb.style.color="var(--pdark)";lb.style.background="#EFEAFF";lb.onclick=()=>hostCmd({k:"lobby"});box.append(lb);
     return;
   }
-  box.append(seg3(t("pickGame"),[["harf",t("harf")],["trivia",t("trivia")],["hangman",t("hangman")],["bluff",t("bluff")]],g,x=>({k:"set",g:x})),
+  box.append(seg3(t("pickGame"),[["harf",t("harf")],["trivia",t("trivia")],["hangman",t("hangman")],["bluff",t("bluff")],["imposter",t("imposter")]],g,x=>({k:"set",g:x})),
     seg3(t("wordLang"),[["ar","عربي"],["en","English"]],P.lg,x=>({k:"set",lg:x})));
   if(g==="harf")box.append(seg3(t("time"),H.ROOM_MS.map(x=>[x,t("secsN",{n:x/1000})]),num(P.ms),x=>({k:"set",ms:x})),
     seg3(t("ends"),[[0,t("endStop")],[1,t("endFull")]],P.ns===0?0:1,x=>({k:"set",ns:x})));
@@ -647,6 +693,8 @@ function drawHostPanel(P){
     box.append(seg3(t("pickBy"),[["vote",t("pmVote")],["last",t("pmLast")],["host",t("pmHost")]],pm,x=>({k:"set",pm:x})));
     if(pm==="host")box.append(topicGrp("lbl3",v=>hostCmd({k:"set",tc:v}),P.tc));box.append(el("p","pnote",t(pmHelpKey(pm))))}
   if(g==="bluff")box.append(el("p","pnote",t("blHelp")));
+  if(g==="imposter")box.append(seg3(t("imRounds"),[[1,"1"],[2,"2"]],P.i2===1?1:2,x=>({k:"set",i2:x})),seg3(t("imFirst"),[[0,t("imTurns")],[1,t("imAll")]],P.ia===1?1:0,x=>({k:"set",ia:x})),
+    seg3(t("imGets"),[[0,t("imGetsCat")],[1,t("imGetsSim")]],P.is===1?1:0,x=>({k:"set",is:x})),seg3(t("imCount"),[[1,"1"],[2,"2"]],P.in===2?2:1,x=>({k:"set",in:x})),el("p","pnote",t("imHelp")));
   box.append(seg3(t("chat"),[[1,t("chatOn")],[0,t("chatQuick")]],P.ch===0?0:1,x=>({k:"set",ch:x})));
   const go=el("button","pbtn pink",t("start")+" · "+t(g));go.type="button";go.onclick=()=>{hostCmd({k:"start"});go.disabled=true;setTimeout(()=>go.disabled=false,4000)};box.append(go);
   if(others.length){const g=el("div","hg");g.append(el("span","lbl3",t("passHost")));const sg=el("div","seg3");
@@ -672,9 +720,9 @@ function phoneFollow(){
     setTimeout(()=>{location.href=(lang==="ar"?"/ar":"")+"/harf/#room="+code},400);
     return;
   }
-  const game=P.st==="game"&&P.gm&&typeof P.gm==="object"&&(P.gm.k==="tr"||P.gm.k==="hm"||P.gm.k==="bl"),pg=$("#phGame"),pc=$("#phCard");
+  const game=P.st==="game"&&P.gm&&typeof P.gm==="object"&&(P.gm.k==="tr"||P.gm.k==="hm"||P.gm.k==="bl"||P.gm.k==="im"),pg=$("#phGame"),pc=$("#phCard");
   if(pg&&pc&&pg.hidden===!!game){pg.hidden=!game;pc.hidden=!!game;phKey=""}
-  if(game){if(st)st.textContent=t(P.gm.k==="tr"?"trivia":P.gm.k==="hm"?"hangman":"bluff");drawPhGame();return}
+  if(game){if(st)st.textContent=t(P.gm.k==="tr"?"trivia":P.gm.k==="hm"?"hangman":P.gm.k==="im"?"imposter":"bluff");drawPhGame();return}
   if(st)st.textContent=t("inLobby");
 }
 function drawPhone(){
@@ -918,11 +966,11 @@ function hmTick(){
   if(ch){pushTv();gKey=""}
 }
 const hmGm=()=>hg?{k:"hm",r:hg.r,ph:hg.ph,at:hg.at,end:hg.end,lg:hg.lg,c:hg.c,w:hg.w,cl:hg.cl,m:hg.m}:{k:"hm",ph:"load"};
-const gameGm=()=>tvMode==="trivia"?trGm():tvMode==="hangman"?hmGm():tvMode==="bluff"?blGm():null;
+const gameGm=()=>tvMode==="trivia"?trGm():tvMode==="hangman"?hmGm():tvMode==="bluff"?blGm():tvMode==="imposter"?imGm():null;
 // this round's points per player, sent with each answer reveal and the results
-const gameRp=()=>{const ph=tvMode==="trivia"?tg&&tg.ph:tvMode==="bluff"?bg&&bg.ph:hg&&hg.ph;if(ph!=="res"&&ph!=="rev"&&ph!=="show")return null;const o={};for(const id of Object.keys(gRound))o[id]=gRound[id].reduce((a,b)=>a+(b||0),0);return o};
-setInterval(()=>{if(role!=="tv")return;if(tvMode==="trivia")trTick();else if(tvMode==="hangman")hmTick();else if(tvMode==="bluff")blTick();else return;drawGameLive()},200);
-function gameNext(){if(tvMode==="trivia"&&(!tg||tg.ph==="res"))trNext();else if(tvMode==="hangman"&&(!hg||hg.ph==="res"))hmNext();else if(tvMode==="bluff"&&(!bg||bg.ph==="res"))blNext()}
+const gameRp=()=>{const ph=tvMode==="trivia"?tg&&tg.ph:tvMode==="bluff"?bg&&bg.ph:tvMode==="imposter"?im&&im.ph:hg&&hg.ph;if(ph!=="res"&&ph!=="rev"&&ph!=="show")return null;const o={};for(const id of Object.keys(gRound))o[id]=gRound[id].reduce((a,b)=>a+(b||0),0);return o};
+setInterval(()=>{if(role!=="tv")return;if(tvMode==="trivia")trTick();else if(tvMode==="hangman")hmTick();else if(tvMode==="bluff")blTick();else if(tvMode==="imposter")imTick();else return;drawGameLive()},200);
+function gameNext(){if(tvMode==="trivia"&&(!tg||tg.ph==="res"))trNext();else if(tvMode==="hangman"&&(!hg||hg.ph==="res"))hmNext();else if(tvMode==="bluff"&&(!bg||bg.ph==="res"))blNext();else if(tvMode==="imposter"){if(im&&im.ph==="talk"){im.ph="vote";im.end=Rush.now()+IM.VOTE_MS;im.fast=0;pushTv();gKey=""}else if(!im||im.ph==="res")imNext()}}
 
 /* ---------- Bluff Rush on the big screen ----------
    A round is three strange-but-true facts with a blank. For each: everyone writes a fake answer on their phone (bl.w),
@@ -1010,6 +1058,104 @@ const blName=id=>{const p=players().find(p=>pid(p)===id);return p?shownName(p.pr
 // the fact with its blank; the truth fills the blank once it's revealed
 function blText(cls,q,lg,fill){const d=el("div",cls);d.dir="auto";String(q.q[blL(lg)]||"").split("____").forEach((part,k)=>{if(k)d.append(fill?el("span","blank fill",fill):el("span","blank"));d.append(document.createTextNode(part))});return d}
 
+/* ---------- Imposter Rush (برّا السالفة) on the big screen ----------
+   A round is one secret word. Each phone learns its card in a private message from this screen (never in presence,
+   which every phone can read): the word, or for the imposter only the category (or, as an option, a different word
+   from the same category, so they don't know). Then one-word clues: in turns (an imposter goes first only half as
+   often as anywhere else, so going first never proves anything), round 1 optionally all at once, round 2 in the
+   reverse order. Then a talk, a vote, and a caught imposter's one guess at the word from 8.
+   Phones send ia (round whose card they have), ic {r, c: {1: clue, 2: clue}}, iv {r, v: player id}, ig {r, g: option}. */
+const IM=R.IMPOSTER;
+let IC=null,IC_LOAD=null;
+function loadImp(){
+  if(IC)return Promise.resolve(IC);
+  if(!IC_LOAD)IC_LOAD=fetch("/party/imposter.json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("imposter "+r.status);return r.json()})
+    .then(b=>{IC=(b.c||[]).filter(c=>Array.isArray(c.w)&&c.w.length>=IM.GUESS_OPTS);if(!IC.length)throw new Error("no categories");return IC}).catch(e=>{IC_LOAD=null;throw e});
+  return IC_LOAD;
+}
+let im=null,imR=0;const imUsed=new Set();
+// im: {r, cat, wi, fake, imps, order, lg, n2, all, ph: role|all|clue|talk|vote|caught|guess|res, end, cr, t, cl: {id: [clue1, clue2]}, votes, caught, go, goIdx, gs, out, sent, fast, few}
+async function imEnter(){gTot={};gRound={};im=null;draw();
+  try{await loadImp()}catch(e){tvErr=t("noBank");backToLobby();return}
+  imNext()}
+const imP=id=>players().find(p=>pid(p)===id)||null;
+function imNext(){
+  if(!IC)return;const ps=players();
+  if(ps.length<3){if(im){im.few=1;pushTv();gKey=""}return}
+  const cat=pickOf(IC);let idx=cat.w.map((x,i)=>i).filter(i=>!imUsed.has(cat.k+":"+i));if(!idx.length)idx=cat.w.map((x,i)=>i);
+  const wi=pickOf(idx);imUsed.add(cat.k+":"+wi);
+  const ids=ps.map(pid),nImp=tvGame.in===2&&ids.length>=IM.TWO_MIN?2:1,imps=shuf(ids.slice()).slice(0,nImp);
+  const order=shuf(ids.slice());
+  if(imps.includes(order[0])&&Math.random()<.5){const ok=order.map((x,i)=>i).filter(i=>i>0&&!imps.includes(order[i]));if(ok.length){const j=pickOf(ok);[order[0],order[j]]=[order[j],order[0]]}}
+  const fake=tvGame.is?pickOf(cat.w.map((x,i)=>i).filter(i=>i!==wi)):-1,now=Rush.now();
+  im={r:++imR,cat,wi,fake,imps,order,lg:tvGame.lg,n2:tvGame.i2,all:tvGame.ia,ph:"role",end:now+IM.ROLE_MS,cr:1,t:0,cl:{},votes:{},caught:"",go:null,goIdx:null,gs:-1,out:"",sent:{},fast:0,few:0};
+  gRound={};imSendCards();pushTv();gKey="";drawGameLive();
+}
+// each player's card, privately; sent again every 2 s until their phone says it has it (a reload loses it)
+function imSendCards(){
+  if(!im||!pApi||!pApi.sendTo)return;const now=Date.now();
+  for(const id of im.order){const p=imP(id);if(!p||num(p.presence.ia)===im.r||now-(im.sent[id]||0)<2000)continue;im.sent[id]=now;
+    const imp=im.imps.includes(id),w=imp?(im.fake>=0?im.cat.w[im.fake]:null):im.cat.w[im.wi];
+    pApi.sendTo(p.peer,{k:"im",r:im.r,w,c:[im.cat.en,im.cat.ar],imp:imp&&im.fake<0?1:0})}
+}
+const imOrd=()=>im.cr===2?im.order.slice().reverse():im.order;
+function imSet(id,cr,c){(im.cl[id]||(im.cl[id]=["",""]))[cr-1]=c}
+// a player's clue for clue round cr, if it's allowed: one or two clean words, not a clue already given
+function imClue(p,cr){const c=p&&p.presence.ic;if(!im||!c||typeof c!=="object"||num(c.r)!==im.r||!c.c||typeof c.c!=="object")return "";
+  const v=R.imposterClue(c.c[cr]);if(!v)return "";
+  return dupClue(v,pid(p),cr)?"":v}
+function dupClue(v,me,cr){for(const id of Object.keys(im.cl))for(let k=0;k<2;k++){const x=im.cl[id][k];if(x&&!(id===me&&k===cr-1)&&R.bluffSame(x,v))return true}return false}
+function imVote(p){const v=p&&p.presence.iv;if(!im||!v||typeof v!=="object"||num(v.r)!==im.r||typeof v.v!=="string")return "";return v.v!==pid(p)&&im.order.includes(v.v)?v.v:""}
+function imDone(p){if(!im)return false;const id=pid(p);if(!im.order.includes(id))return false;
+  return im.ph==="role"?num(p.presence.ia)===im.r:im.ph==="all"?!!imClue(p,1):im.ph==="vote"?!!imVote(p):false}
+function imAfterClues(now){if(im.cr<im.n2){im.cr++;im.t=0;im.ph="clue";im.end=now+IM.TURN_MS}else{im.ph="talk";im.end=now+IM.TALK_MS}}
+function imAdvance(now){im.t++;if(im.t>=im.order.length)imAfterClues(now);else im.end=now+IM.TURN_MS}
+function imTally(){
+  const n={};im.votes={};
+  for(const id of im.order){const v=imVote(imP(id));if(v){im.votes[id]=v;n[v]=(n[v]||0)+1}}
+  const top=Math.max(0,...Object.values(n)),best=Object.keys(n).filter(k=>n[k]===top);
+  im.caught=top>0&&best.length===1?best[0]:"";
+}
+function imFinish(){
+  const pts={},add=(id,v)=>{pts[id]=(pts[id]||0)+v},cImp=!!im.caught&&im.imps.includes(im.caught);
+  if(!cImp){im.out="escape";im.imps.forEach(id=>add(id,IM.ESCAPE_PTS))}
+  else if(im.gs>=0&&im.goIdx[im.gs]===im.wi){im.out="steal";im.imps.forEach(id=>add(id,IM.STEAL_PTS))}
+  else{im.out="caught";for(const [v,tg2] of Object.entries(im.votes))if(tg2===im.caught&&!im.imps.includes(v))add(v,IM.CATCH_PTS);im.imps.filter(id=>id!==im.caught).forEach(id=>add(id,IM.SURVIVE_PTS))}
+  for(const id of im.order)gRound[id]=[pts[id]||0];
+  for(const id of Object.keys(pts))gTot[id]=(gTot[id]||0)+pts[id];
+  im.ph="res";
+}
+function imTick(){
+  if(!im||im.ph==="res")return;const now=Rush.now();let ch=false;
+  for(const p of players())blNames[pid(p)]=shownName(p.presence.n);
+  imSendCards();
+  const here=id=>!!imP(id);
+  if(im.ph==="role"){if(now>=im.end){if(im.all){im.ph="all";im.end=now+IM.ALL_MS}else{im.ph="clue";im.t=0;im.end=now+IM.TURN_MS}im.fast=0;ch=true}}
+  else if(im.ph==="all"){const live=im.order.filter(here);
+    if(!im.fast&&live.length&&live.every(id=>imClue(imP(id),1))){im.fast=1;im.end=Math.min(im.end,now+IM.FAST_MS);ch=true}
+    if(now>=im.end){for(const id of im.order)imSet(id,1,imClue(imP(id),1));imAfterClues(now);ch=true}}
+  else if(im.ph==="clue"){const id=imOrd()[im.t],c=imClue(imP(id),im.cr);
+    if(c||!here(id)||now>=im.end){imSet(id,im.cr,c);imAdvance(now);ch=true}}
+  else if(im.ph==="talk"){if(now>=im.end){im.ph="vote";im.end=now+IM.VOTE_MS;im.fast=0;ch=true}}
+  else if(im.ph==="vote"){const live=im.order.filter(here);
+    if(!im.fast&&live.length&&live.every(id=>imVote(imP(id)))){im.fast=1;im.end=Math.min(im.end,now+IM.FAST_MS);ch=true}
+    if(now>=im.end){imTally();im.ph="caught";im.end=now+IM.CAUGHT_MS;ch=true}}
+  else if(im.ph==="caught"){if(now>=im.end){
+      if(im.caught&&im.imps.includes(im.caught)){const others=shuf(im.cat.w.map((x,i)=>i).filter(i=>i!==im.wi)).slice(0,IM.GUESS_OPTS-1);
+        im.goIdx=shuf([im.wi].concat(others));im.go=im.goIdx.map(i=>im.cat.w[i]);im.ph="guess";im.end=now+IM.GUESS_MS}
+      else imFinish();
+      ch=true}}
+  else if(im.ph==="guess"){const p=imP(im.caught),g=p&&p.presence.ig&&num(p.presence.ig.r)===im.r?p.presence.ig.g:-1;
+    if(Number.isInteger(g)&&g>=0&&g<im.go.length){im.gs=g;imFinish();ch=true}else if(now>=im.end||!p){imFinish();ch=true}}
+  if(ch){pushTv();gKey=""}
+}
+// what every phone may know: never who the imposter is or the word until the end (the caught player's role shows after the vote)
+const imGm=()=>{if(!im)return{k:"im",ph:"load"};const after=["caught","guess","res"].includes(im.ph),end=im.ph==="res";
+  return{k:"im",r:im.r,ph:im.ph,end:im.end,lg:im.lg,c:[im.cat.en,im.cat.ar],n2:im.n2,cr:im.cr,t:im.t,ord:imOrd(),order:im.order,few:im.few||0,
+    cl:im.cl,vd:im.ph==="vote"?im.order.filter(id=>imVote(imP(id))):null,vt:after?im.votes:null,ca:after?im.caught:null,ci:after?(im.caught&&im.imps.includes(im.caught)?1:0):null,
+    go:im.ph==="guess"||end?im.go:null,imps:end?im.imps:null,w:end?im.cat.w[im.wi]:null,fw:end&&im.fake>=0?im.cat.w[im.fake]:null,gs:end?im.gs:null,out:end?im.out:null}};
+const wordIn=(w,lg)=>w?w[lg==="ar"?1:0]:"";
+
 /* ---------- drawing the big screen ---------- */
 let gKey="",gSideKey="",gFootKey="";
 function drawGame(){
@@ -1037,20 +1183,21 @@ function drawGameLive(){
   const center=$("#gCenter");if(!center)return;
   const now=Rush.now(),rows=rankRows(),rl=$("#gRound");
   const hfEl=center.closest(".hf");if(hfEl)hfEl.classList.toggle("many",rows.length>7);
-  if(tvMode==="trivia")drawTrCenter(center,now,rows,rl);else if(tvMode==="bluff")drawBlCenter(center,now,rows,rl);else drawHmCenter(center,now,rows,rl);
+  if(tvMode==="trivia")drawTrCenter(center,now,rows,rl);else if(tvMode==="bluff")drawBlCenter(center,now,rows,rl);else if(tvMode==="imposter")drawImCenter(center,now,rows,rl);else drawHmCenter(center,now,rows,rl);
   // players: live progress during a question or a word, scores otherwise
-  const side=$("#gSide"),live=tvMode==="trivia"?tg&&tg.ph==="q":tvMode==="bluff"?bg&&(bg.ph==="write"||bg.ph==="pick"):hg&&hg.ph==="play";
-  const prog=r=>tvMode==="trivia"?(trAns(r.p,tg.i)?"✓":""):tvMode==="bluff"?((bg.ph==="write"?blFake(r.p):blPickOf(r.p)>=0)?"✓":""):(()=>{const s=hmPlayer(r.p);return s.solved?"✓":s.out?"✗":s.hit+"/"+s.need})();
+  const side=$("#gSide"),live=tvMode==="trivia"?tg&&tg.ph==="q":tvMode==="bluff"?bg&&(bg.ph==="write"||bg.ph==="pick"):tvMode==="imposter"?im&&["role","all","vote"].includes(im.ph):hg&&hg.ph==="play";
+  const prog=r=>tvMode==="trivia"?(trAns(r.p,tg.i)?"✓":""):tvMode==="bluff"?((bg.ph==="write"?blFake(r.p):blPickOf(r.p)>=0)?"✓":""):tvMode==="imposter"?(imDone(r.p)?"✓":""):(()=>{const s=hmPlayer(r.p);return s.solved?"✓":s.out?"✗":s.hit+"/"+s.need})();
   const skey=JSON.stringify([lang,cap,live,rows.map(r=>[r.id,r.n,r.c,r.s,live?prog(r):""])]);
   if(side&&skey!==gSideKey){gSideKey=skey;side.textContent="";
     rows.forEach((r,i)=>{const row=el("div","prow"+(!live&&i===0&&r.s>0?" lead":""));row.append(blob(r.c),el("b",null,(r.id===cap?"👑 ":"")+r.n));
       if(live){const v=prog(r);row.append(el("span","st"+(v==="✓"?" done":""),v))}else row.append(el("span","sc ltrx",String(r.s)));side.append(row)});
     if(!rows.length)side.append(el("p","pnote",t("noPlayers")))}
   // foot: next round after the results, back to the lobby
-  const foot=$("#gFoot"),res=tvMode==="trivia"?tg&&tg.ph==="res":tvMode==="bluff"?bg&&bg.ph==="res":hg&&hg.ph==="res";
-  const fkey=lang+"|"+res;
+  const foot=$("#gFoot"),res=tvMode==="trivia"?tg&&tg.ph==="res":tvMode==="bluff"?bg&&bg.ph==="res":tvMode==="imposter"?im&&im.ph==="res":hg&&hg.ph==="res",talk=tvMode==="imposter"&&im&&im.ph==="talk";
+  const fkey=lang+"|"+res+"|"+talk;
   if(foot&&fkey!==gFootKey){gFootKey=fkey;foot.textContent="";
-    if(res){foot.append(el("span","nx",t("hostNext")));const nb=el("button","pbtn",t("nextNow"));nb.type="button";nb.onclick=gameNext;foot.append(nb)}else foot.append(el("span","nx"));
+    if(res){foot.append(el("span","nx",t("hostNext")));const nb=el("button","pbtn",t("nextNow"));nb.type="button";nb.onclick=gameNext;foot.append(nb)}
+    else if(talk){foot.append(el("span","nx"));const nb=el("button","pbtn pink",t("imVoteNow"));nb.type="button";nb.onclick=gameNext;foot.append(nb)}else foot.append(el("span","nx"));
     const lb=el("button","pbtn ghost",t("lobby"));lb.type="button";lb.onclick=backToLobby;foot.append(lb)}
 }
 function drawTrCenter(center,now,rows,rl){
@@ -1135,9 +1282,54 @@ function drawBlCenter(center,now,rows,rl){
   else if(bg.ph==="count"){const s=$("#gSecs");if(s)s.textContent=String(Math.max(0,Math.ceil((bg.end-now)/1000)))}
 }
 
+// the clue board: every player in turn order with their clues so far (hidden while everyone writes at once)
+function imBoard(g,opt){
+  const b=el("div","imboard"),cl=g.cl&&typeof g.cl==="object"?g.cl:{},ord=Array.isArray(g.order)?g.order:[],two=num(g.n2)===2;
+  const cur=g.ph==="clue"&&Array.isArray(g.ord)?g.ord[num(g.t)]:"";
+  ord.forEach(id=>{const p=imP(id),row=el("div","imrow"+(two?"":" one")+(id===cur?" now":"")+(opt&&opt.imps&&opt.imps.includes(id)?" imp":""));
+    row.append(blob(p?R.safeColor(p.presence.c):"#999"),el("b",null,blName(id)));
+    for(let k=0;k<(two?2:1);k++){const c=(cl[id]||[])[k],done=g.ph==="all"&&k===0;
+      const box=el("span","cl"+(c?"":" no"),c||(id===cur&&num(g.cr)===k+1?"…":(c===""&&(num(g.cr)>k+1||["talk","vote","caught","guess","res"].includes(g.ph))?t("imSkip"):"")));box.dir="auto";
+      if(opt&&opt.votes){const n=Object.entries(opt.votes).filter(([v,x])=>x===id).map(([v])=>blName(v));if(k===(two?1:0)&&n.length)box.append(el("span","vt"," · 🗳 "+n.join(", ")))}
+      row.append(box)}
+    b.append(row)});
+  return b;
+}
+function drawImCenter(center,now,rows,rl){
+  if(rl)rl.textContent=im?t("round",{r:im.r})+" · "+t("imposter"):t("imposter");
+  if(!im){const key="load|"+lang;if(key!==gKey){gKey=key;center.textContent="";center.append(el("div","bigmsg",t("loadingQ")))}return}
+  const g=imGm(),act=im.order.filter(id=>imP(id)),cat=wordIn(g.c,lang);
+  const nDone=im.ph==="role"||im.ph==="all"||im.ph==="vote"?act.filter(id=>imDone(imP(id))).length:0;
+  const key=[im.r,im.ph,im.cr,im.t,lang,nDone+"/"+act.length,im.few,JSON.stringify(im.cl),im.ph==="res"?JSON.stringify(rows.map(r=>[r.id,r.s,r.rp])):""].join("|");
+  if(key!==gKey){gKey=key;center.textContent="";
+    const timer=total=>{tvTimer(center,im.end-now,total)};
+    if(im.ph==="role"){center.append(el("div","imbig",t("imCheck")),el("div","imcat",cat));if(im.r===1)center.append(el("p","pnote",t("imRules")));timer(IM.ROLE_MS)}
+    else if(im.ph==="all"){center.append(el("div","imcat",cat),el("p","bltell",t("imAllTv")),imBoard(g));timer(IM.ALL_MS);center.append(el("p","pnote",t("imWritten",{n:nDone,m:act.length})))}
+    else if(im.ph==="clue"){center.append(el("div","imcat",cat),el("p","bltell",t("imClueRound",{r:im.cr})+" · "+t("imTurn",{n:blName(imOrd()[im.t])})),imBoard(g));timer(IM.TURN_MS)}
+    else if(im.ph==="talk"){center.append(el("div","imcat",cat),el("div","bigmsg",t("imTalk")),imBoard(g));timer(IM.TALK_MS)}
+    else if(im.ph==="vote"){center.append(el("div","bigmsg",t("imVoteTv")),imBoard(g));timer(IM.VOTE_MS);center.append(el("p","pnote",t("imVoted",{n:nDone,m:act.length})))}
+    else if(im.ph==="caught"){center.append(imBoard(g,{votes:im.votes}));
+      center.append(el("div","imbig",!im.caught?t("imTie"):im.imps.includes(im.caught)?t("imWas",{n:blName(im.caught)}):t("imWasNot",{n:blName(im.caught)})))}
+    else if(im.ph==="guess"){center.append(el("div","bigmsg",t("imGuessing",{n:blName(im.caught)})),el("div","imcat",cat));
+      const gr=el("div","agrid bl many");im.go.forEach((w,k)=>{const tl=el("div","atile c"+(k%4));tl.append(el("span","ab",String(k+1)));const tx=el("span",null,wordIn(w,im.lg));tx.dir="auto";tl.append(tx);gr.append(tl)});center.append(gr);timer(IM.GUESS_MS)}
+    else{ // res
+      if(im.few)center.append(el("p","pwarn",t("imNeed3")));
+      center.append(el("div","pnote",t("imWordWas")+" · "+cat),el("div","imbig",wordIn(im.cat.w[im.wi],im.lg)));
+      const who=im.imps.map(blName).join(" · ");center.append(el("div","bigmsg",t(im.imps.length>1?"imImpsWas":"imImpWas")+" "+who+(im.fake>=0?" "+t("imHad",{w:wordIn(im.cat.w[im.fake],im.lg)}):"")));
+      if(im.go)center.append(el("p","pnote",im.gs>=0?t("imGuessed",{w:wordIn(im.go[im.gs],im.lg)}):t("imNoGuess")));
+      center.append(el("div","bltell",im.out==="escape"?t("imOutEscape",{p:IM.ESCAPE_PTS}):im.out==="steal"?t("imOutSteal",{p:IM.STEAL_PTS}):t("imOutCaught",{p:IM.CATCH_PTS})));
+      const tb=el("div","tres");rows.forEach((r,i)=>{const row=el("div","trow"+(i===0&&r.s>0?" lead":""));row.append(el("span","ltrx","#"+(i+1)),blob(r.c),el("b",null,(im.imps.includes(r.id)?"🤫 ":"")+r.n),el("span","rp ltrx","+"+r.rp),el("span","tt ltrx",String(r.s)));tb.append(row)});center.append(tb)}
+  }
+  if(["role","all","clue","talk","vote","guess"].includes(im.ph)){const tot={role:IM.ROLE_MS,all:IM.ALL_MS,clue:IM.TURN_MS,talk:IM.TALK_MS,vote:IM.VOTE_MS,guess:IM.GUESS_MS}[im.ph];tvTimerSet(im.end-now,tot)}
+}
+
 /* ---------- phones: answer pad and keyboard ---------- */
 let myTpv={r:0,k:""},myTa={r:0,a:{}},myHg={r:0,g:"",t:0},phKey="";
-let myBl={r:0,i:0,w:"",p:-1},blDraft="",blMsg=""; // this phone's Bluff Rush lie and pick for the current fact
+let myBl={r:0,i:0,w:"",p:-1},blDraft="",blMsg="";
+let myIm={r:0,w:null,c:null,imp:0},myIc={r:0,c:{}},myIv={r:0,v:""},myIg={r:0,g:-1},imDraft="",imMsg="",imHidden=false; // Imposter Rush: this phone's card, clues, vote, guess
+// the card comes privately from the big screen (only from the peer that is the TV)
+function imOnMessage(from,data){const tv=tvPeer();if(!tv||from!==tv.peer||!data||data.k!=="im"||!Number.isInteger(data.r))return;
+  myIm={r:data.r,w:Array.isArray(data.w)?data.w:null,c:Array.isArray(data.c)?data.c:null,imp:data.imp?1:0};imHidden=false;send();phKey="";if(role==="phone")drawPhGame()} // this phone's Bluff Rush lie and pick for the current fact
 function trAnswer(slot){
   const tv=tvPeer(),g=tv&&tv.presence.gm;if(!g||g.k!=="tr"||g.ph!=="q"||Rush.now()>num(g.end))return;
   if(myTa.r!==num(g.r))myTa={r:num(g.r),a:{}};if(myTa.a[g.i])return;
@@ -1161,6 +1353,7 @@ function drawPhGame(){
   const now=Rush.now(),T=tv.presence.tot&&typeof tv.presence.tot==="object"?tv.presence.tot:{},mine=num(T[Rush.uid]);
   const scoreLine=()=>el("p","pnote",t("myScore",{s:mine}));
   if(g.k==="bl")return drawPhBluff(box,tv,g,now,mine,scoreLine);
+  if(g.k==="im")return drawPhImp(box,tv,g,now,mine,scoreLine);
   if(g.k==="tr"){
     const q=g.ph==="load"?null:qById(g.id);
     if(!q&&g.ph!=="load"&&g.ph!=="res"&&!QB)loadBank().then(()=>{phKey="";drawPhGame()}).catch(()=>{});
@@ -1258,6 +1451,70 @@ function drawPhBluff(box,tv,g,now,mine,scoreLine){
   }
   const bar=$("#blBar");if(bar)bar.firstChild.style.width=Math.max(0,100*left/(g.ph==="write"?BL.WRITE_MS:BL.PICK_MS))+"%";
 }
+/* Imposter Rush on a phone */
+function imSendClue(v,g,cr){
+  const c=R.imposterClue(v);if(!c){imMsg=t("imBadClue");phKey="";return}
+  if(myIm.w&&!myIm.imp&&myIm.w.some(w=>R.bluffSame(w,c)||(R.bluffKey(w).length>=4&&R.bluffKey(c).includes(R.bluffKey(w))))){imMsg=t("imNoWord");phKey="";return}
+  const cl=g.cl&&typeof g.cl==="object"?g.cl:{};
+  if(Object.keys(cl).some(id=>(cl[id]||[]).some(x=>x&&R.bluffSame(x,c)))){imMsg=t("imDup");phKey="";return}
+  if(myIc.r!==num(g.r))myIc={r:num(g.r),c:{}};myIc.c=Object.assign({},myIc.c,{[cr]:c});imMsg="";imDraft="";send();phKey="";
+}
+function drawPhImp(box,tv,g,now,mine,scoreLine){
+  if(g.ph==="load"){box.textContent="";box.append(el("div","pbig",t("get")));phKey="";return}
+  const r=num(g.r),me=Rush.uid,inRound=Array.isArray(g.order)&&g.order.includes(me),ord=Array.isArray(g.ord)?g.ord:[],cl=g.cl&&typeof g.cl==="object"?g.cl:{};
+  if(myIc.r!==r){myIc={r,c:{}};imDraft="";imMsg=""}if(myIv.r!==r)myIv={r,v:""};if(myIg.r!==r)myIg={r,g:-1};
+  const cr=num(g.cr),myTurn=g.ph==="clue"&&ord[num(g.t)]===me,writing=inRound&&((g.ph==="all"&&!myIc.c[1])||(myTurn&&!myIc.c[cr]));
+  const left=Math.max(0,num(g.end)-now),haveCard=myIm.r===r;
+  // a clue still being typed when the time is nearly up goes in by itself
+  if(writing&&imDraft.trim()&&left<1200)imSendClue(imDraft,g,g.ph==="all"?1:cr);
+  const key=["im",r,g.ph,cr,num(g.t),lang,mine,haveCard,imHidden,JSON.stringify(myIc.c),myIv.v,myIg.g,imMsg,JSON.stringify(cl),g.ca||"",g.go?1:0,JSON.stringify(g.vd||[])].join("|");
+  if(key!==phKey){phKey=key;box.textContent="";
+    const lg=g.lg==="ar"?1:0;
+    if(!inRound){box.append(el("p","pbig",t("imNextRound")),el("p","pnote",t("lookTv")),scoreLine());return}
+    // my card (tap to hide or show again)
+    if(g.ph!=="res"){
+      if(!haveCard)box.append(el("div","imcard",t("imWait")));
+      else if(imHidden){const b=el("button","pbtn ghost",t("imShow"));b.type="button";b.onclick=()=>{imHidden=false;phKey="";drawPhGame()};box.append(b)}
+      else{const c=el("div","imcard"+(myIm.imp?" imp":""));
+        if(myIm.imp){c.append(el("b",null,t("imYouImp")),el("div","w",t("imCatIs",{c:wordIn(myIm.c,lang)})),el("small",null,t("imBlend")))}
+        else{c.append(el("small",null,t("imYourWord")),el("div","w",myIm.w?myIm.w[lg]:"?"),el("small",null,t("imCatIs",{c:wordIn(myIm.c,lang)})))}
+        const h=el("button","pbtn ghost",t("imHide"));h.type="button";h.style.cssText="min-height:40px;font-size:15px;justify-self:center;color:var(--pdark);background:#EFEAFF";h.onclick=()=>{imHidden=true;phKey="";drawPhGame()};c.append(h);box.append(c)}}
+    // the clues so far
+    const clues=()=>{const d=el("div","pcl");(Array.isArray(g.order)?g.order:[]).forEach(id=>{const x=(cl[id]||[]).filter(Boolean).join(" · "),row=el("div",ord[num(g.t)]===id&&g.ph==="clue"?"now":null);
+      row.append(el("span",null,blName(id)));const c=el("span",null,g.ph==="all"&&id!==me?"":x);c.dir="auto";row.append(c);d.append(row)});return d};
+    if(g.ph==="role"){box.append(el("p","pnote",t("lookTv")),scoreLine());return}
+    if(g.ph==="all"||g.ph==="clue"){
+      if(writing){const f=el("div","pfake"),row=el("div","row"),inp=el("input","pin");inp.id="imIn";inp.maxLength=IM.CLUE_MAX;inp.placeholder=t("imCluePh");inp.value=imDraft;inp.autocomplete="off";inp.dir="auto";inp.lang=g.lg;inp.enterKeyHint="send";
+        inp.setAttribute("aria-label",t("imCluePh"));inp.oninput=()=>{imDraft=inp.value;if(imMsg){imMsg="";const m=$("#imMsg");if(m)m.textContent=""}};
+        const sb=el("button","pbtn pink",t("imSendClue"));sb.type="button";const go=()=>{imSendClue(inp.value,g,g.ph==="all"?1:cr);drawPhGame()};sb.onclick=go;inp.addEventListener("keydown",e=>{if(e.key==="Enter")go()});
+        row.append(inp,sb);const m=el("p","pmsg",imMsg);m.id="imMsg";m.setAttribute("aria-live","polite");
+        f.append(el("p","pbig",t("imYourTurn")),row,m);const tb=el("div","ptimer"),ti=el("i");tb.id="imBar";tb.append(ti);f.append(tb);box.append(f);
+        setTimeout(()=>{const i=$("#imIn");if(i&&document.activeElement!==i)try{i.focus()}catch(e){}},30)}
+      else if(g.ph==="clue")box.append(el("p","pbig",t("imTurn",{n:blName(ord[num(g.t)])})));
+      else box.append(el("p","pbig",t("imClueIn")+" "+(myIc.c[1]||"")),el("p","pnote",t("blWait")));
+      box.append(clues(),scoreLine());return}
+    if(g.ph==="talk"){box.append(el("p","pbig",t("imTalk")),clues(),scoreLine());return}
+    if(g.ph==="vote"){box.append(el("p","pbig",t("imPickImp")));const list=el("div","pans");
+      g.order.filter(id=>id!==me).forEach((id,k)=>{const b=el("button","c"+(k%4));b.type="button";b.append(el("span","ab",String(k+1)),el("span",null,blName(id)));
+        if(myIv.v){b.disabled=true;if(myIv.v===id)b.classList.add("pick")}b.onclick=()=>{if(myIv.v)return;myIv={r,v:id};send();phKey="";drawPhGame()};list.append(b)});
+      box.append(list);if(myIv.v)box.append(el("p","pbig",t("locked")));box.append(clues(),scoreLine());return}
+    if(g.ph==="caught"){box.append(el("p","pbig",!g.ca?t("imTie"):g.ci?t("imWas",{n:blName(g.ca)}):t("imWasNot",{n:blName(g.ca)})),scoreLine());return}
+    if(g.ph==="guess"){
+      if(g.ca===me&&Array.isArray(g.go)){box.append(el("p","pbig",t("imYouCaught")));const list=el("div","pans");
+        g.go.forEach((w,k)=>{const b=el("button","c"+(k%4));b.type="button";b.append(el("span","ab",String(k+1)));const tx=el("span",null,wordIn(w,g.lg));tx.dir="auto";b.append(tx);
+          if(myIg.g>=0){b.disabled=true;if(myIg.g===k)b.classList.add("pick")}b.onclick=()=>{if(myIg.g>=0)return;myIg={r,g:k};send();phKey="";drawPhGame()};list.append(b)});
+        box.append(list);const tb=el("div","ptimer"),ti=el("i");tb.id="imBar";tb.append(ti);box.append(tb)}
+      else box.append(el("p","pbig",t("imGuessing",{n:blName(g.ca)})),el("p","pnote",t("lookTv")));
+      box.append(scoreLine());return}
+    // results
+    const imps=Array.isArray(g.imps)?g.imps:[],wasImp=imps.includes(me),rp=gRoundPhone(tv)[me];
+    box.append(el("p","pnote",t("imWordWas")),el("div","imcard",wordIn(g.w,g.lg)));
+    if(wasImp)box.append(el("p","pbig",t("imYouWere")),el("p","pbig",g.out==="escape"?t("imYouGot",{p:IM.ESCAPE_PTS}):g.out==="steal"?t("imYouStole",{p:IM.STEAL_PTS}):t("imYouLost")));
+    else box.append(el("p","pbig",t(imps.length>1?"imImpsWas":"imImpWas")+" "+imps.map(blName).join(" · ")),el("p","pbig",g.out==="caught"&&rp?t("imCrewWon",{p:rp}):g.out==="caught"?t("imOutCaught",{p:IM.CATCH_PTS}):t("imCrewMissed")));
+    if(rp!=null)box.append(el("p","pnote",t("thisRound",{p:rp})));box.append(scoreLine());
+  }
+  const bar=$("#imBar");if(bar)bar.firstChild.style.width=Math.max(0,100*left/({all:IM.ALL_MS,clue:IM.TURN_MS,guess:IM.GUESS_MS}[g.ph]||1))+"%";
+}
 // this round's points per player, which the big screen sends with the results (rp)
 function gRoundPhone(tv){const r=tv.presence.rp;return r&&typeof r==="object"?r:{}}
 setInterval(()=>{if(role==="phone"&&phoneJoined&&!$("#phGame")?.hidden)drawPhGame()},250);
@@ -1268,12 +1525,13 @@ function tvStart(){
   if(tvGame.g==="trivia"){tvErr="";tvMode="trivia";pushTv();trEnter();return}
   if(tvGame.g==="hangman"){tvErr="";tvMode="hangman";pushTv();draw();hmEnter();return}
   if(tvGame.g==="bluff"){tvErr="";tvMode="bluff";pushTv();blEnter();return}
+  if(tvGame.g==="imposter"){if(players().length<3){tvErr=t("imNeed3");draw();return}tvErr="";tvMode="imposter";pushTv();imEnter();return}
   roomCount++;tvMode="harf";pApi.presence(tvPresence());
   hfEnter();
 }
 function backToLobby(){
   if(hfRound&&hs.vo){for(const k of Object.keys(hs.vo))hfCloseVote(k,true);hfLearn()}
-  hfLeave();tg=null;hg=null;bg=null;tvMode="lobby";pApi&&pApi.presence(tvPresence());draw();
+  hfLeave();tg=null;hg=null;bg=null;im=null;tvMode="lobby";pApi&&pApi.presence(tvPresence());draw();
 }
 
 /* ---------- Harf on the TV: this screen hosts the room and doesn't play ----------

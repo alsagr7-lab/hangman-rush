@@ -49,3 +49,21 @@ test("a player who joins a room again replaces their older place", async () => {
   assert.ok(!b.msgs.some(m => m.code === "replaced") && !c.msgs.some(m => m.code === "replaced"));
   [a, b, c].forEach(s => s.ws.close());
 });
+
+test("a private message reaches only the peer it's for, stamped with who sent it", async () => {
+  const [tv, a, b] = [await open(), await open(), await open()];
+  for (const s of [tv, a, b]) { s.ws.send(JSON.stringify({ t: "join", room: "pt-priv" })); await wait(40); }
+  await wait(150);
+  const peers = tv.msgs.filter(m => m.t === "peers").pop();
+  const aPeer = a.msgs.filter(m => m.t === "peers").pop().me, tvPeer = peers.me;
+  tv.ws.send(JSON.stringify({ t: "to", room: "pt-priv", to: aPeer, data: { k: "im", r: 1, w: ["Messi", "ميسي"] } }));
+  // someone outside the room can't send into it
+  const out = await open(); out.ws.send(JSON.stringify({ t: "to", room: "pt-priv", to: aPeer, data: { k: "im", r: 9 } }));
+  await wait(200);
+  const got = a.msgs.filter(m => m.t === "msg");
+  assert.strictEqual(got.length, 1);
+  assert.strictEqual(got[0].from, tvPeer);
+  assert.deepStrictEqual(got[0].data.w, ["Messi", "ميسي"]);
+  assert.ok(!b.msgs.some(m => m.t === "msg") && !JSON.stringify(b.msgs).includes("Messi"));
+  [tv, a, b, out].forEach(s => s.ws.close());
+});

@@ -65,3 +65,14 @@ test("Bluff Rush: a fake that is the truth is caught, other fakes are not", () =
   const no = [["ten years", "two years", []], ["hats", "cats", []], ["98%", "99.8%", []], ["peacock", "peach", []], ["", "x", []]];
   for (const [f, a, al] of no) assert.ok(!R.bluffIsTrue(f, a, al), f + " should not match " + a);
 });
+
+test("Imposter Rush: every category has enough words in both languages, and clues are one or two clean words", () => {
+  execFileSync(process.execPath, [path.join(ROOT, "scripts", "build-trivia.js")], { stdio: "pipe" });
+  const cats = JSON.parse(fs.readFileSync(path.join(ROOT, "site", "party", "imposter.json"), "utf8")).c;
+  assert.ok(cats.length >= 15, "categories: " + cats.length);
+  for (const c of cats) { assert.ok(c.w.length >= R.IMPOSTER.GUESS_OPTS, c.k); for (const w of c.w) assert.ok(w[0] && /[؀-ۿ]/.test(w[1]), c.k + " " + w[0]); }
+  assert.strictEqual(R.imposterClue("round"), "round");
+  assert.strictEqual(R.imposterClue("  ice cream "), "ice cream");
+  assert.strictEqual(R.imposterClue("a very long clue"), "");
+  assert.strictEqual(R.imposterClue("idiot"), "");
+});

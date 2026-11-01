@@ -99,6 +99,33 @@ const bluff = [];
   console.log(`bluff      ${String(bluff.length).padStart(3)} facts (${bluff.filter(r => r[3] != null).length} in Arabic)`);
 }
 
+// Imposter Rush (party): content/party/imposter.json, categories of secret words: [{k, en, ar, w: [[word en, word ar], ...]}]
+// Every category needs enough words for the imposter's 8-word guess; no word twice in a category.
+const imposter = [];
+{
+  const file = path.join(__dirname, "..", "content", "party", "imposter.json"), ks = new Set();
+  let cats = [];
+  try { cats = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { problems.push(`imposter.json: ${e.message}`); }
+  for (const c of cats) {
+    const where = `imposter.json ${c.k}`;
+    if (!/^[a-z0-9-]{3,24}$/.test(c.k || "") || ks.has(c.k)) problems.push(`${where}: bad or repeated key`);
+    ks.add(c.k);
+    if (typeof c.en !== "string" || typeof c.ar !== "string" || !/[؀-ۿ]/.test(c.ar)) problems.push(`${where}: needs English and Arabic names`);
+    if (!Array.isArray(c.w) || c.w.length < RR.IMPOSTER.GUESS_OPTS) { problems.push(`${where}: needs at least ${RR.IMPOSTER.GUESS_OPTS} words`); continue; }
+    for (const lg of [0, 1]) {
+      const seen = [];
+      for (const w of c.w) {
+        if (!Array.isArray(w) || typeof w[lg] !== "string" || !w[lg].trim() || w[lg].length > 30) { problems.push(`${where}: bad word ${JSON.stringify(w)}`); continue; }
+        if (lg === 1 && !/[؀-ۿ]/.test(w[1])) problems.push(`${where}: ${w[0]} has no Arabic`);
+        if (seen.some(x => RR.bluffSame(x, w[lg]))) problems.push(`${where}: ${w[lg]} twice`);
+        seen.push(w[lg]);
+      }
+    }
+    imposter.push({ k: c.k, en: c.en, ar: c.ar, w: c.w });
+  }
+  console.log(`imposter   ${String(imposter.length).padStart(3)} categories, ${imposter.reduce((a, c) => a + c.w.length, 0)} words`);
+}
+
 const di = process.argv.indexOf("--daily");
 if (di > 0) {
   const file = process.argv[di + 1];
@@ -132,3 +159,6 @@ console.log(`wrote ${path.relative(process.cwd(), pout)}: ${pictures.length} pic
 const bout = path.join(__dirname, "..", "site", "party", "bluff.json");
 fs.writeFileSync(bout, JSON.stringify({ v: 1, q: bluff }));
 console.log(`wrote ${path.relative(process.cwd(), bout)}: ${bluff.length} Bluff Rush facts`);
+const iout = path.join(__dirname, "..", "site", "party", "imposter.json");
+fs.writeFileSync(iout, JSON.stringify({ v: 1, c: imposter }));
+console.log(`wrote ${path.relative(process.cwd(), iout)}: ${imposter.length} Imposter Rush categories`);
