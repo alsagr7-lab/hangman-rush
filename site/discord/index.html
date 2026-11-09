@@ -90,6 +90,9 @@ code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1
     if (!p) return;
     if (ls.get("hr-uid") !== p.uid) { ["hr-me", "hr-acct", "hr-daily", "hr-daily-ar", "hr-cv", "tr-cv"].forEach(k => ls.set(k, null)); }
     ls.set("hr-uid", p.uid); ls.set("hr-token", p.token);
+    // the pages keep the player's name and colour in hr-me; without it they ask for a name again
+    let me = null; try { me = JSON.parse(ls.get("hr-me") || "null"); } catch {}
+    if (p.n && p.n !== "Player" && !(me && me.nick)) ls.set("hr-me", JSON.stringify({ nick: p.n, color: p.c || "#2c56e0" }));
   }
   function save() { ss.set("rush-dc", S); }
 

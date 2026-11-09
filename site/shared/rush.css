@@ -566,3 +566,7 @@ html,body{overflow-x:clip}
 .rush-priv small{font-size:12.5px;color:var(--muted);line-height:1.45}
 .rush-priv small.warn{color:var(--bad,#d93c30);font-weight:700}
 .pview .rush-priv{background:var(--bg)}
+
+/* Inside the Discord Activity (html.in-discord, set in scripts/build-site.js): just the daily and its leaderboard;
+   rooms, practice and past days stay on rushgames.cc */
+.in-discord .card:has(#createBtn), .in-discord .card:has(#archList), .in-discord #roomChip { display: none !important; }
