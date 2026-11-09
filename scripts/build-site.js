@@ -73,9 +73,13 @@ function hangmanWords(read) {
   return `window.HM_WORDS={en:${grab("ROOM_WORDS")},ar:${grab("ROOM_WORDS_AR")}};`;
 }
 
+// Inside the Discord Activity the site is shown at <app id>.discordsays.com, and the game server is reached through
+// the URL mapping "/server" -> api.rushgames.cc (site/discord/ has the details). The hub opens the Activity's menu.
+const DISCORD = `if(/\\.discordsays\\.com$/.test(location.hostname)){RUSH_CONFIG.discord=1;RUSH_CONFIG.api=location.origin+"/.proxy/server";if(/^\\/(ar\\/)?$/.test(location.pathname))location.replace("/discord/"+location.search)}`;
+
 function build({ api = "", site = "", home = HOME, subscriptions = SUBSCRIPTIONS } = {}) {
   const read = p => fs.readFileSync(path.join(SITE, p), "utf8");
-  const config = `window.RUSH_CONFIG=${JSON.stringify({ api, site, home, subscriptions })};`;
+  const config = `window.RUSH_CONFIG=${JSON.stringify({ api, site, home, subscriptions })};${DISCORD}`;
   const out = new Map();
   for (const page of PAGES) {
     let html = read(page);
@@ -99,6 +103,6 @@ if (require.main === module) {
   fs.cpSync(SITE, dist, { recursive: true }); // questions.json, the shared files (kept for old cached pages), etc.
   const pages = build({ api: (process.env.API_URL || "").replace(/\/+$/, ""), site: "" });
   for (const [p, html] of pages) { fs.mkdirSync(path.dirname(path.join(dist, p)), { recursive: true }); fs.writeFileSync(path.join(dist, p), html); }
-  fs.writeFileSync(path.join(dist, "shared", "config.js"), `window.RUSH_CONFIG=${JSON.stringify({ api: (process.env.API_URL || "").replace(/\/+$/, ""), site: "", home: HOME, subscriptions: SUBSCRIPTIONS })};\n`);
+  fs.writeFileSync(path.join(dist, "shared", "config.js"), `window.RUSH_CONFIG=${JSON.stringify({ api: (process.env.API_URL || "").replace(/\/+$/, ""), site: "", home: HOME, subscriptions: SUBSCRIPTIONS })};${DISCORD}\n`);
   console.log(`built ${pages.size} pages into dist/ (api: ${process.env.API_URL || "same origin"})`);
 }

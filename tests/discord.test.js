@@ -12,9 +12,28 @@ const TOK = id => "token-" + id.replace(/_(ar|en)$/, "");
 const rec = (id, n, h) => [id, { token: hashToken(TOK(id)), data: { n, c: "#d93c30", se, played: 1, wins: 1, streak: 3, best: 3, ls: today, h } }];
 const players = Object.fromEntries([rec("p_discA00001", "Ann", { [today]: { ok: 1, pts: 250, t: 42300, m: 1 } }), rec("p_discB00001", "Ben", { [today]: { ok: 0, pts: 0, t: 90000, m: 6 } })]);
 
+// a stand-in for Discord's own API: OAuth login and posting messages
+const http = require("node:http");
+const sent = [];
+let fake, FAKE;
+const USERS = { "code-ann-0001": "111111111111", "code-new-0001": "555555555555", "code-old-0001": "666666666666" };
+before(async () => {
+  fake = http.createServer((req, res) => {
+    let b = ""; req.on("data", c => (b += c)); req.on("end", () => {
+      const j = (code, o) => { res.writeHead(code, { "Content-Type": "application/json" }); res.end(JSON.stringify(o)); };
+      if (req.url === "/oauth2/token") { const code = new URLSearchParams(b).get("code"); return USERS[code] ? j(200, { access_token: "at-" + USERS[code] }) : j(400, { error: "invalid_grant" }); }
+      if (req.url === "/users/@me") return j(200, { id: String(req.headers.authorization || "").replace("Bearer at-", ""), global_name: "Tester" });
+      const m = req.url.match(/^\/channels\/(\d+)\/messages(?:\/(\w+))?$/);
+      if (m) { sent.push({ method: req.method, channel: m[1], id: m[2], body: JSON.parse(b) }); return j(200, { id: "m" + sent.length }); }
+      j(404, {});
+    });
+  });
+  await new Promise(r => fake.listen(0, "127.0.0.1", r));
+  FAKE = "http://127.0.0.1:" + fake.address().port;
+  srv = await startServer({ seed: { players, trivia: {}, harf: {} }, env: { DISCORD_APP_ID: "123456789", DISCORD_PUBLIC_KEY: PUB, DISCORD_CLIENT_SECRET: "secret", DISCORD_BOT_TOKEN: "bot", DISCORD_OAUTH: FAKE, DISCORD_API: FAKE } }); BASE = srv.base;
+});
+after(async () => { await srv.stop(); fake.close(); });
 let srv, BASE;
-before(async () => { srv = await startServer({ seed: { players, trivia: {}, harf: {} }, env: { DISCORD_APP_ID: "123456789", DISCORD_PUBLIC_KEY: PUB } }); BASE = srv.base; });
-after(() => srv.stop());
 
 const post = async (p, body, code = 200) => { const r = await fetch(BASE + p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); assert.equal(r.status, code, p); return r.json(); };
 async function discord(body, { sign = true, ts = Math.floor(Date.now() / 1000) } = {}) {
@@ -58,6 +77,38 @@ test("/streak, /leaderboard and /today show points and times, never ephemeral fo
   assert.match(text(t), /<@111111111111> Ann · ✅ 42\.3s, 1 miss · \*\*250\*\*/);
   assert.doesNotMatch(text(t), /Ben/); // not linked here
   assert.deepEqual(t.body.data.allowed_mentions, { parse: [] }); // nobody gets pinged
+});
+
+test("the Activity: the linked player comes with its token, new players can start fresh, the channel gets one summary", async () => {
+  // Ann linked from her profile in the test above: the Activity plays as her
+  const a = await post("/api/discord/activity", { code: "code-ann-0001" });
+  assert.equal(a.me.id, "111111111111"); assert.ok(a.ds); assert.equal(a.relink, false);
+  assert.deepEqual([a.player.uid, a.player.token, a.player.n], ["p_discA00001", TOK("p_discA00001"), "Ann"]);
+  // a Discord account nobody linked: no player; it can start fresh, once
+  const n = await post("/api/discord/activity", { code: "code-new-0001" });
+  assert.equal(n.player, null);
+  const c = await post("/api/discord/claim", { ds: n.ds, uid: "p_discN00001", token: "fresh-token-fresh-token-1234" });
+  assert.equal(c.player.uid, "p_discN00001");
+  await post("/api/discord/claim", { ds: n.ds, uid: "p_discN00002", token: "fresh-token-fresh-token-5678" }, 409);
+  assert.equal((await post("/api/discord/me", { ds: n.ds })).player.uid, "p_discN00001");
+  // passes can't be made up, and bad codes are turned away
+  await post("/api/discord/me", { ds: "111111111111.9999999999999.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }, 401);
+  await post("/api/discord/activity", { code: "code-nobody-01" }, 401);
+  // after a daily: one message, then the same message edited; scores only
+  sent.length = 0;
+  assert.equal((await post("/api/discord/played", { ds: a.ds, channel: "700000000000000001", guild: "900000000000000001" })).posted, true);
+  assert.equal((await post("/api/discord/played", { ds: a.ds, channel: "700000000000000001", guild: "900000000000000001" })).posted, true);
+  assert.deepEqual(sent.map(x => [x.method, x.id || ""]), [["POST", ""], ["PATCH", "m1"]]);
+  assert.match(sent[0].body.embeds[0].description, /<@111111111111> Ann · ✅ 42\.3s, 1 miss · \*\*250\*\*/);
+  assert.deepEqual(sent[0].body.allowed_mentions, { parse: [] });
+});
+
+test("a link made before tokens were kept asks to link again in the Activity", async () => {
+  // Ben linked through /link without a sealed token (as links made before the Activity existed)
+  const { code } = await post("/api/discord/code", { uid: "p_discB00001", token: TOK("p_discB00001") });
+  await cmd("link", "666666666666", { code });
+  const before = await post("/api/discord/activity", { code: "code-old-0001" });
+  assert.equal(before.player.uid, "p_discB00001"); // the code from the profile now carries the token
 });
 
 test("unlinking from the site or from Discord", async () => {

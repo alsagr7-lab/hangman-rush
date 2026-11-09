@@ -4,7 +4,10 @@
 // Set on the server (all three, or the bot stays off and /api/discord/* answers 404):
 //   DISCORD_APP_ID      the application's id (Developer Portal, General Information)
 //   DISCORD_PUBLIC_KEY  the application's public key (same page): every request from Discord is checked against it
-//   DISCORD_BOT_TOKEN   the bot's token (Bot page): only used to register the commands with Discord at start-up
+//   DISCORD_BOT_TOKEN   the bot's token (Bot page): registers the commands at start-up, and posts the Activity's
+//                       daily summary in a channel (the bot must be in that server with Send Messages)
+//   DISCORD_CLIENT_SECRET  (OAuth2 page) needed for the Activity: it turns the Activity's login code into the
+//                       player's Discord account
 //
 // Linking: the player's own profile on the site asks for a code (POST /api/discord/code {uid, token} -> {code, exp}),
 // six letters valid for 10 minutes, and they type /link <code> in Discord. Kept in meta:
@@ -16,6 +19,19 @@
 //   POST /api/discord/unlink {uid, token} -> {ok}
 //   POST /api/discord/interactions         (Discord only; signature checked)
 //
+// The Activity (site/discord/, the dailies inside Discord): Discord shows our site at <app id>.discordsays.com and
+// passes requests on through its URL mappings ("/" -> rushgames.cc, "/server" -> api.rushgames.cc). The page asks
+// Discord for a login code and sends it here:
+//   POST /api/discord/activity {code}     -> {access_token, me: {id, name}, ds, player: {uid, token, n} | null, relink}
+//        ds is a signed pass for this Discord account (24 h) used by the calls below; player is the linked player,
+//        handed over with its token (kept sealed when the code from the profile was made), so the Activity plays as
+//        them; relink means linked before tokens were kept: link again once from the profile.
+//   POST /api/discord/me {ds}             -> the same player, after linking with /link while the Activity is open
+//   POST /api/discord/claim {ds, uid, token} -> links this Discord account to a new player started in the Activity
+//   POST /api/discord/played {ds, channel, guild} -> after a daily: one message per channel per day listing how the
+//        players there did (points and times only), edited as more play. Meta: dchan:<channel>:<day> -> Discord ids,
+//        dmsg:<channel>:<day> -> message id, dlinktok:<player> -> the sealed token.
+//
 // Commands never show a daily's word, letter or answers: only points, times and how many were right.
 const crypto = require("crypto");
 const store = require("./store");
@@ -25,6 +41,8 @@ const R = require("./site/shared/rules");
 const APP_ID = process.env.DISCORD_APP_ID || "";
 const PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY || "";
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || "";
+const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || "";
+const OAUTH = process.env.DISCORD_OAUTH || "https://discord.com/api/v10";
 const API = process.env.DISCORD_API || "https://discord.com/api/v10";
 const SITE = (process.env.SITE_URL || "https://rushgames.cc").replace(/\/+$/, "");
 const enabled = () => !!(APP_ID && PUBLIC_KEY);
@@ -51,6 +69,27 @@ function verify(sig, ts, body) {
 
 /* ---------- links ---------- */
 function newCode() { const b = crypto.randomBytes(6); let s = ""; for (const x of b) s += CODE_ABC[x % CODE_ABC.length]; return s; }
+// a player's token is kept sealed so the Activity (another browser) can play as them; same scheme as auth.js
+const SEAL_SRC = process.env.ACCOUNT_KEY || process.env.DAILY_KEY || "";
+const SEAL = crypto.createHash("sha256").update("discord|" + (SEAL_SRC || PUBLIC_KEY)).digest();
+function seal(token) {
+  const iv = crypto.randomBytes(12), c = crypto.createCipheriv("aes-256-gcm", SEAL, iv);
+  const data = Buffer.concat([c.update(token, "utf8"), c.final()]);
+  return [iv, c.getAuthTag(), data].map(b => b.toString("base64")).join(".");
+}
+function unseal(v) {
+  try { const [iv, tag, data] = String(v).split(".").map(x => Buffer.from(x, "base64")); const d = crypto.createDecipheriv("aes-256-gcm", SEAL, iv); d.setAuthTag(tag); return Buffer.concat([d.update(data), d.final()]).toString("utf8"); } catch { return null; }
+}
+// the Activity's pass: Discord id and expiry, signed
+const PASS_MS = 24 * 3600e3;
+const passSig = s => crypto.createHmac("sha256", SEAL).update("pass|" + s).digest("base64url").slice(0, 32);
+const makePass = duid => { const s = duid + "." + (Date.now() + PASS_MS); return s + "." + passSig(s); };
+function readPass(p) {
+  const m = /^(\d{5,25})\.(\d{13})\.([\w-]{32})$/.exec(String(p || ""));
+  if (!m || Number(m[2]) < Date.now()) return null;
+  const want = passSig(m[1] + "." + m[2]);
+  return crypto.timingSafeEqual(Buffer.from(want), Buffer.from(m[3])) ? m[1] : null;
+}
 // the player's id now, following merges (signing in on a device with progress moves a player to another id)
 async function follow(id) {
   const seen = new Set([id]);
@@ -113,11 +152,8 @@ async function stats(boards, uid) {
 }
 
 // today's results for the linked players seen in this Discord server: no words, letters or answers
-async function today(boards, guild) {
-  const list = (await store.metaGet("dguild:" + guild)) || [];
-  const who = new Map(); // player id -> discord user id
-  for (const duid of list) { const id = await playerOf(duid); if (id) who.set(id, duid); }
-  if (!who.size) return null;
+// today's results for some linked players (player id -> Discord id): no words, letters or answers
+async function results(boards, who) {
   const lines = [];
   for (const [game, lg, name] of BOARDS) {
     const d = await boards.board(game, lg, "today", "");
@@ -132,7 +168,37 @@ async function today(boards, guild) {
       lines.push(`<@${who.get(r.id)}> ${clean(r.n)} · ${what} · **${r.pts}**`);
     });
   }
+  return lines;
+}
+async function whoOf(duids) {
+  const who = new Map();
+  for (const duid of duids) { const id = await playerOf(duid); if (id) who.set(id, duid); }
+  return who;
+}
+// /today: the linked players seen in this Discord server
+async function today(boards, guild) {
+  const who = await whoOf((await store.metaGet("dguild:" + guild)) || []);
+  if (!who.size) return null;
+  const lines = await results(boards, who);
   return embed(`Today · ${R.todayKey()}`, lines.length ? lines : ["Nobody linked here has played today's games yet."], { url: SITE + "/", footer: { text: "Play the dailies at rushgames.cc" } });
+}
+
+// the Activity's summary in a channel: one message per channel per day, edited as more people play
+async function postSummary(boards, channel, duid) {
+  if (!BOT_TOKEN) return false;
+  const day = R.todayKey(), kc = `dchan:${channel}:${day}`, km = `dmsg:${channel}:${day}`;
+  const list = (await store.metaGet(kc)) || [];
+  if (!list.includes(duid)) { list.push(duid); while (list.length > 100) list.shift(); await store.metaPut(kc, list); }
+  const lines = await results(boards, await whoOf(list));
+  if (!lines.length) return false;
+  const body = Object.assign({ allowed_mentions: { parse: [] } }, embed(`Rush Games · today's dailies`, lines, { url: SITE + "/", footer: { text: "Play inside Discord: start the Rush Games activity · " + day } }));
+  const call = (method, url) => fetch(API + url, { method, headers: { Authorization: "Bot " + BOT_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+  const prev = await store.metaGet(km);
+  if (prev) { const r = await call("PATCH", `/channels/${channel}/messages/${prev}`); if (r.ok) return true; if (r.status !== 404) return false; }
+  const r = await call("POST", `/channels/${channel}/messages`);
+  if (!r.ok) { console.log("Discord: posting the summary failed", r.status); return false; }
+  const m = await r.json(); await store.metaPut(km, String(m.id));
+  return true;
 }
 
 /* ---------- the commands as Discord sees them ---------- */
@@ -158,6 +224,8 @@ async function command(i, boards) {
     // one Discord account per player and one player per Discord account: an older link on either side goes
     await unlinkDiscord(duid); await unlinkPlayer(uid);
     await store.metaPut("dlink:" + duid, uid); await store.metaPut("dlinkp:" + uid, duid);
+    // the token, so the Activity can play as this player (only if the player wasn't merged since the code was made)
+    if (c.t && uid === String(c.u)) await store.metaPut("dlinktok:" + uid, c.t);
     await seenIn(guild, duid);
     const p = await boards.player(uid, true).catch(() => null);
     return say(`Linked! You're **${clean(p && p.n)}** #${R.tagOf(uid)}. Try /streak, /leaderboard and /today.`);
@@ -192,6 +260,63 @@ async function register() {
   } catch (e) { console.log("Discord: registering commands failed", e.message); }
 }
 
+/* ---------- the Activity ---------- */
+async function linkedPlayer(boards, duid) {
+  const uid = await playerOf(duid);
+  if (!uid) return { player: null, relink: false };
+  const token = unseal(await store.metaGet("dlinktok:" + uid));
+  if (!token) return { player: null, relink: true };
+  const p = await boards.player(uid, true).catch(() => null);
+  return { player: { uid, token, n: (p && p.n) || "", tag: R.tagOf(uid) }, relink: false };
+}
+async function activity(what, req, res, { send, readJson, ip }, limits, boards) {
+  // Activity players reach us through Discord's proxy, so many share an address: the limits here are per Discord account
+  if (!limits.take("dca|" + ip, 300, 60)) { send(res, 429, { error: "Too many requests. Try again in a minute." }); return; }
+  const body = (await readJson(req)) || {};
+  if (what === "activity") {
+    if (!CLIENT_SECRET) { send(res, 503, { error: "The Discord activity isn't set up yet" }); return; }
+    const code = String(body.code || "");
+    if (!/^[\w-]{10,100}$/.test(code)) { send(res, 400, { error: "Bad code" }); return; }
+    let tok, me;
+    try {
+      const r = await fetch(OAUTH + "/oauth2/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: APP_ID, client_secret: CLIENT_SECRET, grant_type: "authorization_code", code }), signal: AbortSignal.timeout(10000) });
+      tok = await r.json();
+      if (!r.ok || !tok.access_token) { send(res, 401, { error: "Discord didn't accept the login" }); return; }
+      const u = await fetch(OAUTH + "/users/@me", { headers: { Authorization: "Bearer " + tok.access_token }, signal: AbortSignal.timeout(10000) });
+      me = await u.json();
+      if (!u.ok || !/^\d{5,25}$/.test(String(me.id || ""))) { send(res, 401, { error: "Couldn't read your Discord account" }); return; }
+    } catch (e) { console.log("Discord activity login", e.message, e.cause && (e.cause.code || e.cause.message)); send(res, 502, { error: "Couldn't reach Discord" }); return; }
+    const duid = String(me.id);
+    send(res, 200, Object.assign({ access_token: tok.access_token, me: { id: duid, name: clean(me.global_name || me.username) }, ds: makePass(duid) }, await linkedPlayer(boards, duid)));
+    return;
+  }
+  const duid = readPass(body.ds);
+  if (!duid) { send(res, 401, { error: "Open the activity again" }); return; }
+  if (!limits.take("dcu|" + duid, 30, 10)) { send(res, 429, { error: "Too many requests. Slow down a little." }); return; }
+  if (what === "me") { send(res, 200, await linkedPlayer(boards, duid)); return; }
+  if (what === "claim") {
+    const uid = String(body.uid || "");
+    if (!ident.isUid(uid) || typeof body.token !== "string" || body.token.length < 16) { send(res, 400, { error: "Bad player" }); return; }
+    const o = await ident.owner(uid, ident.hashToken(body.token));
+    if (!o.ok) { send(res, 403, { error: "This player belongs to another device" }); return; }
+    if (await playerOf(duid)) { send(res, 409, { error: "This Discord account is already linked" }); return; }
+    await unlinkPlayer(uid);
+    await store.metaPut("dlink:" + duid, uid); await store.metaPut("dlinkp:" + uid, duid); await store.metaPut("dlinktok:" + uid, seal(body.token));
+    send(res, 200, await linkedPlayer(boards, duid));
+    return;
+  }
+  if (what === "played") {
+    const channel = String(body.channel || ""), guild = body.guild ? String(body.guild) : null;
+    if (!/^\d{5,25}$/.test(channel) || (guild && !/^\d{5,25}$/.test(guild))) { send(res, 400, { error: "Bad channel" }); return; }
+    if (!(await playerOf(duid))) { send(res, 200, { posted: false }); return; }
+    await seenIn(guild, duid);
+    let posted = false;
+    try { posted = await postSummary(boards, channel, duid); } catch (e) { console.log("Discord summary", e.message); }
+    send(res, 200, { posted });
+    return;
+  }
+}
+
 /* ---------- routes ---------- */
 async function owned(body) {
   const uid = String((body && body.uid) || "");
@@ -217,6 +342,7 @@ async function handle(req, res, url, { send, readJson, readBody, ip }, limits) {
     return true;
   }
   if (req.method !== "POST") return false;
+  if (/^\/api\/discord\/(activity|me|claim|played)$/.test(p)) { await activity(p.slice(13), req, res, { send, readJson, ip }, limits, boards); return true; }
   if (!limits.take("dc|" + ip, 20, 10)) { send(res, 429, { error: "Too many requests. Slow down a little." }); return true; }
   const body = await readJson(req), uid = await owned(body);
   if (!uid) { send(res, 403, { error: "This player belongs to another device" }); return true; }
@@ -225,7 +351,7 @@ async function handle(req, res, url, { send, readJson, readBody, ip }, limits) {
     if (prev && prev.code) await store.metaPut("dcode:" + prev.code, null); // only the newest code works
     let code; for (let n = 0; n < 5; n++) { code = newCode(); if (!(await store.metaGet("dcode:" + code))) break; }
     const exp = Date.now() + CODE_MS;
-    await store.metaPut("dcode:" + code, { u: uid, exp }); await store.metaPut("dcodep:" + uid, { code, exp });
+    await store.metaPut("dcode:" + code, { u: uid, exp, t: seal(body.token) }); await store.metaPut("dcodep:" + uid, { code, exp });
     send(res, 200, { code, exp, ms: CODE_MS });
     return true;
   }
@@ -234,4 +360,4 @@ async function handle(req, res, url, { send, readJson, readBody, ip }, limits) {
   return false;
 }
 
-module.exports = { handle, register, enabled, verify, COMMANDS };
+module.exports = { handle, register, enabled, verify, COMMANDS, makePass, readPass };

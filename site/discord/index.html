@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rush Games</title>
+<meta name="robots" content="noindex">
+<!--
+  The Discord Activity's menu (Rush Games inside Discord). Discord shows the site at <app id>.discordsays.com with
+  these URL mappings (Developer Portal > Activities > URL Mappings):
+    /        -> rushgames.cc          (the pages)
+    /server  -> api.rushgames.cc      (the game server; the pages call /.proxy/server/... inside Discord)
+  The hub sends the Activity here (scripts/build-site.js). This page asks Discord who the player is (sdk.js, Discord's
+  Embedded App SDK 2.5.0, MIT, bundled with esbuild; LICENSE-sdk.md), and the server (discord.js) answers with the
+  player linked to that Discord account. The daily games then run as normal pages and report back when done (rush.js).
+-->
+<style>
+:root{color-scheme:dark;--bg:#0f1220;--card:#181c2e;--line:#2a3050;--ink:#eef1ff;--mute:#9aa3c7;--hm:#f2b632;--tr:#3fb8ff;--hf:#4fd18b;--accent:#7c6cff}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+main{max-width:560px;margin:0 auto;padding:22px 16px 40px;display:grid;gap:16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{margin:0;font-size:26px;letter-spacing:.02em}
+h1 span{color:var(--hm)}
+.lang{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 14px;font:inherit;font-weight:700;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:12px}
+.card p{margin:0;color:var(--mute)}
+.who{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.who b{font-size:18px}
+.who small{color:var(--mute)}
+.games{display:grid;gap:12px}
+.game{display:flex;align-items:center;gap:14px;padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none;font-weight:800;font-size:19px}
+.game i{width:12px;height:42px;border-radius:6px;flex:none}
+.game small{display:block;font-weight:500;font-size:14px;color:var(--mute)}
+.game:hover,.game:focus-visible{border-color:var(--accent);outline:none}
+.btn{border:0;border-radius:14px;padding:13px 16px;font:inherit;font-weight:800;cursor:pointer;background:var(--accent);color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn:disabled{opacity:.6;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row .btn{flex:1 1 180px}
+ol{margin:0;padding-inline-start:20px;color:var(--mute);display:grid;gap:6px}
+code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--ink)}
+.err{color:#ff8a8a}
+.spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:s 1s linear infinite;margin:6px auto}
+@keyframes s{to{transform:rotate(1turn)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<main id="app"><div class="spin" aria-hidden="true"></div></main>
+<script src="/discord/sdk.js"></script>
+<script>
+(function () {
+  "use strict";
+  const APP_ID = "1569249047150071939"; // the Discord application (public)
+  const API = location.origin + "/.proxy/server";
+  const inDiscord = /\.discordsays\.com$/.test(location.hostname);
+  const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
+  const ss = { get: k => { try { return JSON.parse(sessionStorage.getItem(k) || "null"); } catch { return null; } }, set: (k, v) => { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+  let ar = (ls.get("hr-lang") || (navigator.language || "").slice(0, 2)) === "ar";
+  const T = (en, a) => (ar ? a : en);
+  const app = document.getElementById("app");
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const post = async (p, body) => {
+    const r = await fetch(API + p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "Error " + r.status);
+    return j;
+  };
+  const rand = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, "0")).join(""); };
+
+  let S = ss.get("rush-dc"); // {ds, exp, channel, guild, me, player, relink}
+  let view = "menu", busy = false, msg = "";
+
+  function usePlayer(p) {
+    if (!p) return;
+    if (ls.get("hr-uid") !== p.uid) { ["hr-me", "hr-acct", "hr-daily", "hr-daily-ar", "hr-cv", "tr-cv"].forEach(k => ls.set(k, null)); }
+    ls.set("hr-uid", p.uid); ls.set("hr-token", p.token);
+  }
+  function save() { ss.set("rush-dc", S); }
+
+  function shell(children) {
+    app.textContent = "";
+    document.documentElement.lang = ar ? "ar" : "en"; document.documentElement.dir = ar ? "rtl" : "ltr";
+    const head = el("header"), h = el("h1"); h.innerHTML = ar ? "ألعاب <span>رش</span>" : "Rush <span>Games</span>";
+    const lang = el("button", "lang", ar ? "English" : "عربي"); lang.type = "button";
+    lang.onclick = () => { ar = !ar; ls.set("hr-lang", ar ? "ar" : "en"); render(); };
+    head.append(h, lang); app.append(head, ...children);
+  }
+
+  function render() {
+    if (!inDiscord) {
+      const c = el("div", "card"); c.append(el("p", null, T("This page runs inside Discord. Start the Rush Games activity in a voice or text channel, or play at rushgames.cc.", "هذه الصفحة تعمل داخل ديسكورد. شغّل نشاط ألعاب رش في قناة صوتية أو نصية، أو العب على rushgames.cc.")));
+      return shell([c]);
+    }
+    if (!S) { const c = el("div", "card"); c.append(el("div", "spin"), el("p", msg ? "err" : null, msg || T("Connecting to Discord…", "جارٍ الاتصال بديسكورد…"))); return shell([c]); }
+    if (S.player) return shell(menu());
+    return shell(linkView());
+  }
+
+  function menu() {
+    const p = S.player, who = el("div", "card who");
+    const name = el("div"); name.append(el("b", null, p.n || T("New player", "لاعب جديد")), document.createTextNode(" "), el("small", null, "#" + p.tag));
+    who.append(name, el("small", null, T("Playing as", "تلعب باسم")));
+    who.prepend(who.lastChild);
+    const games = el("nav", "games");
+    const g = (key, colour, en, a, sen, sa) => {
+      const link = el("a", "game"); link.href = (ar ? "/ar" : "") + "/" + key + "/#daily";
+      const bar = el("i"); bar.style.background = colour;
+      const t = el("span", null, T(en, a)); t.append(el("small", null, T(sen, sa)));
+      link.append(bar, t); return link;
+    };
+    games.append(
+      g("hangman", "var(--hm)", "Hangman Rush", "سباق المشنقة", "Today's word", "كلمة اليوم"),
+      g("trivia", "var(--tr)", "Trivia Rush", "سباق المعلومات", "Five questions, 15 seconds each", "خمسة أسئلة، 15 ثانية لكل سؤال"),
+      g("harf", "var(--hf)", "Harf Rush", "سباق الحروف", "Today's letter, five categories", "حرف اليوم وخمس خانات"));
+    const note = el("p", null, T("Your results count on the same leaderboards, streaks and medals as rushgames.cc. When you finish, the channel gets a summary: points and times only, never the answers.", "نتائجك تُحسب في نفس لوحات الترتيب والسلاسل والميداليات في rushgames.cc. وعند انتهائك يظهر ملخص في القناة: نقاط وأوقات فقط، دون الإجابات."));
+    const c = el("div", "card"); c.append(note);
+    return [who, games, c];
+  }
+
+  function linkView() {
+    const c = el("div", "card");
+    if (view === "have") {
+      c.append(el("b", null, T("Link your Rush Games player", "اربط لاعبك في ألعاب رش")));
+      const ol = el("ol");
+      [[ "On rushgames.cc, open your profile (your name at the top).", "في rushgames.cc افتح ملفك (اسمك أعلى الصفحة)." ],
+       [ "Press Link Discord to get a 6-letter code.", "اضغط «اربط ديسكورد» لتحصل على رمز من 6 أحرف." ],
+       [ "In any Discord channel, type /link and the code.", "في أي قناة في ديسكورد اكتب ‎/link‎ ثم الرمز." ],
+       [ "Come back here and press Check.", "ارجع هنا واضغط «تحقق»." ]].forEach(([e, a]) => ol.append(el("li", null, T(e, a))));
+      const row = el("div", "row"), check = el("button", "btn", T("Check", "تحقق")), back = el("button", "btn ghost", T("Back", "رجوع"));
+      check.type = back.type = "button";
+      check.onclick = async () => { check.disabled = true; msg = ""; try { Object.assign(S, await post("/api/discord/me", { ds: S.ds })); save(); if (S.player) usePlayer(S.player); else msg = T("Not linked yet. Type /link with the code, then check again.", "لم يتم الربط بعد. اكتب ‎/link‎ مع الرمز ثم تحقق مرة أخرى."); } catch (e) { msg = e.message; } render(); };
+      back.onclick = () => { view = "menu"; msg = ""; render(); };
+      row.append(check, back); c.append(ol, row);
+    } else {
+      c.append(el("b", null, T("Hi " + (S.me && S.me.name || "") + "!", "أهلاً " + (S.me && S.me.name || "") + "!")));
+      c.append(el("p", null, S.relink
+        ? T("Your Discord is linked to a Rush Games player, but it needs linking once more so you can play here. It takes a minute.", "حسابك في ديسكورد مربوط بلاعب في ألعاب رش، لكنه يحتاج ربطاً مرة أخرى لتلعب هنا. يستغرق دقيقة.")
+        : T("Do you already play on rushgames.cc? Link your player to keep your streaks and points. Or start fresh here.", "هل تلعب في rushgames.cc؟ اربط لاعبك لتحتفظ بسلاسلك ونقاطك، أو ابدأ من جديد هنا.")));
+      const row = el("div", "row"), have = el("button", "btn", T("I already play: link", "ألعب من قبل: اربط")), fresh = el("button", "btn ghost", T("Start fresh here", "ابدأ من جديد هنا"));
+      have.type = fresh.type = "button";
+      have.onclick = () => { view = "have"; msg = ""; render(); };
+      fresh.onclick = async () => {
+        fresh.disabled = true; msg = "";
+        try {
+          const uid = "p_" + rand(10), token = rand(24);
+          Object.assign(S, await post("/api/discord/claim", { ds: S.ds, uid, token })); save(); usePlayer(S.player);
+          // the new player starts with their Discord name (they can change it in their profile)
+          const nick = String(S.me && S.me.name || "").trim().slice(0, 16), colors = ["#2c56e0", "#d93c30", "#178a5c", "#c27a00", "#8a3ffc", "#d6337f"];
+          if (nick.length >= 2) { ls.set("hr-me", JSON.stringify({ nick, color: colors[parseInt(uid.slice(-2), 16) % colors.length] })); S.player.n = nick; save(); }
+        } catch (e) { msg = e.message; }
+        render();
+      };
+      row.append(have); if (!S.relink) row.append(fresh);
+      c.append(row);
+    }
+    if (msg) c.append(el("p", "err", msg));
+    return [c];
+  }
+
+  async function connect() {
+    if (S && S.exp > Date.now() + 600e3) { if (S.player) usePlayer(S.player); return render(); }
+    S = null; render();
+    try {
+      const sdk = new window.DiscordSDK(APP_ID);
+      await sdk.ready();
+      const { code } = await sdk.commands.authorize({ client_id: APP_ID, response_type: "code", state: "", prompt: "none", scope: ["identify"] });
+      const r = await post("/api/discord/activity", { code });
+      try { await sdk.commands.authenticate({ access_token: r.access_token }); } catch {}
+      S = { ds: r.ds, exp: Date.now() + 23 * 3600e3, channel: sdk.channelId || null, guild: sdk.guildId || null, me: r.me, player: r.player, relink: !!r.relink };
+      delete r.access_token;
+      save(); if (S.player) usePlayer(S.player);
+    } catch (e) { msg = T("Couldn't connect to Discord: ", "تعذّر الاتصال بديسكورد: ") + (e && e.message || e); }
+    render();
+  }
+
+  if (inDiscord && window.DiscordSDK) connect(); else render();
+})();
+</script>
+</body>
+</html>
