@@ -267,7 +267,7 @@ async function linkedPlayer(boards, duid) {
   const token = unseal(await store.metaGet("dlinktok:" + uid));
   if (!token) return { player: null, relink: true };
   const p = await boards.player(uid, true).catch(() => null);
-  return { player: { uid, token, n: (p && p.n) || "", tag: R.tagOf(uid) }, relink: false };
+  return { player: { uid, token, n: (p && p.n) || "", c: (p && p.c) || "", tag: R.tagOf(uid) }, relink: false };
 }
 async function activity(what, req, res, { send, readJson, ip }, limits, boards) {
   // Activity players reach us through Discord's proxy, so many share an address: the limits here are per Discord account
