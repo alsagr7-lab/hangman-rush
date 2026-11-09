@@ -481,6 +481,8 @@ async function handle(req, res, url, { send, readJson, ip }, limits) {
     const out = await player(id, own);
     if (!out) { send(res, 404, { error: "No such player" }); return true; }
     if (own) out.signedIn = await require("./auth").isSignedIn(id);
+    // whether this player is linked to a Discord account (only when the Discord bot is set up)
+    if (own && require("./discord").enabled()) out.discord = !!(await store.metaGet("dlinkp:" + id));
     send(res, 200, out);
     return true;
   }
@@ -514,4 +516,4 @@ async function handle(req, res, url, { send, readJson, ip }, limits) {
   return false;
 }
 
-module.exports = { handle, board, hub, mine, profile, awardsNow, decideWeek, forgetAwards };
+module.exports = { handle, board, hub, player, mine, profile, awardsNow, decideWeek, forgetAwards };

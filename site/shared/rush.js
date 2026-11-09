@@ -605,13 +605,17 @@
       signIn: "Sign in to make your profile private.", week: "This week", season: "Season {s}", days: "Days played", streak: "Streak", best: "best {b}",
       boards: "Leaderboards", shelf: "Trophy shelf", noMedals: "No medals yet. Finish a week in the top 3 of any board to win one.", history: "Medal history",
       none2: "No results this season yet.", lastSeason: "Season {s}: {p} pts", times: "×{n}", privT: "Private profile",
-      privS: "Others see only your name and tag. You still appear on the leaderboards.", privErr: "Couldn't change that. Try again.", mine: "View my profile" },
+      privS: "Others see only your name and tag. You still appear on the leaderboards.", privErr: "Couldn't change that. Try again.", mine: "View my profile",
+      dcT: "Discord", dcS: "Link your Discord to use \u2066/streak\u2069, \u2066/leaderboard\u2069 and \u2066/today\u2069 with friends.", dcBtn: "Link Discord", dcOn: "Linked to Discord", dcOff: "Unlink",
+      dcHow: "In Discord, type \u2066/link {c}\u2069", dcExp: "The code works for 10 minutes.", dcCopy: "Copy", dcCopied: "Copied", dcErr: "Couldn't do that. Try again.", dcDone: "Done" },
     ar: { loading: "جارٍ التحميل…", none: "هذا اللاعب غير موجود في أي لوحة.", err: "تعذّر تحميل الملف. حاول بعد قليل.", close: "إغلاق", you: "أنت",
       privTitle: "ملف خاص", privOther: "{n} يُبقي إحصاءاته خاصة.", privMine: "ملفك خاص: يرى الآخرون اسمك ورمزك فقط.",
       signIn: "سجّل الدخول لتجعل ملفك خاصاً.", week: "هذا الأسبوع", season: "الموسم {s}", days: "أيام اللعب", streak: "السلسلة", best: "الأفضل {b}",
       boards: "لوحات الترتيب", shelf: "خزانة الجوائز", noMedals: "لا ميداليات بعد. أنهِ أسبوعاً ضمن أول 3 في أي لوحة لتفوز بواحدة.", history: "سجل الميداليات",
       none2: "لا نتائج في هذا الموسم بعد.", lastSeason: "الموسم {s}: {p} نقطة", times: "×{n}", privT: "ملف خاص",
-      privS: "يرى الآخرون اسمك ورمزك فقط، وتبقى في لوحات الترتيب.", privErr: "تعذّر التغيير. حاول مرة أخرى.", mine: "عرض ملفي" },
+      privS: "يرى الآخرون اسمك ورمزك فقط، وتبقى في لوحات الترتيب.", privErr: "تعذّر التغيير. حاول مرة أخرى.", mine: "عرض ملفي",
+      dcT: "ديسكورد", dcS: "اربط حسابك في ديسكورد لتستخدم \u2066/streak\u2069 و\u2066/leaderboard\u2069 و\u2066/today\u2069 مع أصحابك.", dcBtn: "اربط ديسكورد", dcOn: "مربوط بديسكورد", dcOff: "إلغاء الربط",
+      dcHow: "في ديسكورد اكتب \u2066/link {c}\u2069", dcExp: "الرمز صالح لمدة 10 دقائق.", dcCopy: "نسخ", dcCopied: "تم النسخ", dcErr: "تعذّر ذلك. حاول مرة أخرى.", dcDone: "تم" },
   };
   const pt = (k, v) => { let s = PV[document.documentElement.lang === "ar" ? "ar" : "en"][k]; for (const [a, b] of Object.entries(v || {})) s = s.split("{" + a + "}").join(String(b)); return s; };
   let pv = null, pvBg = null, pvOpen = false, pvBack = null, pvId = null, pvData = null, privOn = null;
@@ -1417,6 +1421,7 @@
       }
     });
     if (mine && acct) part(() => pv.append(privToggle()));
+    if (mine && typeof d.discord === "boolean") part(() => pv.append(discordBox(d)));
     keep();
   }
   // the switch, in the profile sheet and on your own profile
@@ -1432,6 +1437,42 @@
       if (pvOpen && pvId === uid && pvData && !pvData.err) { pvData.private = privOn; drawPlayer(); }
     };
     return l;
+  }
+  // linking Discord (discord.js): a 6-letter code to type as /link in Discord; the box redraws itself in place
+  let dcCode = null;
+  // a line with commands in it (marked \u2066…\u2069): each command in its own left-to-right box, so "/today" keeps
+  // its slash in front inside Arabic text
+  function cmdLine(cls, text) {
+    const p = mkEl("p", cls);
+    String(text).split(/\u2066(.*?)\u2069/).forEach((part, i) => { if (!part) return; if (i % 2) { const c = mkEl("bdi", "dc-cmd", part); c.dir = "ltr"; p.append(c); } else p.append(document.createTextNode(part)); });
+    return p;
+  }
+  function discordBox(d) {
+    const box = mkEl("section", "pv-sec rush-dc"), msg = mkEl("small", "warn");
+    const draw = () => {
+      box.textContent = "";
+      const h = mkEl("h3", null, pt("dcT"));
+      if (d.discord) {
+        const row = mkEl("div", "dc-row"), off = mkEl("button", "btn", pt("dcOff")); off.type = "button";
+        row.append(mkEl("b", null, "✓ " + pt("dcOn")), off); box.append(h, row);
+        off.onclick = async () => { off.disabled = true; try { await post("/api/discord/unlink"); d.discord = false; dcCode = null; } catch { msg.textContent = pt("dcErr"); } draw(); };
+      } else if (dcCode && dcCode.exp > Date.now()) {
+        const row = mkEl("div", "dc-code"), code = mkEl("code", null, dcCode.code), cp = mkEl("button", "btn", pt("dcCopy")), done = mkEl("button", "btn primary", pt("dcDone"));
+        cp.type = done.type = "button"; code.dir = "ltr";
+        cp.onclick = () => { try { navigator.clipboard.writeText("/link " + dcCode.code); cp.textContent = pt("dcCopied"); } catch {} };
+        // after typing /link in Discord: check it worked
+        done.onclick = async () => { done.disabled = true; try { const r = await post("/api/discord/status"); if (r.linked) { d.discord = true; dcCode = null; } } catch {} draw(); };
+        row.append(code, cp);
+        box.append(h, cmdLine(null, pt("dcHow", { c: dcCode.code })), row, mkEl("small", "note", pt("dcExp")), done);
+      } else {
+        const b = mkEl("button", "btn primary", pt("dcBtn")); b.type = "button";
+        b.onclick = async () => { b.disabled = true; msg.textContent = ""; try { const r = await post("/api/discord/code"); dcCode = { code: r.code, exp: Date.now() + (r.ms || 600000) }; } catch { msg.textContent = pt("dcErr"); } draw(); };
+        box.append(h, cmdLine("note", pt("dcS")), b);
+      }
+      if (msg.textContent) box.append(msg);
+    };
+    draw();
+    return box;
   }
   function loadPriv() { if (!acct || privOn !== null) return; post("/api/player", { id: uid }).then(d => { privOn = !!(d && d.private); renderAcct(); }).catch(() => {}); }
 

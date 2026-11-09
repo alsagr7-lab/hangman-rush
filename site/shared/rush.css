@@ -553,6 +553,12 @@ html,body{overflow-x:clip}
 .pv-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 2px;border-top:1px solid var(--line-soft);font-size:14px;color:var(--soft)}
 .pv-h .medals{margin:0;vertical-align:middle;flex-wrap:wrap;justify-content:flex-end}
 .rsheet-mine{height:44px;border-radius:999px;background:var(--raised);border:1px solid var(--line2);color:var(--ink);font-weight:800;font-size:14px}
+.rush-dc{display:grid;gap:10px}
+.rush-dc .dc-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rush-dc .dc-code{display:flex;align-items:center;gap:10px}
+.rush-dc code{font:700 26px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);user-select:all}
+.rush-dc p{margin:0}
+.rush-dc .dc-cmd{display:inline-block;font-weight:700;unicode-bidi:isolate}
 .rush-priv{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--line);cursor:pointer}
 .rush-priv input{flex:none;width:22px;height:22px;margin:1px 0 0;accent-color:var(--accent)}
 .rush-priv span{display:grid;gap:2px}

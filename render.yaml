@@ -40,6 +40,13 @@ services:
       # optional: "on" shows the hidden Rush+ subscription links (keep off until plans are ready)
       - key: SUBSCRIPTIONS
         sync: false
+      # optional: the Discord bot (discord.js); all three from the Discord Developer Portal
+      - key: DISCORD_APP_ID
+        sync: false
+      - key: DISCORD_PUBLIC_KEY
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
 
   # The pages, as a free static site: never sleeps and uses none of the free instance hours.
   - type: web
