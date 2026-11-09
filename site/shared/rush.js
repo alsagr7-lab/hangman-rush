@@ -607,7 +607,7 @@
       none2: "No results this season yet.", lastSeason: "Season {s}: {p} pts", times: "×{n}", privT: "Private profile",
       privS: "Others see only your name and tag. You still appear on the leaderboards.", privErr: "Couldn't change that. Try again.", mine: "View my profile",
       dcT: "Discord", dcS: "Link your Discord to use \u2066/streak\u2069, \u2066/leaderboard\u2069 and \u2066/today\u2069 with friends.", dcBtn: "Link Discord", dcOn: "Linked to Discord", dcOff: "Unlink",
-      dcHow: "In Discord, type \u2066/link {c}\u2069", dcExp: "The code works for 10 minutes.", dcCopy: "Copy", dcCopied: "Copied", dcErr: "Couldn't do that. Try again.", dcDone: "Done" },
+      dcHow: "In Discord, type \u2066/link\u2069, then paste or type the code {c}", dcExp: "The code works for 10 minutes.", dcCopy: "Copy code", dcCopied: "Copied", dcErr: "Couldn't do that. Try again.", dcDone: "Done" },
     ar: { loading: "جارٍ التحميل…", none: "هذا اللاعب غير موجود في أي لوحة.", err: "تعذّر تحميل الملف. حاول بعد قليل.", close: "إغلاق", you: "أنت",
       privTitle: "ملف خاص", privOther: "{n} يُبقي إحصاءاته خاصة.", privMine: "ملفك خاص: يرى الآخرون اسمك ورمزك فقط.",
       signIn: "سجّل الدخول لتجعل ملفك خاصاً.", week: "هذا الأسبوع", season: "الموسم {s}", days: "أيام اللعب", streak: "السلسلة", best: "الأفضل {b}",
@@ -615,7 +615,7 @@
       none2: "لا نتائج في هذا الموسم بعد.", lastSeason: "الموسم {s}: {p} نقطة", times: "×{n}", privT: "ملف خاص",
       privS: "يرى الآخرون اسمك ورمزك فقط، وتبقى في لوحات الترتيب.", privErr: "تعذّر التغيير. حاول مرة أخرى.", mine: "عرض ملفي",
       dcT: "ديسكورد", dcS: "اربط حسابك في ديسكورد لتستخدم \u2066/streak\u2069 و\u2066/leaderboard\u2069 و\u2066/today\u2069 مع أصحابك.", dcBtn: "اربط ديسكورد", dcOn: "مربوط بديسكورد", dcOff: "إلغاء الربط",
-      dcHow: "في ديسكورد اكتب \u2066/link {c}\u2069", dcExp: "الرمز صالح لمدة 10 دقائق.", dcCopy: "نسخ", dcCopied: "تم النسخ", dcErr: "تعذّر ذلك. حاول مرة أخرى.", dcDone: "تم" },
+      dcHow: "في ديسكورد اكتب \u2066/link\u2069 ثم الصق الرمز {c} أو اكتبه", dcExp: "الرمز صالح لمدة 10 دقائق.", dcCopy: "نسخ الرمز", dcCopied: "تم النسخ", dcErr: "تعذّر ذلك. حاول مرة أخرى.", dcDone: "تم" },
   };
   const pt = (k, v) => { let s = PV[document.documentElement.lang === "ar" ? "ar" : "en"][k]; for (const [a, b] of Object.entries(v || {})) s = s.split("{" + a + "}").join(String(b)); return s; };
   let pv = null, pvBg = null, pvOpen = false, pvBack = null, pvId = null, pvData = null, privOn = null;
@@ -1468,7 +1468,7 @@
       } else if (dcCode && dcCode.exp > Date.now()) {
         const row = mkEl("div", "dc-code"), code = mkEl("code", null, dcCode.code), cp = mkEl("button", "btn", pt("dcCopy")), done = mkEl("button", "btn primary", pt("dcDone"));
         cp.type = done.type = "button"; code.dir = "ltr";
-        cp.onclick = () => { try { navigator.clipboard.writeText("/link " + dcCode.code); cp.textContent = pt("dcCopied"); } catch {} };
+        cp.onclick = () => { try { navigator.clipboard.writeText(dcCode.code); cp.textContent = pt("dcCopied"); } catch {} };
         // after typing /link in Discord: check it worked
         done.onclick = async () => { done.disabled = true; try { const r = await post("/api/discord/status"); if (r.linked) { d.discord = true; dcCode = null; } } catch {} draw(); };
         row.append(code, cp);
