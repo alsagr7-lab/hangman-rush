@@ -877,7 +877,9 @@
     new MutationObserver(() => { renderAcct(); renderBar(); setTheme(themeNow(), false); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
     renderAcct();
     await ready;
-    try { authCfg = await get("/api/auth/config?uid=" + encodeURIComponent(uid)); } catch { authCfg = { google: null }; }
+    // inside Discord the Activity signs players in with Discord (site/discord/), and Google's sign-in can't load there
+    if (cfg.discord) authCfg = { google: null };
+    else try { authCfg = await get("/api/auth/config?uid=" + encodeURIComponent(uid)); } catch { authCfg = { google: null }; }
     // this browser says "saved in Google", but its player isn't the one linked to an account (an old address could
     // swap it, see adopt()): drop the label and ask for a sign-in, which brings the account's player back
     if (acct && authCfg && authCfg.google && authCfg.linked === false) {
@@ -1133,7 +1135,14 @@
   const ORDER = ["hangman", "trivia", "harf"];
   const NAMES = { hangman: ["Hangman", "المشنقة"], trivia: ["Trivia", "المعلومات"], harf: ["Harf", "الحروف"] };
   let chip = null;
+  // inside the Discord Activity: tell the server a daily is done, so it updates the channel's summary message
+  function discordPlayed() {
+    let dc = null; try { dc = JSON.parse(sessionStorage.getItem("rush-dc") || "null"); } catch {}
+    if (!dc || !dc.ds || !dc.channel) return;
+    fetch(http("/api/discord/played"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ds: dc.ds, channel: dc.channel, guild: dc.guild || null }) }).catch(() => {});
+  }
   async function dailyDone() {
+    if (cfg.discord) discordPlayed();
     if (gameKey === "hub" || chip) return;
     await sleep(1600);
     let m; try { m = await mineRecs(); } catch { return; }

@@ -47,6 +47,9 @@ services:
         sync: false
       - key: DISCORD_BOT_TOKEN
         sync: false
+      # the Discord Activity (site/discord/): OAuth2 client secret
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
 
   # The pages, as a free static site: never sleeps and uses none of the free instance hours.
   - type: web
