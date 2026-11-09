@@ -48,6 +48,17 @@ code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1
 </head>
 <body>
 <main id="app"><div class="spin" aria-hidden="true"></div></main>
+<script>
+// Discord's SDK sends its first message to document.referrer, which should be Discord. Arriving from our hub, the
+// referrer is the hub itself, so the message went nowhere ("Discord didn't answer"). The hub saved Discord's address.
+(function () {
+  try {
+    const saved = sessionStorage.getItem("rush-ref"), own = location.origin;
+    const ref = saved != null && !String(saved).startsWith(own) ? saved : (document.referrer.startsWith(own) ? "" : document.referrer);
+    Object.defineProperty(document, "referrer", { get: () => ref, configurable: true });
+  } catch (e) {}
+})();
+</script>
 <script src="/discord/sdk.js"></script>
 <script>
 (function () {

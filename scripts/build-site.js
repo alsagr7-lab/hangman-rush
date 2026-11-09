@@ -74,8 +74,10 @@ function hangmanWords(read) {
 }
 
 // Inside the Discord Activity the site is shown at <app id>.discordsays.com, and the game server is reached through
-// the URL mapping "/server" -> api.rushgames.cc (site/discord/ has the details). The hub opens the Activity's menu.
-const DISCORD = `if(/\\.discordsays\\.com$/.test(location.hostname)){RUSH_CONFIG.discord=1;RUSH_CONFIG.api=location.origin+"/.proxy/server";if(/^\\/(ar\\/)?$/.test(location.pathname))location.replace("/discord/"+location.search)}`;
+// the URL mapping "/server" -> api.rushgames.cc (site/discord/ has the details). The hub opens the Activity's menu,
+// first noting Discord's own address (the referrer): after the move the referrer is our hub, and Discord's SDK sends
+// its first message to the referrer, so the menu page puts Discord's address back.
+const DISCORD = `if(/\\.discordsays\\.com$/.test(location.hostname)){RUSH_CONFIG.discord=1;RUSH_CONFIG.api=location.origin+"/.proxy/server";if(/^\\/(ar\\/)?$/.test(location.pathname)){try{sessionStorage.setItem("rush-ref",document.referrer)}catch(e){}location.replace("/discord/"+location.search)}}`;
 
 function build({ api = "", site = "", home = HOME, subscriptions = SUBSCRIPTIONS } = {}) {
   const read = p => fs.readFileSync(path.join(SITE, p), "utf8");
