@@ -70,7 +70,10 @@ code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1
   const rand = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, "0")).join(""); };
 
   let S = ss.get("rush-dc"); // {ds, exp, channel, guild, me, player, relink}
-  let view = "menu", busy = false, msg = "";
+  let view = "menu", busy = false, msg = "", step = "";
+  // each step waits at most this long, then says which step got stuck instead of spinning forever
+  const within = (ms, p, what) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error(what)), ms))]);
+  const say = (en, a) => { step = T(en, a); render(); };
 
   function usePlayer(p) {
     if (!p) return;
@@ -93,7 +96,14 @@ code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1
       const c = el("div", "card"); c.append(el("p", null, T("This page runs inside Discord. Start the Rush Games activity in a voice or text channel, or play at rushgames.cc.", "هذه الصفحة تعمل داخل ديسكورد. شغّل نشاط ألعاب رش في قناة صوتية أو نصية، أو العب على rushgames.cc.")));
       return shell([c]);
     }
-    if (!S) { const c = el("div", "card"); c.append(el("div", "spin"), el("p", msg ? "err" : null, msg || T("Connecting to Discord…", "جارٍ الاتصال بديسكورد…"))); return shell([c]); }
+    if (!S) {
+      const c = el("div", "card");
+      if (msg) {
+        const again = el("button", "btn", T("Try again", "حاول مرة أخرى")); again.type = "button"; again.onclick = () => location.reload();
+        c.append(el("p", "err", msg), again);
+      } else c.append(el("div", "spin"), el("p", null, step || T("Connecting to Discord…", "جارٍ الاتصال بديسكورد…")));
+      return shell([c]);
+    }
     if (S.player) return shell(menu());
     return shell(linkView());
   }
@@ -163,15 +173,18 @@ code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1
     if (S && S.exp > Date.now() + 600e3) { if (S.player) usePlayer(S.player); return render(); }
     S = null; render();
     try {
+      say("Connecting to Discord… (1/3)", "جارٍ الاتصال بديسكورد… (1/3)");
       const sdk = new window.DiscordSDK(APP_ID);
-      await sdk.ready();
-      const { code } = await sdk.commands.authorize({ client_id: APP_ID, response_type: "code", state: "", prompt: "none", scope: ["identify"] });
-      const r = await post("/api/discord/activity", { code });
+      await within(15000, sdk.ready(), T("Discord didn't answer (step 1). Close the activity and start it again.", "لم يستجب ديسكورد (الخطوة 1). أغلق النشاط وشغّله من جديد."));
+      say("Asking Discord who you are… (2/3)", "جارٍ التعرف على حسابك في ديسكورد… (2/3)");
+      const { code } = await within(60000, sdk.commands.authorize({ client_id: APP_ID, response_type: "code", state: "", prompt: "none", scope: ["identify"] }), T("Discord didn't confirm your account (step 2).", "لم يؤكد ديسكورد حسابك (الخطوة 2)."));
+      say("Signing you in… (3/3)", "جارٍ تسجيل دخولك… (3/3)");
+      const r = await within(20000, post("/api/discord/activity", { code }), T("The game server didn't answer (step 3).", "لم يستجب خادم اللعبة (الخطوة 3)."));
       try { await sdk.commands.authenticate({ access_token: r.access_token }); } catch {}
       S = { ds: r.ds, exp: Date.now() + 23 * 3600e3, channel: sdk.channelId || null, guild: sdk.guildId || null, me: r.me, player: r.player, relink: !!r.relink };
       delete r.access_token;
       save(); if (S.player) usePlayer(S.player);
-    } catch (e) { msg = T("Couldn't connect to Discord: ", "تعذّر الاتصال بديسكورد: ") + (e && e.message || e); }
+    } catch (e) { console.error("Rush activity", e); msg = (e && (e.message || e.code)) ? String(e.message || ("Discord error " + e.code)) : T("Couldn't connect to Discord.", "تعذّر الاتصال بديسكورد."); }
     render();
   }
 
