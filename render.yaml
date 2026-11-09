@@ -1,15 +1,15 @@
 databases:
   - name: hangman-rush-db
-    plan: free
+    plan: basic-256mb
     databaseName: hangman
     user: hangman
 
 services:
-  # The game server: live rooms, daily words and questions, leaderboards. Free web services sleep after 15 idle minutes.
+  # The game server: live rooms, daily words and questions, leaderboards. Paid Starter plan (since 9 Nov 2026), so it never sleeps.
   - type: web
     name: hangman-rush
     runtime: node
-    plan: free
+    plan: starter
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /healthz
