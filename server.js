@@ -21,6 +21,7 @@ const limits = require("./limits");
 const boards = require("./boards");
 const move = require("./move");
 const reports = require("./reports");
+const discord = require("./discord");
 // while moving servers (MOVE_MODE=readonly) every database write does nothing; see move.js
 move.guard(store, ["put", "tPut", "hPut", "hSetData", "hDel", "seenMark", "seenPrune", "wordsPut", "wordsDel", "wordsPurge", "wordsPurgeValid", "archivePut", "ipAdd", "metaPut", "metaPruneBefore", "acctPut"]);
 // pages are served as single files with the shared styles and scripts written in (see scripts/build-site.js)
@@ -72,7 +73,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ip, cf: h["cf-connecting-ip"] ? 1 : 0, tci: h["true-client-ip"] ? 1 : 0, xff: String(h["x-forwarded-for"] || "").split(",").map(s => s.trim()).filter(Boolean).length });
     }
     // every write: a generous limit per address, so a script can't hammer the server or fill the database
-    if ((req.method === "POST" || req.method === "PUT") && url.pathname.startsWith("/api/") && url.pathname !== "/api/hit") {
+    if ((req.method === "POST" || req.method === "PUT") && url.pathname.startsWith("/api/") && url.pathname !== "/api/hit" && url.pathname !== "/api/discord/interactions") {
       if (!limits.take("w|" + ip, 120, 60)) return send(res, 429, { error: "Too many requests. Slow down a little." });
     }
     // the Harf admin page (needs ADMIN_KEY; only on this server, never on the static site)
@@ -86,7 +87,8 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)},home:${JSON.stringify(require("./scripts/build-site").HOME)}};`, "text/javascript; charset=utf-8");
     // a party is live while its big screen is in the party's lobby room (Harf gives party games their own AI allowance)
     const partyLive = code => { const r = rooms.get("pt-" + String(code).toLowerCase()); return !!r && [...r.values()].some(v => v.presence && v.presence.tv === 1); };
-    const ctx = { send, readJson, ip, partyLive };
+    const ctx = { send, readJson, readBody, ip, partyLive };
+    if (await discord.handle(req, res, url, ctx, limits)) return;
     if (await boards.handle(req, res, url, ctx, limits)) return;
     if (await trivia.handle(req, res, url, ctx)) return;
     if (await hangman.handle(req, res, url, ctx)) return;
@@ -256,5 +258,5 @@ setInterval(() => {
 // redirect-only: the old database may be gone, so start with none; every API call is forwarded (move.js)
 if (move.redirecting()) server.listen(PORT, () => console.log(`Rush Games listening on ${PORT} (redirect-only to the new server)`));
 else store.init().then(() => admin.loadHidden()).then(() => mod.load()).then(() => harf.init()).then(() => require("./merges").runMerges().catch(e => console.error("Merge failed", e))).then(() => {
-  server.listen(PORT, () => console.log(`Rush Games listening on ${PORT} (storage: ${store.kind})`));
+  server.listen(PORT, () => { console.log(`Rush Games listening on ${PORT} (storage: ${store.kind})`); discord.register(); });
 }).catch(e => { console.error("Storage failed to start", e); process.exit(1); });
