@@ -101,6 +101,31 @@ test("the Activity: the linked player comes with its token, new players can star
   assert.deepEqual(sent.map(x => [x.method, x.id || ""]), [["POST", ""], ["PATCH", "m1"]]);
   assert.match(sent[0].body.embeds[0].description, /<@111111111111> Ann · ✅ 42\.3s, 1 miss · \*\*250\*\*/);
   assert.deepEqual(sent[0].body.allowed_mentions, { parse: [] });
+  // the message carries the button that opens the Activity; pressing it gets Discord's "launch activity" reply
+  assert.equal(sent[0].body.components[0].components[0].custom_id, "rush-play");
+  const press = await discord({ type: 3, member: { user: { id: "111111111111" } }, data: { custom_id: "rush-play", component_type: 2 } });
+  assert.equal(press.status, 200); assert.deepEqual(press.body, { type: 12 });
+  assert.equal((await discord({ type: 3, data: { custom_id: "something-else" } })).status, 400);
+});
+
+test("a new day: channels that played yesterday get one recap with the group's streak, and nobody is pinged", async () => {
+  const yd = R.ydayKey(), old = R.dayKey(R.dayNum() - 3), A = "700000000000000007", B = "700000000000000008";
+  const p = (id, n, pts) => [id, { token: hashToken(TOK(id)), data: { n, c: "#d93c30", se, played: 1, wins: 1, streak: 1, best: 1, ls: yd, h: { [yd]: { ok: 1, pts, t: 30000, m: 0 } } } }];
+  const meta = { drecap: yd, dactive: { [A]: yd, [B]: old }, ["dstreak:" + A]: { n: 3, last: yd }, ["dchan:" + A + ":" + yd]: ["111", "222", "333"].map(x => x.repeat(4)), ["dchan:" + B + ":" + old]: ["111111111111"],
+    "dlink:111111111111": "p_recapA0001", "dlink:222222222222": "p_recapB0001", "dlink:333333333333": "p_recapC0001" };
+  sent.length = 0;
+  const s2 = await startServer({ seed: { players: Object.fromEntries([p("p_recapA0001", "Ann", 250), p("p_recapB0001", "Ben", 250), p("p_recapC0001", "Cat", 100)]), trivia: {}, harf: {}, meta },
+    env: { DISCORD_APP_ID: "123456789", DISCORD_PUBLIC_KEY: PUB, DISCORD_CLIENT_SECRET: "secret", DISCORD_BOT_TOKEN: "bot", DISCORD_OAUTH: FAKE, DISCORD_API: FAKE, DISCORD_RECAP_HOURS: "24" } });
+  try {
+    for (let i = 0; i < 60 && !sent.length; i++) await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 600)); // room for a second message, which must not come
+    assert.deepEqual(sent.map(x => [x.method, x.channel]), [["POST", A]]); // the channel that skipped a day gets nothing
+    const m = sent[0].body;
+    assert.match(m.content, /Your group is on a 3 day streak!/);
+    assert.match(m.content, /👑 \*\*250\*\* pts: <@111111111111> <@222222222222>\n\*\*100\*\* pts: <@333333333333>/);
+    assert.deepEqual(m.allowed_mentions, { parse: [] });
+    assert.equal(m.components[0].components[0].label, "Play now!");
+  } finally { await s2.stop(); }
 });
 
 test("a link made before tokens were kept asks to link again in the Activity", async () => {
