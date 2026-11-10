@@ -13,41 +13,134 @@
   The hub sends the Activity here (scripts/build-site.js). This page asks Discord who the player is (sdk.js, Discord's
   Embedded App SDK 2.5.0, MIT, bundled with esbuild; LICENSE-sdk.md), and the server (discord.js) answers with the
   player linked to that Discord account. The daily games then run as normal pages and report back when done (rush.js).
+  The menu (10 Nov 2026 look): Today (the three dailies with what's done, and the leaders), Boards (this Discord server or
+  everyone, this week or the season) and Me, all from one call (POST /api/discord/home). It also shows how many people
+  have the Activity open, and a small tile when Discord shrinks the Activity.
 -->
 <style>
-:root{color-scheme:dark;--bg:#0f1220;--card:#181c2e;--line:#2a3050;--ink:#eef1ff;--mute:#9aa3c7;--hm:#f2b632;--tr:#3fb8ff;--hf:#4fd18b;--accent:#7c6cff}
+/* The Activity's look (10 Nov 2026): the site's dark palette, one screen, bottom tabs on phones and a side menu on wide
+   windows, and a small tile when Discord shrinks the Activity (picture-in-picture). */
+:root{color-scheme:dark;
+  --bg:#0B0C10;--surface:#14161D;--line:#23262F;--line2:#343846;--ink:#F4F1EA;--muted:#B4B8C3;
+  --gold:#F2B544;--gold-ink:#FFD27A;--gold-bg:#2A2210;--gold-line:#5A4520;
+  --coral:#FF6B57;--blue:#5B9BFF;--green:#3DD68C;--coral-ink:#FF8A7A;--blue-ink:#7FB2FF;--green-ink:#6EE7B0;
+  --sait:var(--discord-safe-area-inset-top,env(safe-area-inset-top,0px));--saib:var(--discord-safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
+  --sail:var(--discord-safe-area-inset-left,env(safe-area-inset-left,0px));--sair:var(--discord-safe-area-inset-right,env(safe-area-inset-right,0px));
+  --f:"Figtree",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;--fd:"Saira","Figtree",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+html[lang="ar"]{--f:"Cairo",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;--fd:var(--f)}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
-main{max-width:560px;margin:0 auto;padding:22px 16px 40px;display:grid;gap:16px}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
-h1{margin:0;font-size:26px;letter-spacing:.02em}
-h1 span{color:var(--hm)}
-.lang{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 14px;font:inherit;font-weight:700;cursor:pointer}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:12px}
-.card p{margin:0;color:var(--mute)}
-.who{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.who b{font-size:18px}
-.who small{color:var(--mute)}
-.games{display:grid;gap:12px}
-.game{display:flex;align-items:center;gap:14px;padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none;font-weight:800;font-size:19px}
-.game i{width:12px;height:42px;border-radius:6px;flex:none}
-.game small{display:block;font-weight:500;font-size:14px;color:var(--mute)}
-.game:hover,.game:focus-visible{border-color:var(--accent);outline:none}
-.btn{border:0;border-radius:14px;padding:13px 16px;font:inherit;font-weight:800;cursor:pointer;background:var(--accent);color:#fff}
-.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--f);-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,p,ol{margin:0}
+h1,h2{font-family:var(--fd)}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.num{font-family:var(--fd);font-variant-numeric:tabular-nums}
+.app{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;padding:var(--sait) var(--sair) var(--saib) var(--sail)}
+.top{flex:none;display:flex;align-items:center;gap:10px;padding:12px 20px 8px}
+.wordmark{flex:1;white-space:nowrap;font-family:var(--fd);font-size:22px;font-weight:800;letter-spacing:.02em}
+html[lang="ar"] .wordmark{font-size:24px;font-weight:900;letter-spacing:0}
+.pill,.chip{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:22px;background:var(--surface);border:1px solid var(--line2);font-size:14px;font-weight:700;white-space:nowrap}
+@media (max-width:520px){.pill .t{display:none}.pill{padding:0 12px}}
+.pill i{width:9px;height:9px;border-radius:50%;background:var(--green)}
+.chip{font-size:15px;max-width:46%}
+.chip span:last-child{overflow:hidden;text-overflow:ellipsis}
+.dot{width:14px;height:14px;border-radius:50%;flex:none;background:var(--gold)}
+.view{flex:1;min-height:0;overflow-y:auto;padding:8px 20px 22px;display:flex;flex-direction:column;gap:16px}
+.view>*{flex:none}
+.cols,.col,.stack{display:flex;flex-direction:column;gap:16px}
+.stack{gap:10px}
+.headline{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.headline h1{font-size:27px;font-weight:800;line-height:1.25}
+html[lang="ar"] .headline h1{font-weight:900;line-height:1.4}
+.headline h1 small{font-size:.6em;color:var(--muted)}
+.sub{font-size:13px;font-weight:600;color:var(--muted)}
+.sub .num{font-size:15px;font-weight:700;color:var(--ink)}
+.note{font-size:13px;font-weight:500;color:var(--muted)}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sec-h h2{font-size:18px;font-weight:700}
+html[lang="ar"] .sec-h h2{font-weight:900}
+.link{font-size:14px;font-weight:700;color:var(--gold-ink);background:none;border:0;padding:8px 0;text-decoration:underline;text-underline-offset:3px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;display:flex;flex-direction:column}
+.card>*+*{border-top:1px solid var(--line)}
+.card.pad{padding:18px;gap:12px}
+.card.pad>*+*{border-top:0}
+.card.pad p{color:var(--muted)}
+.day{display:flex;align-items:center;gap:12px;padding:13px 14px}
+.tile{width:44px;height:44px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:20px;font-weight:800;color:#15161B;background:var(--acc)}
+.tile.s{width:30px;height:30px;border-radius:9px;font-size:14px}
+.day-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.day-t b{font-size:17px;font-weight:800}
+html[lang="ar"] .day-t b{font-weight:900}
+.day-t span{font-size:13px;font-weight:500;color:var(--muted)}
+.hangman{--acc:var(--coral);--acc-ink:var(--coral-ink)}.trivia{--acc:var(--blue);--acc-ink:var(--blue-ink)}.harf{--acc:var(--green);--acc-ink:var(--green-ink)}
+.btn{min-height:46px;padding:0 20px;border-radius:12px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:16px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;transition:transform .12s ease-out}
+.btn:active{transform:scale(.97)}
+.btn.play{border:0;background:var(--acc);color:#15161B;font-weight:800;padding:0 22px}
+.btn.done{border:1.5px solid var(--acc-ink);background:transparent;color:var(--acc-ink);padding:0 14px;font-size:15px}
+.btn.gold{border:0;background:var(--gold);color:#15161B;font-weight:800}
 .btn:disabled{opacity:.6;cursor:default}
+html[lang="ar"] .btn.play,html[lang="ar"] .btn.gold{font-weight:900}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .row .btn{flex:1 1 180px}
-ol{margin:0;padding-inline-start:20px;color:var(--mute);display:grid;gap:6px}
-code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--ink)}
+.podium{display:flex;gap:8px;list-style:none;padding:0}
+.podium li{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:44px;padding:0 10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font-size:14px;font-weight:700}
+.podium li span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podium li:first-child{background:var(--gold-bg);border-color:var(--gold-line)}
+.podium .num{font-weight:800;color:var(--muted)}
+.podium li:first-child .num{color:var(--gold-ink)}
+.seg{display:flex;gap:4px;padding:4px;background:var(--line);border-radius:14px}
+.seg button{flex:1;min-height:40px;border:0;border-radius:10px;background:transparent;font-size:15px;font-weight:700;color:var(--muted);padding:0 10px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:800}
+.seg.sm{flex:none}
+.seg.sm button{min-height:34px;font-size:13px;padding:0 12px}
+.lb{list-style:none;padding:0}
+.lb li{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 16px}
+.lb li+li{border-top:1px solid var(--line)}
+.lb .rk{width:22px;font-weight:800;color:var(--muted);text-align:center}
+.lb .nm{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb .nm small{font-weight:500;color:var(--muted)}
+.lb .pt{font-weight:700}
+.lb li.me{background:var(--gold-bg)}
+.lb li.top .rk{color:var(--gold-ink)}
+.gh{display:flex;align-items:center;gap:10px;padding:12px 16px;font-weight:800}
+.gh b{flex:1}
+.empty{padding:14px 16px;color:var(--muted);font-size:14px}
+.who b{font-size:20px}
+.who small{color:var(--muted)}
+ol.steps{padding-inline-start:20px;color:var(--muted);display:grid;gap:6px}
 .err{color:#ff8a8a}
-.spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:s 1s linear infinite;margin:6px auto}
+.spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--line2);border-top-color:var(--gold);animation:s 1s linear infinite;margin:6px auto}
 @keyframes s{to{transform:rotate(1turn)}}
-@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.nav{flex:none;display:flex;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px 10px}
+.nav button{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:1px solid transparent;color:var(--muted);font-size:12px;font-weight:600;border-radius:12px}
+.nav button[aria-current="page"]{color:var(--ink);font-weight:800}
+[dir="rtl"] .flip{transform:scaleX(-1)}
+/* Discord's small tile (picture-in-picture or a grid tile): how many dailies are left, and the countdown */
+.mini{display:none;height:100%;flex-direction:column;justify-content:space-between;padding:14px}
+.mini .wordmark{flex:none;font-size:15px}
+.mini .big{font-family:var(--fd);font-size:20px;font-weight:800;line-height:1.25}
+.mini .bars{display:flex;gap:8px}
+.mini .bars i{width:26px;height:8px;border-radius:4px;background:var(--line2)}
+html.pip .app{display:none} html.pip .mini{display:flex}
+@media (max-height:260px),(max-width:260px){.app{display:none}.mini{display:flex}}
+@media (min-width:900px){
+  .app{max-width:1180px;display:grid;grid-template-columns:210px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"nav top" "nav view"}
+  .app.solo{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "view";max-width:620px}
+  .top{grid-area:top;padding:18px 32px 8px}
+  .view{grid-area:view;padding:8px 32px 28px;gap:20px}
+  .nav{grid-area:nav;flex-direction:column;gap:6px;border-top:0;border-inline-end:1px solid var(--line);padding:20px 12px;background:transparent}
+  .nav button{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;padding:0 14px;font-size:15px}
+  .nav button[aria-current="page"]{background:var(--surface);border-color:var(--line)}
+  .cols{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px;align-items:start}
+  .col{gap:20px}
+}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}.btn{transition:none}}
 </style>
 </head>
 <body>
-<main id="app"><div class="spin" aria-hidden="true"></div></main>
+<main id="app" class="app solo"><div class="spin" aria-hidden="true"></div></main>
+<div id="mini" class="mini" aria-hidden="true"></div>
 <script>
 // Discord's SDK sends its first message to document.referrer, which should be Discord. Arriving from our hub, the
 // referrer is the hub itself, so the message went nowhere ("Discord didn't answer"). The hub saved Discord's address.
@@ -96,65 +189,186 @@ code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1
   }
   function save() { ss.set("rush-dc", S); }
 
-  function shell(children) {
-    app.textContent = "";
+  // ---------- the menu's data: one call (discord.js "home"), kept per leaderboard span ----------
+  const HB = {}; // week | season -> {no, today, all, server}
+  let tab = ss.get("rush-dc-tab") || "today", span = "week", scope = "server", count = 0, sdkRef = null;
+  const lgOf = {};
+  function loadHome() {
+    if (!S || !S.player) return;
+    const sp = span;
+    post("/api/discord/home", { ds: S.ds, guild: S.guild || null, tab: sp }).then(j => { HB[sp] = j; render(); }).catch(() => {});
+  }
+  const home = () => HB[span] || HB.week || HB.season || null;
+  const GAMES = [["hangman", "Hangman Rush", "سباق المشنقة", ["en", "ar"], "A_", "كـ"], ["trivia", "Trivia Rush", "سباق المعلومات", [""], "?", "؟"], ["harf", "Harf Rush", "سباق الحروف", ["ar", "en"], "B", "ب"]];
+  const LG = { en: "English", ar: "عربي" };
+  const ICON = {
+    clock: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>', bars: '<path d="M6 20v-6M12 20V5M18 20v-9"></path>',
+    user: '<circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path>', check: '<path d="M5 12.5l4.5 4.5L19 7.5"></path>',
+  };
+  const icon = (name, size = 22) => { const sp = el("span"); sp.setAttribute("aria-hidden", "true"); sp.style.display = "inline-flex"; sp.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${ICON[name]}</svg>`; return sp; };
+  const btn = (cls, text, on) => { const b = el("button", cls, text); b.type = "button"; if (on) b.onclick = on; return b; };
+  const seg = (opts, cur, pick, cls) => { const s = el("div", "seg" + (cls ? " " + cls : "")); s.setAttribute("role", "group"); opts.forEach(([v, label]) => { const b = btn(null, label, () => pick(v)); b.setAttribute("aria-pressed", String(cur === v)); s.append(b); }); return s; };
+  // days change at midnight Saudi time (21:00 UTC)
+  const msLeft = () => 864e5 - ((Date.now() + 3 * 36e5) % 864e5);
+  const clock = () => { const x = Math.floor(msLeft() / 1000), p = n => String(n).padStart(2, "0"); return p(Math.floor(x / 3600)) + ":" + p(Math.floor(x / 60) % 60) + ":" + p(x % 60); };
+  // what the player has done in a game today: [{lg, r}] with r = {pts, ok} once played
+  const parts = (game, langs) => { const h = home(), t = (h && h.today) || {}; return langs.map(lg => ({ lg, r: t[game + (lg ? "-" + lg : "")] || null })); };
+  const gamesLeft = () => GAMES.filter(g => parts(g[0], g[3]).some(x => !x.r)).length;
+
+  function shell(children, nav) {
+    const old = app.querySelector(".view"), keep = old && old.dataset.tab === (nav ? tab : "") ? old.scrollTop : 0;
+    app.textContent = ""; app.className = "app" + (nav ? "" : " solo");
     document.documentElement.lang = ar ? "ar" : "en"; document.documentElement.dir = ar ? "rtl" : "ltr";
-    const head = el("header"), h = el("h1"); h.innerHTML = ar ? "ألعاب <span>رش</span>" : "Rush <span>Games</span>";
-    const lang = el("button", "lang", ar ? "English" : "عربي"); lang.type = "button";
-    lang.onclick = () => { ar = !ar; ls.set("hr-lang", ar ? "ar" : "en"); render(); };
-    head.append(h, lang); app.append(head, ...children);
+    const top = el("header", "top"); top.append(el("div", "wordmark", T("RUSH GAMES", "ألعاب رش")));
+    if (count > 1) { const pill = el("span", "pill"); pill.append(el("i"), el("span", "num", String(count)), el("span", "t", T("in this activity", "في النشاط"))); pill.setAttribute("aria-label", T(count + " in this activity", count + " في النشاط")); top.append(pill); }
+    if (nav && S && S.player) {
+      const chip = btn("chip", null, () => go("me")); const d = el("span", "dot"); if (S.player.c) d.style.background = S.player.c;
+      chip.append(d, el("span", null, S.player.n || T("New player", "لاعب جديد"))); chip.setAttribute("aria-label", T("Your profile", "ملفك")); top.append(chip);
+    } else {
+      top.append(btn("chip", ar ? "English" : "عربي", () => { ar = !ar; ls.set("hr-lang", ar ? "ar" : "en"); render(); }));
+    }
+    const view = el("div", "view"); view.dataset.tab = nav ? tab : ""; view.append(...children);
+    app.append(top, view);
+    if (nav) {
+      const n = el("nav", "nav"); n.setAttribute("aria-label", T("Main", "التنقل"));
+      [["today", "clock", "Today", "اليوم"], ["boards", "bars", "Boards", "المتصدرون"], ["me", "user", "Me", "حسابي"]].forEach(([k, ic, en, a]) => {
+        const b = btn(null, null, () => go(k)); b.append(icon(ic), el("span", null, T(en, a))); if (tab === k) b.setAttribute("aria-current", "page"); n.append(b);
+      });
+      app.append(n);
+    }
+    view.scrollTop = keep;
+    drawMini();
+  }
+  function go(k) { tab = k; ss.set("rush-dc-tab", k); render(); }
+
+  function drawMini() {
+    const m = document.getElementById("mini"); m.textContent = "";
+    const left = S && S.player && home() ? gamesLeft() : null, mid = el("div");
+    mid.append(el("div", "big", left == null ? T("Rush Games", "ألعاب رش") : left ? T(left + (left === 1 ? " daily" : " dailies") + " left today", "باقي " + left + (left === 1 ? " تحدٍّ" : " تحديات") + " اليوم") : T("All dailies done", "خلّصت كل التحديات")));
+    const sub = el("div", "sub", T("New in ", "الجديد بعد ")), c = el("span", "num cd", clock()); c.dir = "ltr"; sub.append(c); mid.append(sub);
+    const bars = el("div", "bars");
+    GAMES.forEach(g => { const i = el("i"); if (left != null && parts(g[0], g[3]).every(x => x.r)) i.style.background = "var(--" + { hangman: "coral", trivia: "blue", harf: "green" }[g[0]] + ")"; bars.append(i); });
+    m.append(el("div", "wordmark", T("RUSH GAMES", "ألعاب رش")), mid, bars);
   }
 
   function render() {
     if (!inDiscord) {
-      const c = el("div", "card"); c.append(el("p", null, T("This page runs inside Discord. Start the Rush Games activity in a voice or text channel, or play at rushgames.cc.", "هذه الصفحة تعمل داخل ديسكورد. شغّل نشاط ألعاب رش في قناة صوتية أو نصية، أو العب على rushgames.cc.")));
+      const c = el("div", "card pad"); c.append(el("p", null, T("This page runs inside Discord. Start the Rush Games activity in a voice or text channel, or play at rushgames.cc.", "هذه الصفحة تعمل داخل ديسكورد. شغّل نشاط ألعاب رش في قناة صوتية أو نصية، أو العب على rushgames.cc.")));
       return shell([c]);
     }
     if (!S) {
-      const c = el("div", "card");
-      if (msg) {
-        const again = el("button", "btn", T("Try again", "حاول مرة أخرى")); again.type = "button"; again.onclick = () => location.reload();
-        c.append(el("p", "err", msg), again);
-      } else c.append(el("div", "spin"), el("p", null, step || T("Connecting to Discord…", "جارٍ الاتصال بديسكورد…")));
+      const c = el("div", "card pad");
+      if (msg) c.append(el("p", "err", msg), btn("btn gold", T("Try again", "حاول مرة أخرى"), () => location.reload()));
+      else c.append(el("div", "spin"), el("p", null, step || T("Connecting to Discord…", "جارٍ الاتصال بديسكورد…")));
       return shell([c]);
     }
-    if (S.player) return shell(menu());
+    if (S.player) return shell(tab === "boards" ? boardsView() : tab === "me" ? meView() : todayView(), true);
     return shell(linkView());
   }
 
-  function menu() {
-    const p = S.player, who = el("div", "card who");
-    const name = el("div"); name.append(el("b", null, p.n || T("New player", "لاعب جديد")), document.createTextNode(" "), el("small", null, "#" + p.tag));
-    who.append(name, el("small", null, T("Playing as", "تلعب باسم")));
-    who.prepend(who.lastChild);
-    const games = el("nav", "games");
-    const g = (key, colour, en, a, sen, sa) => {
-      const link = el("a", "game"); link.href = (ar ? "/ar" : "") + "/" + key + "/#daily";
-      const bar = el("i"); bar.style.background = colour;
-      const t = el("span", null, T(en, a)); t.append(el("small", null, T(sen, sa)));
-      link.append(bar, t); return link;
-    };
-    games.append(
-      g("hangman", "var(--hm)", "Hangman Rush", "سباق المشنقة", "Today's word", "كلمة اليوم"),
-      g("trivia", "var(--tr)", "Trivia Rush", "سباق المعلومات", "Five questions, 15 seconds each", "خمسة أسئلة، 15 ثانية لكل سؤال"),
-      g("harf", "var(--hf)", "Harf Rush", "سباق الحروف", "Today's letter, five categories", "حرف اليوم وخمس خانات"));
-    const note = el("p", null, T("Your results count on the same leaderboards, streaks and medals as rushgames.cc. When you finish, the channel gets a summary: points and times only, never the answers.", "نتائجك تُحسب في نفس لوحات الترتيب والسلاسل والميداليات في rushgames.cc. وعند انتهائك يظهر ملخص في القناة: نقاط وأوقات فقط، دون الإجابات."));
-    const c = el("div", "card"); c.append(note);
-    return [who, games, c];
+  // ---------- Today: the three dailies, and who's leading ----------
+  function status(game, langs) {
+    const h = home();
+    if (!h) return "…";
+    const ps = parts(game, langs), any = ps.some(x => x.r);
+    if (game === "trivia") return ps[0].r ? T("Done · " + ps[0].r.pts + " pts", "خلّصت · " + ps[0].r.pts + " نقطة") : T("Five questions waiting", "خمسة أسئلة بانتظارك");
+    if (!any) return game === "hangman" ? T("Today's two words are waiting", "كلمتا اليوم بانتظارك") : T("Today's two letters are waiting", "حرفا اليوم بانتظارك");
+    // each part kept as one unit, so English and Arabic names don't reorder the line
+    return ps.map(x => (ar ? "\u2067" : "\u2066") + LG[x.lg] + ": " + (x.r ? (x.r.ok ? x.r.pts + " " + T("pts", "نقطة") : T("missed", "ما ضبطت")) : T("waiting", "بانتظارك")) + "\u2069").join(" · ");
+  }
+  function leadersOf(h) { return S.guild && h && h.server ? h.server : h && h.all; }
+  function todayView() {
+    const h = home();
+    const head = el("div", "headline"), h1 = el("h1", null, T("Today's dailies", "تحديات اليوم") + " ");
+    if (h) { const no = el("small", "num", "#" + h.no); no.dir = "ltr"; h1.append(no); }
+    const sub = el("div", "sub", T("New in ", "الجديد بعد ")), cd = el("span", "num cd", clock()); cd.dir = "ltr"; cd.setAttribute("role", "timer"); sub.append(cd);
+    head.append(h1, sub);
+    const card = el("section", "card"); card.setAttribute("aria-label", T("Today's dailies", "تحديات اليوم"));
+    GAMES.forEach(([key, en, a, langs, ge, ga]) => {
+      const done = !!h && parts(key, langs).every(x => x.r), row = el("div", "day " + key), tile = el("span", "tile"); tile.setAttribute("aria-hidden", "true");
+      if (done) tile.append(icon("check")); else tile.textContent = T(ge, ga);
+      const t = el("div", "day-t"); t.append(el("b", null, T(en, a)), el("span", null, status(key, langs)));
+      const link = el("a", done ? "btn done" : "btn play", done ? T("Result", "النتيجة") : T("Play", "العب")); link.href = (ar ? "/ar" : "") + "/" + key + "/#daily";
+      link.setAttribute("aria-label", (done ? T("Result", "النتيجة") : T("Play", "العب")) + ": " + T(en, a));
+      row.append(tile, t, link); card.append(row);
+    });
+    const colA = el("div", "col"); colA.append(card);
+    const b = leadersOf(h), lead = el("section", "stack"), lh = el("div", "sec-h");
+    lh.append(el("h2", null, S.guild && h && h.server ? T("This server's leaders", "متصدرو السيرفر") : T("This week's leaders", "متصدرو الأسبوع")), btn("link", T("Full board", "اللوحة كاملة"), () => go("boards")));
+    lead.append(lh);
+    if (!h) lead.append(el("div", "spin"));
+    else if (!b.overall.length) lead.append(el("p", "note", S.guild && h.server ? T("Nobody in this server has played this week yet. Be the first.", "ما لعب أحد في هذا السيرفر هذا الأسبوع. كن الأول.") : T("Nobody has played this week yet. Be the first.", "ما لعب أحد هذا الأسبوع. كن الأول.")));
+    else { const ol = el("ol", "podium"); b.overall.slice(0, 3).forEach((x, i) => { const li = el("li"); li.append(el("span", "num", String(i + 1)), el("span", null, x.n)); ol.append(li); }); lead.append(ol); }
+    const colB = el("div", "col"); colB.append(lead, el("p", "note", T("Your results count on the same leaderboards, streaks and medals as rushgames.cc. When you finish, the channel gets a summary: points and times only, never the answers.", "نتائجك تُحسب في نفس لوحات الترتيب والسلاسل والميداليات في rushgames.cc. وعند انتهائك يظهر ملخص في القناة: نقاط وأوقات فقط، دون الإجابات.")));
+    const cols = el("div", "cols"); cols.append(colA, colB);
+    return [head, cols];
+  }
+
+  // ---------- Boards: this server or everyone, this week or the season ----------
+  function lbRow(x, score) {
+    const li = el("li", (x.me ? "me " : "") + (x.rank <= 3 ? "top" : "")), d = el("span", "dot"); if (x.c) d.style.background = x.c;
+    const nm = el("span", "nm", x.n + " "); nm.append(el("small", null, "#" + x.tag));
+    const pt = el("span", "pt num", String(score)); pt.dir = "ltr";
+    li.append(el("span", "rk num", String(x.rank)), d, nm, pt); return li;
+  }
+  function boardsView() {
+    const h = HB[span], head = el("div", "headline"); head.append(el("h1", null, T("Leaderboards", "المتصدرون")));
+    const pickSpan = v => { span = v; if (!HB[v]) loadHome(); render(); };
+    const colA = el("div", "col"), colB = el("div", "col");
+    if (S.guild) colA.append(seg([["server", T("This server", "هذا السيرفر")], ["all", T("Everyone", "الجميع")]], scope, v => { scope = v; render(); }));
+    colA.append(seg([["week", T("This week", "هذا الأسبوع")], ["season", T("Season", "الموسم")]], span, pickSpan));
+    if (!h) { colA.append(el("div", "spin")); const c = el("div", "cols"); c.append(colA, colB); return [head, c]; }
+    const b = scope === "server" && h.server ? h.server : h.all;
+    colA.append(el("p", "note", span === "week"
+      ? T("Week " + b.wk + " · " + b.wleft + (b.wleft === 1 ? " day" : " days") + " left · new week Friday", "الأسبوع " + b.wk + " · باقي " + b.wleft + (b.wleft === 1 ? " يوم" : " أيام") + " · أسبوع جديد يوم الجمعة")
+      : T("Season " + b.se + " · day " + b.day + " of " + b.len, "الموسم " + b.se + " · اليوم " + b.day + " من " + b.len)));
+    const all = el("section", "stack"), ah = el("div", "sec-h"); ah.append(el("h2", null, T("Overall", "الترتيب العام"))); all.append(ah);
+    const card = el("div", "card");
+    if (!b.overall.length) card.append(el("div", "empty", T("No results yet.", "لا نتائج بعد.")));
+    else { const ol = el("ol", "lb"); b.overall.forEach(x => ol.append(lbRow(x, x.score))); if (b.me) ol.append(lbRow(b.me, b.me.score)); card.append(ol); }
+    all.append(card); colA.append(all);
+    GAMES.forEach(([key, en, a, langs, ge, ga]) => {
+      const g = b.games[key], lg = langs.length > 1 ? (lgOf[key] || (ar ? "ar" : "en")) : "", board = g && g.boards[lg || "all"];
+      const c = el("div", "card " + key), gh = el("div", "gh"), tile = el("span", "tile s", T(ge, ga)); tile.setAttribute("aria-hidden", "true");
+      gh.append(tile, el("b", null, T(en, a)));
+      if (langs.length > 1) gh.append(seg([["ar", "عربي"], ["en", "English"]], lg, v => { lgOf[key] = v; render(); }, "sm"));
+      c.append(gh);
+      if (!board || !board.top.length) c.append(el("div", "empty", T("No results yet.", "لا نتائج بعد.")));
+      else { const ol = el("ol", "lb"); board.top.forEach(x => ol.append(lbRow(x, x.pts))); if (board.me) ol.append(lbRow(board.me, board.me.pts)); c.append(ol); }
+      colB.append(c);
+    });
+    const cols = el("div", "cols"); cols.append(colA, colB);
+    return [head, cols];
+  }
+
+  // ---------- Me ----------
+  function meView() {
+    const p = S.player, head = el("div", "headline"); head.append(el("h1", null, T("Your profile", "ملفك")));
+    const who = el("div", "card pad who"), line = el("div"); line.style.cssText = "display:flex;align-items:center;gap:10px";
+    const d = el("span", "dot"); d.style.cssText = "width:22px;height:22px"; if (p.c) d.style.background = p.c;
+    const tag = el("small", "num", "#" + p.tag); tag.dir = "ltr";
+    line.append(d, el("b", null, p.n || T("New player", "لاعب جديد")), tag);
+    who.append(el("small", null, T("Playing as", "تلعب باسم")), line);
+    if (S.me && S.me.name) who.append(el("p", "note", T("Linked to your Discord account, \u2068" + S.me.name + "\u2069.", "مربوط بحسابك في ديسكورد، \u2068" + S.me.name + "\u2069.")));
+    const set = el("div", "card pad"); set.append(el("small", "note", T("Language", "اللغة")), seg([["ar", "عربي"], ["en", "English"]], ar ? "ar" : "en", v => { ar = v === "ar"; ls.set("hr-lang", v); render(); }));
+    const info = el("div", "card pad"); info.append(el("p", null, T("Dailies you play here count on the same streaks, leaderboards and medals as rushgames.cc. Change your name and colour from your profile inside any game.", "تحديات اليوم هنا تُحسب على نفس السلاسل واللوحات والميداليات في rushgames.cc. غيّر اسمك ولونك من ملفك داخل أي لعبة.")));
+    const colA = el("div", "col"), colB = el("div", "col"); colA.append(who, info); colB.append(set);
+    const cols = el("div", "cols"); cols.append(colA, colB);
+    return [head, cols];
   }
 
   function linkView() {
-    const c = el("div", "card");
+    const c = el("div", "card pad");
     if (view === "have") {
       c.append(el("b", null, T("Link your Rush Games player", "اربط لاعبك في ألعاب رش")));
-      const ol = el("ol");
+      const ol = el("ol", "steps");
       [[ "On rushgames.cc, open your profile (your name at the top).", "في rushgames.cc افتح ملفك (اسمك أعلى الصفحة)." ],
        [ "Press Link Discord to get a 6-letter code.", "اضغط «اربط ديسكورد» لتحصل على رمز من 6 أحرف." ],
        [ "In any Discord channel, type /link and the code.", "في أي قناة في ديسكورد اكتب ‎/link‎ ثم الرمز." ],
        [ "Come back here and press Check.", "ارجع هنا واضغط «تحقق»." ]].forEach(([e, a]) => ol.append(el("li", null, T(e, a))));
-      const row = el("div", "row"), check = el("button", "btn", T("Check", "تحقق")), back = el("button", "btn ghost", T("Back", "رجوع"));
+      const row = el("div", "row"), check = el("button", "btn gold", T("Check", "تحقق")), back = el("button", "btn", T("Back", "رجوع"));
       check.type = back.type = "button";
-      check.onclick = async () => { check.disabled = true; msg = ""; try { Object.assign(S, await post("/api/discord/me", { ds: S.ds })); save(); if (S.player) usePlayer(S.player); else msg = T("Not linked yet. Type /link with the code, then check again.", "لم يتم الربط بعد. اكتب ‎/link‎ مع الرمز ثم تحقق مرة أخرى."); } catch (e) { msg = e.message; } render(); };
+      check.onclick = async () => { check.disabled = true; msg = ""; try { Object.assign(S, await post("/api/discord/me", { ds: S.ds })); save(); if (S.player) { usePlayer(S.player); loadHome(); } else msg = T("Not linked yet. Type /link with the code, then check again.", "لم يتم الربط بعد. اكتب ‎/link‎ مع الرمز ثم تحقق مرة أخرى."); } catch (e) { msg = e.message; } render(); };
       back.onclick = () => { view = "menu"; msg = ""; render(); };
       row.append(check, back); c.append(ol, row);
     } else {
@@ -162,7 +376,7 @@ code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1
       c.append(el("p", null, S.relink
         ? T("Your Discord is linked to a Rush Games player, but it needs linking once more so you can play here. It takes a minute.", "حسابك في ديسكورد مربوط بلاعب في ألعاب رش، لكنه يحتاج ربطاً مرة أخرى لتلعب هنا. يستغرق دقيقة.")
         : T("Do you already play on rushgames.cc? Link your player to keep your streaks and points. Or start fresh here.", "هل تلعب في rushgames.cc؟ اربط لاعبك لتحتفظ بسلاسلك ونقاطك، أو ابدأ من جديد هنا.")));
-      const row = el("div", "row"), have = el("button", "btn", T("I already play: link", "ألعب من قبل: اربط")), fresh = el("button", "btn ghost", T("Start fresh here", "ابدأ من جديد هنا"));
+      const row = el("div", "row"), have = el("button", "btn gold", T("I already play: link", "ألعب من قبل: اربط")), fresh = el("button", "btn", T("Start fresh here", "ابدأ من جديد هنا"));
       have.type = fresh.type = "button";
       have.onclick = () => { view = "have"; msg = ""; render(); };
       fresh.onclick = async () => {
@@ -173,6 +387,7 @@ code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1
           // the new player starts with their Discord name (they can change it in their profile)
           const nick = String(S.me && S.me.name || "").trim().slice(0, 16), colors = ["#2c56e0", "#d93c30", "#178a5c", "#c27a00", "#8a3ffc", "#d6337f"];
           if (nick.length >= 2) { ls.set("hr-me", JSON.stringify({ nick, color: colors[parseInt(uid.slice(-2), 16) % colors.length] })); S.player.n = nick; save(); }
+          loadHome();
         } catch (e) { msg = e.message; }
         render();
       };
@@ -183,8 +398,25 @@ code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1
     return [c];
   }
 
+  // who else has the Activity open here, and whether Discord has shrunk it to a small tile
+  function watch(sdk) {
+    sdkRef = sdk;
+    const people = r => { const n = r && Array.isArray(r.participants) ? r.participants.length : 0; if (n !== count) { count = n; render(); } };
+    try {
+      const get = sdk.commands.getActivityInstanceConnectedParticipants || sdk.commands.getInstanceConnectedParticipants;
+      Promise.resolve(get.call(sdk.commands)).then(people).catch(() => {});
+      Promise.resolve(sdk.subscribe("ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE", people)).catch(() => {});
+      Promise.resolve(sdk.subscribe("ACTIVITY_LAYOUT_MODE_UPDATE", e => document.documentElement.classList.toggle("pip", !!e && (e.layout_mode === 1 || e.layout_mode === 2)))).catch(() => {});
+    } catch (e) {}
+  }
   async function connect() {
-    if (S && S.exp > Date.now() + 600e3) { if (S.player) usePlayer(S.player); return render(); }
+    if (S && S.exp > Date.now() + 600e3) {
+      if (S.player) usePlayer(S.player);
+      render(); loadHome();
+      // back from a game: the pass is still good, so no new login; Discord is asked again only for who's here
+      try { const sdk = new window.DiscordSDK(APP_ID); within(15000, sdk.ready(), "").then(() => watch(sdk)).catch(() => {}); } catch (e) {}
+      return;
+    }
     S = null; render();
     try {
       say("Connecting to Discord… (1/3)", "جارٍ الاتصال بديسكورد… (1/3)");
@@ -198,10 +430,16 @@ code{background:#0b0e19;border:1px solid var(--line);border-radius:6px;padding:1
       S = { ds: r.ds, exp: Date.now() + 23 * 3600e3, channel: sdk.channelId || null, guild: sdk.guildId || null, me: r.me, player: r.player, relink: !!r.relink };
       delete r.access_token;
       save(); if (S.player) usePlayer(S.player);
+      watch(sdk); loadHome();
     } catch (e) { console.error("Rush activity", e); msg = (e && (e.message || e.code)) ? String(e.message || ("Discord error " + e.code)) : T("Couldn't connect to Discord.", "تعذّر الاتصال بديسكورد."); }
     render();
   }
 
+  setInterval(() => {
+    const c = clock(); document.querySelectorAll(".cd").forEach(x => { x.textContent = c; });
+    if (msLeft() < 1000) setTimeout(() => { delete HB.week; delete HB.season; loadHome(); }, 2500); // a new day: fresh dailies
+  }, 1000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) loadHome(); });
   if (inDiscord && window.DiscordSDK) connect(); else render();
 })();
 </script>
