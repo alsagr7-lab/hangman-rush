@@ -315,7 +315,8 @@ async function lastWinners(aw, mb) {
     return Object.assign({ rank: i + 1, id, tag: R.tagOf(id), n: cur.n, c: cur.c, score: x.score }, id === mb ? { me: 1 } : {});
   }) };
 }
-async function hub(me, tab) {
+// only: a Set of player ids (the Discord Activity's "this server" board): the same scores, ranked among just them
+async function hub(me, tab, only) {
   if (tab !== "season") tab = "week";
   const mb = me ? base(me) : "", games = {}, overall = new Map(), aw = await awardsNow();
   const medals = id => { const m = medalsOf(aw, id); return m ? { aw: m } : {}; };
@@ -325,7 +326,8 @@ async function hub(me, tab) {
     for (const lg of S.langs) boards.push({ lg, rows: (await view(game, lg, tab)).views.get(lg + "|" + tab) });
     // the column: each board as it is
     const out = {};
-    for (const { lg, rows } of boards) {
+    for (const { lg, rows: every } of boards) {
+      const rows = only ? every.filter(r => only.has(r.id)) : every;
       const mi = mb ? rows.findIndex(r => r.id === mb) : -1;
       out[lg || "all"] = { players: rows.length, top: rows.slice(0, 3).map(mark), me: mi >= 3 ? mark(rows[mi], mi) : null };
     }
@@ -339,7 +341,7 @@ async function hub(me, tab) {
       overall.set(x.id, o);
     });
   }
-  const all = [...overall.values()].sort((a, b) => b.score - a.score || Object.keys(b.games).length - Object.keys(a.games).length);
+  const all = [...overall.values()].filter(x => !only || only.has(x.id)).sort((a, b) => b.score - a.score || Object.keys(b.games).length - Object.keys(a.games).length);
   const mi = mb ? all.findIndex(x => x.id === mb) : -1;
   return {
     tab, awards: awInfo(aw), last: await lastWinners(aw, mb), se: R.curSeason(), day: R.seasonDay(), len: R.SEASON_LEN, left: R.seasonDaysLeft(), wk: R.weekNo(), wleft: R.weekDaysLeft(), games,

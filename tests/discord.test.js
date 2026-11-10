@@ -111,6 +111,23 @@ test("a link made before tokens were kept asks to link again in the Activity", a
   assert.equal(before.player.uid, "p_discB00001"); // the code from the profile now carries the token
 });
 
+test("the Activity's menu: the player's own dailies, everyone's leaders and this server's", async () => {
+  const a = await post("/api/discord/activity", { code: "code-ann-0001" });
+  const h = await post("/api/discord/home", { ds: a.ds, guild: "900000000000000002", tab: "week" });
+  assert.equal(h.no, R.dailyNo());
+  assert.deepEqual(h.today, { "hangman-en": { pts: 250, ok: true } });
+  assert.ok(h.all.overall.some(x => x.n === "Ann" && x.me === 1));
+  // a server nobody else has played in: just Ann, with the same score as on everyone's board
+  assert.deepEqual(h.server.overall.map(x => [x.rank, x.n]), [[1, "Ann"]]);
+  assert.equal(h.server.overall[0].score, h.all.overall.find(x => x.n === "Ann").score);
+  assert.equal(h.server.games.hangman.boards.en.top[0].n, "Ann");
+  assert.equal(h.server.games.hangman.boards.en.players, 1);
+  // outside a server (a DM) there is no server board; bad input is turned away
+  assert.equal((await post("/api/discord/home", { ds: a.ds, tab: "season" })).server, null);
+  await post("/api/discord/home", { ds: a.ds, guild: "not-a-server" }, 400);
+  await post("/api/discord/home", { ds: "111111111111.9999999999999.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }, 401);
+});
+
 test("unlinking from the site or from Discord", async () => {
   await post("/api/discord/unlink", { uid: "p_discA00001", token: TOK("p_discA00001") });
   assert.equal((await post("/api/discord/status", { uid: "p_discA00001", token: TOK("p_discA00001") })).linked, false);

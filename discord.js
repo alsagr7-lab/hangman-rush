@@ -28,6 +28,9 @@
 //        them; relink means linked before tokens were kept: link again once from the profile.
 //   POST /api/discord/me {ds}             -> the same player, after linking with /link while the Activity is open
 //   POST /api/discord/claim {ds, uid, token} -> links this Discord account to a new player started in the Activity
+//   POST /api/discord/home {ds, guild, tab} -> the Activity's menu in one call: {no, today, all, server}. today is the
+//        linked player's own dailies so far (points only); all is this week's (or the season's) leaders as on the hub;
+//        server is the same ranked among the linked players seen in that Discord server (null outside a server).
 //   POST /api/discord/played {ds, channel, guild} -> after a daily: one message per channel per day listing how the
 //        players there did (points and times only), edited as more play. Meta: dchan:<channel>:<day> -> Discord ids,
 //        dmsg:<channel>:<day> -> message id, dlinktok:<player> -> the sealed token.
@@ -305,6 +308,24 @@ async function activity(what, req, res, { send, readJson, ip }, limits, boards) 
     send(res, 200, await linkedPlayer(boards, duid));
     return;
   }
+  if (what === "home") {
+    const guild = body.guild ? String(body.guild) : null, tab = body.tab === "season" ? "season" : "week";
+    if (guild && !/^\d{5,25}$/.test(guild)) { send(res, 400, { error: "Bad server" }); return; }
+    const uid = await playerOf(duid), today = {};
+    if (uid) {
+      await seenIn(guild, duid);
+      for (const [game, lg] of BOARDS) {
+        const row = (await boards.board(game, lg, "today", "")).rows.find(r => r.id === uid);
+        if (row) today[game + (lg ? "-" + lg : "")] = { pts: row.pts, ok: game !== "hangman" || !!(row.d && row.d.ok) };
+      }
+    }
+    const slim = h => ({ tab: h.tab, wk: h.wk, wleft: h.wleft, se: h.se, day: h.day, len: h.len, games: h.games, overall: h.overall, me: h.me });
+    const all = slim(await boards.hub(uid || "", tab));
+    const who = guild ? await whoOf((await store.metaGet("dguild:" + guild)) || []) : null;
+    const server = who ? slim(await boards.hub(uid || "", tab, new Set(who.keys()))) : null;
+    send(res, 200, { no: R.dailyNo(), today, all, server });
+    return;
+  }
   if (what === "played") {
     const channel = String(body.channel || ""), guild = body.guild ? String(body.guild) : null;
     if (!/^\d{5,25}$/.test(channel) || (guild && !/^\d{5,25}$/.test(guild))) { send(res, 400, { error: "Bad channel" }); return; }
@@ -342,7 +363,7 @@ async function handle(req, res, url, { send, readJson, readBody, ip }, limits) {
     return true;
   }
   if (req.method !== "POST") return false;
-  if (/^\/api\/discord\/(activity|me|claim|played)$/.test(p)) { await activity(p.slice(13), req, res, { send, readJson, ip }, limits, boards); return true; }
+  if (/^\/api\/discord\/(activity|me|claim|played|home)$/.test(p)) { await activity(p.slice(13), req, res, { send, readJson, ip }, limits, boards); return true; }
   if (!limits.take("dc|" + ip, 20, 10)) { send(res, 429, { error: "Too many requests. Slow down a little." }); return true; }
   const body = await readJson(req), uid = await owned(body);
   if (!uid) { send(res, 403, { error: "This player belongs to another device" }); return true; }
