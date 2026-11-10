@@ -73,7 +73,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ip, cf: h["cf-connecting-ip"] ? 1 : 0, tci: h["true-client-ip"] ? 1 : 0, xff: String(h["x-forwarded-for"] || "").split(",").map(s => s.trim()).filter(Boolean).length });
     }
     // every write: a generous limit per address, so a script can't hammer the server or fill the database
-    if ((req.method === "POST" || req.method === "PUT") && url.pathname.startsWith("/api/") && url.pathname !== "/api/hit" && !/^\/api\/discord\/(interactions|activity|me|claim|played)$/.test(url.pathname)) {
+    if ((req.method === "POST" || req.method === "PUT") && url.pathname.startsWith("/api/") && url.pathname !== "/api/hit" && !/^\/api\/discord\/(interactions|activity|me|claim|played|home)$/.test(url.pathname)) {
       if (!limits.take("w|" + ip, 120, 60)) return send(res, 429, { error: "Too many requests. Slow down a little." });
     }
     // the Harf admin page (needs ADMIN_KEY; only on this server, never on the static site)
@@ -258,5 +258,5 @@ setInterval(() => {
 // redirect-only: the old database may be gone, so start with none; every API call is forwarded (move.js)
 if (move.redirecting()) server.listen(PORT, () => console.log(`Rush Games listening on ${PORT} (redirect-only to the new server)`));
 else store.init().then(() => admin.loadHidden()).then(() => mod.load()).then(() => harf.init()).then(() => require("./merges").runMerges().catch(e => console.error("Merge failed", e))).then(() => {
-  server.listen(PORT, () => { console.log(`Rush Games listening on ${PORT} (storage: ${store.kind})`); discord.register(); });
+  server.listen(PORT, () => { console.log(`Rush Games listening on ${PORT} (storage: ${store.kind})`); discord.register(); discord.start(); });
 }).catch(e => { console.error("Storage failed to start", e); process.exit(1); });

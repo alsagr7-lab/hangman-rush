@@ -35,7 +35,14 @@
 //        players there did (points and times only), edited as more play. Meta: dchan:<channel>:<day> -> Discord ids,
 //        dmsg:<channel>:<day> -> message id, dlinktok:<player> -> the sealed token.
 //
-// Commands never show a daily's word, letter or answers: only points, times and how many were right.
+// The channel's messages (as the Wordle app does it): the day's summary carries a "Play now!" button that opens the
+// Activity (a button press arrives here as an interaction, answered with Discord's "launch activity" reply), and each
+// new day the channels that played yesterday get one recap: the group's streak and yesterday's ranking. Meta:
+//   dstreak:<channel> -> {n, last}   days in a row someone there played a daily through the Activity
+//   dactive           -> {channel: last day played}   where to post the recap (channels drop out after a day off)
+//   drecap            -> the day whose recap round has been done
+//
+// Commands and messages never show a daily's word, letter or answers: only points, times and how many were right.
 const crypto = require("crypto");
 const store = require("./store");
 const ident = require("./ident");
@@ -50,6 +57,7 @@ const API = process.env.DISCORD_API || "https://discord.com/api/v10";
 const SITE = (process.env.SITE_URL || "https://rushgames.cc").replace(/\/+$/, "");
 const enabled = () => !!(APP_ID && PUBLIC_KEY);
 
+const RECAP_HOURS = Number(process.env.DISCORD_RECAP_HOURS || 6); // a restart later in the day than this skips that day's recaps
 const CODE_MS = 10 * 60e3;
 const CODE_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I
 const GUILD_MAX = 500;
@@ -186,15 +194,80 @@ async function today(boards, guild) {
   return embed(`Today · ${R.todayKey()}`, lines.length ? lines : ["Nobody linked here has played today's games yet."], { url: SITE + "/", footer: { text: "Play the dailies at rushgames.cc" } });
 }
 
+// the button under the channel's messages: pressing it opens the Activity (see handle)
+const PLAY = { components: [{ type: 1, components: [{ type: 2, style: 1, label: "Play now!", custom_id: "rush-play" }] }] };
+const ACTIVE_MAX = 5000;
+// someone played in this channel today: its streak goes on (or starts again), and it gets tomorrow's recap
+async function touchChannel(channel, day) {
+  const ks = "dstreak:" + channel, s = (await store.metaGet(ks)) || { n: 0, last: "" };
+  if (s.last === day) return s.n;
+  s.n = s.last === R.ydayKey() ? s.n + 1 : 1; s.last = day;
+  await store.metaPut(ks, s);
+  const act = (await store.metaGet("dactive")) || {}, yd = R.ydayKey();
+  for (const c of Object.keys(act)) if (act[c] < yd) delete act[c];
+  act[channel] = day;
+  const keys = Object.keys(act); while (keys.length > ACTIVE_MAX) delete act[keys.shift()];
+  await store.metaPut("dactive", act);
+  return s.n;
+}
+const fires = n => "🔥".repeat(n >= 7 ? 3 : n >= 3 ? 2 : 1);
+
+// a new day's recap for one channel: the group's streak and how yesterday ended there (each player's points over all
+// the dailies, best first, ties sharing a line)
+async function postRecap(boards, channel, yd) {
+  const who = await whoOf((await store.metaGet(`dchan:${channel}:${yd}`)) || []);
+  if (!who.size) return false;
+  const tot = new Map();
+  for (const [game, lg] of BOARDS) for (const r of (await boards.board(game, lg, "yday", "")).rows) if (who.has(r.id)) tot.set(r.id, (tot.get(r.id) || 0) + r.pts);
+  if (!tot.size) return false;
+  const byPts = new Map();
+  for (const [id, pts] of [...tot].sort((a, b) => b[1] - a[1])) byPts.set(pts, (byPts.get(pts) || []).concat(`<@${who.get(id)}>`));
+  const lines = [...byPts].map(([pts, ids], i) => `${i === 0 ? "👑 " : ""}**${pts}** pts: ${ids.join(" ")}`);
+  const s = (await store.metaGet("dstreak:" + channel)) || { n: 1 }, n = Math.max(1, s.n | 0);
+  const head = n > 1 ? `**Your group is on a ${n} day streak!** ${fires(n)}` : "**Your group started a streak yesterday!** 🔥";
+  const body = Object.assign({ content: `${head} Here are yesterday's results:\n${lines.join("\n")}`.slice(0, 1900), allowed_mentions: { parse: [] } }, PLAY);
+  const r = await fetch(API + `/channels/${channel}/messages`, { method: "POST", headers: { Authorization: "Bot " + BOT_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+  if (!r.ok) console.log("Discord: posting the recap failed", r.status);
+  return r.ok;
+}
+// once per day, soon after the day changes (midnight Saudi time): a recap in every channel that played yesterday
+let recapping = false;
+async function recapRound() {
+  if (recapping || !enabled() || !BOT_TOKEN) return 0;
+  recapping = true;
+  try {
+    const day = R.todayKey(), done = await store.metaGet("drecap");
+    if (done === day) return 0;
+    await store.metaPut("drecap", day); // first, so a crash can't post twice
+    if (!done || R.DAY - R.msToMidnight() > RECAP_HOURS * 36e5) return 0; // the very first run, or too late in the day
+    const boards = require("./boards"), yd = R.ydayKey(), act = (await store.metaGet("dactive")) || {};
+    let n = 0;
+    for (const [channel, last] of Object.entries(act)) {
+      if (last !== yd) continue;
+      try { if (await postRecap(boards, channel, yd)) n++; } catch (e) { console.log("Discord recap", e.message); }
+      await new Promise(r => setTimeout(r, 300)); // gently: Discord limits how fast a bot may post
+    }
+    if (n) console.log(`Discord: posted ${n} recap(s) for ${yd}`);
+    return n;
+  } catch (e) { console.log("Discord recap round", e.message); return 0; }
+  finally { recapping = false; }
+}
+function start() {
+  if (!enabled() || !BOT_TOKEN) return;
+  setTimeout(recapRound, 1500).unref();
+  setInterval(recapRound, 60e3).unref();
+}
+
 // the Activity's summary in a channel: one message per channel per day, edited as more people play
 async function postSummary(boards, channel, duid) {
   if (!BOT_TOKEN) return false;
   const day = R.todayKey(), kc = `dchan:${channel}:${day}`, km = `dmsg:${channel}:${day}`;
+  const streak = await touchChannel(channel, day);
   const list = (await store.metaGet(kc)) || [];
   if (!list.includes(duid)) { list.push(duid); while (list.length > 100) list.shift(); await store.metaPut(kc, list); }
   const lines = await results(boards, await whoOf(list));
   if (!lines.length) return false;
-  const body = Object.assign({ allowed_mentions: { parse: [] } }, embed(`Rush Games · today's dailies`, lines, { url: SITE + "/", footer: { text: "Play inside Discord: start the Rush Games activity · " + day } }));
+  const body = Object.assign({ allowed_mentions: { parse: [] } }, embed(`Rush Games · today's dailies`, lines, { url: SITE + "/", footer: { text: (streak > 1 ? `Group streak: ${streak} days ${fires(streak)} · ` : "") + day } }), PLAY);
   const call = (method, url) => fetch(API + url, { method, headers: { Authorization: "Bot " + BOT_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
   const prev = await store.metaGet(km);
   if (prev) { const r = await call("PATCH", `/channels/${channel}/messages/${prev}`); if (r.ok) return true; if (r.status !== 404) return false; }
@@ -357,6 +430,8 @@ async function handle(req, res, url, { send, readJson, readBody, ip }, limits) {
     if (!verify(req.headers["x-signature-ed25519"], req.headers["x-signature-timestamp"], raw)) { send(res, 401, { error: "Bad signature" }); return true; }
     let i; try { i = JSON.parse(raw); } catch { send(res, 400, { error: "Bad body" }); return true; }
     if (i.type === 1) { send(res, 200, { type: 1 }); return true; } // Discord's check that this address works
+    // the "Play now!" button under the channel's messages: Discord opens the Activity for whoever pressed it
+    if (i.type === 3) { if (i.data && i.data.custom_id === "rush-play") send(res, 200, { type: 12 }); else send(res, 400, { error: "Unsupported" }); return true; }
     if (i.type !== 2) { send(res, 400, { error: "Unsupported" }); return true; }
     try { send(res, 200, await command(i, boards)); }
     catch (e) { console.error("Discord command", e); send(res, 200, say("Something went wrong. Try again in a moment.")); }
@@ -381,4 +456,4 @@ async function handle(req, res, url, { send, readJson, readBody, ip }, limits) {
   return false;
 }
 
-module.exports = { handle, register, enabled, verify, COMMANDS, makePass, readPass };
+module.exports = { handle, register, start, enabled, verify, COMMANDS, makePass, readPass };
