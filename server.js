@@ -74,7 +74,9 @@ const server = http.createServer(async (req, res) => {
     }
     // every write: a generous limit per address, so a script can't hammer the server or fill the database
     if ((req.method === "POST" || req.method === "PUT") && url.pathname.startsWith("/api/") && url.pathname !== "/api/hit" && !/^\/api\/discord\/(interactions|activity|me|claim|played|home)$/.test(url.pathname)) {
-      if (!limits.take("w|" + ip, 120, 60)) return send(res, 429, { error: "Too many requests. Slow down a little." });
+      // (players inside Discord share its proxy's addresses, so they share one larger allowance)
+      const dc = viaDiscord(req);
+      if (!limits.take(dc ? "w|discord" : "w|" + ip, dc ? 3000 : 120, dc ? 1500 : 60)) return send(res, 429, { error: "Too many requests. Slow down a little." });
     }
     // the Harf admin page (needs ADMIN_KEY; only on this server, never on the static site)
     if (url.pathname === "/admin" || url.pathname === "/admin/" || url.pathname === "/admin/harf") {
@@ -184,13 +186,24 @@ function leave(ws, name) {
 // family on one home connection shares one address, so that limit leaves room for a full party.
 const PARTY_MAX = Math.max(2, Number(process.env.PARTY_MAX) || 15);
 const WS_PER_IP = Math.max(12, 2 * (PARTY_MAX + 1) + 8), ROOMS_PER_WS = 4, ROOM_MAX = Math.max(20, PARTY_MAX + 1), MSG_PER_SEC = 10, MSG_BURST = 20;
-const roomCap = name => (name.startsWith("pt-") ? PARTY_MAX + 1 : ROOM_MAX);
+const roomCap = name => (name.startsWith("pt-") ? PARTY_MAX + 1 : name.startsWith("pw-") ? PARTY_MAX + 2 : ROOM_MAX);
+// A party in a Discord call has no TV: every player's window shows the big screen too. Those screens sit in the party's
+// room as watchers (they join with w: 1, only read, and aren't counted as players), and one of them runs the game and
+// shares its state with the rest as its presence in the party's "pw-<code>" room, which may be larger than a player's.
+const isWatcher = v => !!v.presence && v.presence.w === 1;
+const maxPresence = name => (name.startsWith("pw-") ? PW_PRESENCE : MAX_PRESENCE);
+const PW_PRESENCE = 12000;
+// Everyone playing inside Discord reaches us through Discord's proxy, so they share a few addresses: those connections
+// get one large shared allowance instead of the per-address one.
+const DISCORD_ORIGIN = process.env.DISCORD_APP_ID ? `https://${process.env.DISCORD_APP_ID}.discordsays.com` : "";
+const DISCORD_WS_MAX = Math.max(WS_PER_IP, Number(process.env.DISCORD_WS_MAX) || 1500);
+const viaDiscord = req => !!DISCORD_ORIGIN && (req.headers.origin === DISCORD_ORIGIN || /(^|\.)discordsays\.com$/.test(String(req.headers["cf-worker"] || "")));
 const wsByIp = new Map(); // ip -> open connections
-const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 16 * 1024 });
+const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 32 * 1024 });
 wss.on("connection", (ws, req) => {
-  const ip = limits.clientIp(req);
+  const dc = viaDiscord(req), ip = dc ? "discord" : limits.clientIp(req);
   const n = (wsByIp.get(ip) || 0) + 1;
-  if (n > WS_PER_IP) { ws.close(1008, "Too many connections"); return; }
+  if (n > (dc ? DISCORD_WS_MAX : WS_PER_IP)) { ws.close(1008, "Too many connections"); return; }
   wsByIp.set(ip, n);
   ws.on("close", () => { const m = (wsByIp.get(ip) || 1) - 1; if (m <= 0) wsByIp.delete(ip); else wsByIp.set(ip, m); });
   ws.peerId = crypto.randomBytes(8).toString("hex");
@@ -216,13 +229,16 @@ wss.on("connection", (ws, req) => {
       if (!ws.rooms.has(name)) {
         if (ws.rooms.size >= ROOMS_PER_WS) return ws.send(JSON.stringify({ t: "error", room: name, code: "limit_reached" }));
         const room = rooms.get(name) || new Map();
-        if (room.size >= roomCap(name)) return ws.send(JSON.stringify({ t: "error", room: name, code: name.startsWith("pt-") ? "party_full" : "limit_reached" }));
+        // a party's watchers (the screens of a party in a Discord call) have their own places, apart from the players'
+        const watch = name.startsWith("pt-") && !!msg.presence && msg.presence.w === 1;
+        const taken = name.startsWith("pt-") ? [...room.values()].filter(v => isWatcher(v) === watch).length : room.size;
+        if (taken >= roomCap(name)) return ws.send(JSON.stringify({ t: "error", room: name, code: name.startsWith("pt-") ? "party_full" : "limit_reached" }));
         rooms.set(name, room);
         room.set(ws.peerId, { ws, presence: {} });
         ws.rooms.add(name);
       }
       const p = msg.presence;
-      if (p && typeof p === "object" && !Array.isArray(p) && JSON.stringify(p).length <= MAX_PRESENCE) rooms.get(name).get(ws.peerId).presence = p;
+      if (p && typeof p === "object" && !Array.isArray(p) && JSON.stringify(p).length <= maxPresence(name)) rooms.get(name).get(ws.peerId).presence = p;
       dropOlder(name, ws);
       broadcast(name);
     } else if (msg.t === "presence") {
@@ -230,7 +246,7 @@ wss.on("connection", (ws, req) => {
       if (!entry || !msg.patch || typeof msg.patch !== "object" || Array.isArray(msg.patch)) return;
       const next = Object.assign({}, entry.presence);
       for (const [k, v] of Object.entries(msg.patch)) { if (v === null) delete next[k]; else next[k] = v; }
-      if (JSON.stringify(next).length > MAX_PRESENCE) return;
+      if (JSON.stringify(next).length > maxPresence(name)) return;
       entry.presence = next;
       if ("u" in msg.patch) dropOlder(name, ws);
       broadcast(name);

@@ -13,6 +13,7 @@
   The hub sends the Activity here (scripts/build-site.js). This page asks Discord who the player is (sdk.js, Discord's
   Embedded App SDK 2.5.0, MIT, bundled with esbuild; LICENSE-sdk.md), and the server (discord.js) answers with the
   player linked to that Discord account. The daily games then run as normal pages and report back when done (rush.js).
+  Party mode for the call is its own page (site/discord/party/), opened from the Today tab.
   The menu (10 Nov 2026 look): Today (the three dailies with what's done, and the leaders), Boards (this Discord server or
   everyone, this week or the season) and Me, all from one call (POST /api/discord/home). It also shows how many people
   have the Activity open, and a small tile when Discord shrinks the Activity.
@@ -67,6 +68,8 @@ html[lang="ar"] .sec-h h2{font-weight:900}
 .card.pad{padding:18px;gap:12px}
 .card.pad>*+*{border-top:0}
 .card.pad p{color:var(--muted)}
+.card.party{border-color:var(--gold-line)}
+.card.party .btn{align-self:flex-start}
 .day{display:flex;align-items:center;gap:12px;padding:13px 14px}
 .tile{width:44px;height:44px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:20px;font-weight:800;color:#15161B;background:var(--acc)}
 .tile.s{width:30px;height:30px;border-radius:9px;font-size:14px}
@@ -293,7 +296,12 @@ html.pip .app{display:none} html.pip .mini{display:flex}
       link.setAttribute("aria-label", (done ? T("Result", "النتيجة") : T("Play", "العب")) + ": " + T(en, a));
       row.append(tile, t, link); card.append(row);
     });
-    const colA = el("div", "col"); colA.append(card);
+    // party mode for everyone in the call: no big screen, each window is the screen and the controller
+    const party = el("section", "card pad party"), ph = el("div", "sec-h"); ph.append(el("h2", null, T("Party in this call", "حفلة في هذه المكالمة")));
+    if (count > 1) ph.append(el("span", "note", T(count + " here", count + " هنا")));
+    const pb = btn("btn gold", T("Start a party", "ابدأ حفلة"), () => { location.href = "/discord/party/" + location.search; });
+    party.append(ph, el("p", null, T("Trivia, Hangman, Harf, Bluff and Imposter with everyone here. No big screen needed: whoever opens the activity joins the same party.", "المعلومات والمشنقة والحروف والكذب ومو منّا؟ مع كل الموجودين. بدون شاشة كبيرة: كل من يفتح النشاط يدخل نفس الحفلة.")), pb);
+    const colA = el("div", "col"); colA.append(card, party);
     const b = leadersOf(h), lead = el("section", "stack"), lh = el("div", "sec-h");
     lh.append(el("h2", null, S.guild && h && h.server ? T("This server's leaders", "متصدرو السيرفر") : T("This week's leaders", "متصدرو الأسبوع")), btn("link", T("Full board", "اللوحة كاملة"), () => go("boards")));
     lead.append(lh);
@@ -415,7 +423,7 @@ html.pip .app{display:none} html.pip .mini{display:flex}
       if (S.player) usePlayer(S.player);
       render(); loadHome();
       // back from a game: the pass is still good, so no new login; Discord is asked again only for who's here
-      try { const sdk = new window.DiscordSDK(APP_ID); within(15000, sdk.ready(), "").then(() => watch(sdk)).catch(() => {}); } catch (e) {}
+      try { const sdk = new window.DiscordSDK(APP_ID); if (!S.instance && sdk.instanceId) { S.instance = sdk.instanceId; save(); } within(15000, sdk.ready(), "").then(() => watch(sdk)).catch(() => {}); } catch (e) {}
       return;
     }
     S = null; render();
@@ -428,7 +436,7 @@ html.pip .app{display:none} html.pip .mini{display:flex}
       say("Signing you in… (3/3)", "جارٍ تسجيل دخولك… (3/3)");
       const r = await within(20000, post("/api/discord/activity", { code }), T("The game server didn't answer (step 3).", "لم يستجب خادم اللعبة (الخطوة 3)."));
       try { await sdk.commands.authenticate({ access_token: r.access_token }); } catch {}
-      S = { ds: r.ds, exp: Date.now() + 23 * 3600e3, channel: sdk.channelId || null, guild: sdk.guildId || null, me: r.me, player: r.player, relink: !!r.relink };
+      S = { ds: r.ds, exp: Date.now() + 23 * 3600e3, channel: sdk.channelId || null, guild: sdk.guildId || null, instance: sdk.instanceId || null, me: r.me, player: r.player, relink: !!r.relink };
       delete r.access_token;
       save(); if (S.player) usePlayer(S.player);
       watch(sdk); loadHome();

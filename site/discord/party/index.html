@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Party · Rush Games</title>
+<meta name="robots" content="noindex">
+<!--
+  Party mode in a Discord call (opened from the Activity's menu, site/discord/index.html). There is no TV here: each
+  player's window shows the party page twice, side by side (stacked on a phone):
+    the screen      /party/#call=CODE  in a frame named "rush-screen"  what the TV would show
+    the controller  /party/#p=CODE     in a frame named "rush-pad"     what a phone would show
+  Everyone who opens the Activity in the same call gets the same CODE (worked out from Discord's id for this running
+  Activity), so they land in one party without typing anything. One of the screens runs the game and the others copy
+  it (site/party/index.html, "a party in a Discord call"); the host player runs the party from their controller.
+  The screen is drawn at no less than 920 px wide and scaled down to fit, so it reads like a TV at any size.
+  During Harf Rush the controller moves to the Harf page, which shows everything itself: the screen makes way for it.
+-->
+<link rel="stylesheet" href="/shared/fonts.css">
+<style>
+:root{color-scheme:dark;--bg:#0B0C10;--surface:#14161D;--line:#23262F;--line2:#343846;--ink:#F4F1EA;--muted:#B4B8C3;--gold:#F2B544;--party:#2E1F66;
+  --sait:var(--discord-safe-area-inset-top,env(safe-area-inset-top,0px));--saib:var(--discord-safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
+  --sail:var(--discord-safe-area-inset-left,env(safe-area-inset-left,0px));--sair:var(--discord-safe-area-inset-right,env(safe-area-inset-right,0px));
+  --f:"Figtree",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;--fd:"Saira","Figtree",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+html[lang="ar"]{--f:"Cairo",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;--fd:var(--f)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--f);overflow:hidden;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.app{height:100%;display:flex;flex-direction:column;padding:var(--sait) var(--sair) var(--saib) var(--sail)}
+.top{flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px}
+.top h1{flex:1;min-width:0;margin:0;font-family:var(--fd);font-size:19px;font-weight:800;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html[lang="ar"] .top h1{font-weight:900;letter-spacing:0}
+.btn{min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line2);background:var(--surface);font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:transform .12s ease-out}
+.btn:active{transform:scale(.97)}
+.btn.gold{border:0;background:var(--gold);color:#15161B;font-weight:800}
+[dir="rtl"] .flip{transform:scaleX(-1)}
+.panes{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);gap:8px;padding:0 8px 8px}
+.pane{position:relative;min-width:0;min-height:0;border-radius:18px;overflow:hidden;background:var(--party)}
+.pane iframe{position:absolute;top:0;inset-inline-start:0;width:100%;height:100%;border:0;display:block}
+#screen iframe{transform-origin:0 0}
+[dir="rtl"] #screen iframe{transform-origin:100% 0}
+.panes.solo{grid-template-columns:minmax(0,1fr)}
+.panes.solo #screen{display:none}
+.panes.solo #pad{max-width:760px;width:100%;margin:0 auto}
+.note{margin:auto;max-width:440px;padding:24px;text-align:center;color:var(--muted)}
+@media (max-width:760px){
+  .panes{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,38fr) minmax(0,62fr)}
+  .panes.solo{grid-template-rows:minmax(0,1fr)}
+  .top{padding:6px 10px}
+}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <button class="btn" id="back" type="button"></button>
+    <h1 id="title"></h1>
+    <button class="btn gold" id="invite" type="button" hidden></button>
+  </header>
+  <main class="panes" id="panes"></main>
+</div>
+<script>
+// Discord's SDK sends its first message to document.referrer, which should be Discord; arriving from the menu it is
+// our own page, so the address the hub saved is put back (as the menu does).
+(function () {
+  try {
+    const saved = sessionStorage.getItem("rush-ref"), own = location.origin;
+    const ref = saved != null && !String(saved).startsWith(own) ? saved : (document.referrer.startsWith(own) ? "" : document.referrer);
+    Object.defineProperty(document, "referrer", { get: () => ref, configurable: true });
+  } catch (e) {}
+})();
+</script>
+<script src="/discord/sdk.js"></script>
+<script>
+(function () {
+  "use strict";
+  const APP_ID = "1569249047150071939"; // the Discord application (public)
+  const q = new URLSearchParams(location.search);
+  const ls = k => { try { return localStorage.getItem(k); } catch { return null; } };
+  const ar = (ls("hr-lang") || (navigator.language || "").slice(0, 2)) === "ar";
+  const T = (en, a) => (ar ? a : en);
+  document.documentElement.lang = ar ? "ar" : "en"; document.documentElement.dir = ar ? "rtl" : "ltr";
+  const $ = id => document.getElementById(id);
+  let S = null; try { S = JSON.parse(sessionStorage.getItem("rush-dc") || "null"); } catch {}
+
+  // one code per running Activity: everyone in the call works out the same four letters (no I or O, as in room codes)
+  function codeOf(id) {
+    let h = 2166136261; for (const ch of String(id)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+    const L = "ABCDEFGHJKLMNPQRSTUVWXYZ"; let s = ""; for (let i = 0; i < 4; i++) { s += L[h % 24]; h = Math.floor(h / 24); }
+    return s;
+  }
+  let sdk = null; try { if (window.DiscordSDK) sdk = new window.DiscordSDK(APP_ID); } catch (e) {}
+  // "test" is for trying the page outside Discord (the party pages treat it like any code)
+  const inst = (S && S.instance) || (sdk && sdk.instanceId) || q.get("instance_id") || (S && S.channel) || q.get("test") || "";
+
+  $("back").append(Object.assign(document.createElement("span"), { className: "flip", textContent: "‹" }), T("Menu", "القائمة"));
+  $("back").onclick = () => { location.href = "/discord/" + location.search; };
+  $("title").textContent = T("PARTY", "وضع الحفلة");
+  const panes = $("panes");
+  if (!inst || (!S || !S.player) && !q.get("test")) {
+    const p = document.createElement("p"); p.className = "note";
+    p.textContent = T("Open the party from the Rush Games menu inside Discord.", "افتح وضع الحفلة من قائمة ألعاب رش داخل ديسكورد.");
+    panes.className = "panes solo"; panes.append(p); return;
+  }
+  const code = codeOf(inst);
+  const frame = (id, name, src, label) => { const d = document.createElement("section"); d.className = "pane"; d.id = id; const f = document.createElement("iframe"); f.name = name; f.title = label; f.src = src; f.allow = "screen-wake-lock"; d.append(f); return d; };
+  const screen = frame("screen", "rush-screen", "/party/#call=" + code, T("Game screen", "شاشة اللعبة"));
+  const pad = frame("pad", "rush-pad", "/party/#p=" + code, T("Your controller", "لوحة التحكم"));
+  panes.append(screen, pad);
+
+  // the screen is laid out at least 920 px wide (the party page's big-screen layout) and scaled to fit its pane
+  const sf = screen.firstChild;
+  function fit() {
+    const w = screen.clientWidth, h = screen.clientHeight; if (!w || !h) return;
+    const vw = Math.max(w, 920), k = w / vw;
+    sf.style.width = vw + "px"; sf.style.height = Math.ceil(h / k) + "px"; sf.style.transform = k < 1 ? "scale(" + k + ")" : "";
+  }
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(screen); else addEventListener("resize", fit);
+  fit();
+
+  // Harf Rush is played on its own page, which shows the letter, the clock and the results itself
+  const pf = pad.firstChild;
+  // (a controller that wandered anywhere else, say through the Harf page's back button, comes back to the party)
+  function where() {
+    let path = ""; try { path = pf.contentWindow.location.pathname; } catch (e) {}
+    const harf = /\/harf\//.test(path);
+    if (path && path !== "blank" && !harf && !/\/party\//.test(path)) { pf.src = "/party/#p=" + code; return; }
+    panes.classList.toggle("solo", harf); fit();
+  }
+  pf.addEventListener("load", where); setInterval(where, 1000);
+
+  // "Invite": Discord's own dialog for bringing people in the call into the Activity
+  if (sdk) Promise.resolve().then(() => sdk.ready()).then(() => {
+    if (!sdk.commands || !sdk.commands.openInviteDialog) return;
+    const b = $("invite"); b.textContent = T("Invite", "ادعُ"); b.hidden = false;
+    b.onclick = () => { Promise.resolve(sdk.commands.openInviteDialog()).catch(() => { b.hidden = true; }); };
+  }).catch(() => {});
+})();
+</script>
+</body>
+</html>
