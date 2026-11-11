@@ -362,7 +362,11 @@ const COMMANDS = [
   { name: "leaderboard", description: "This week's Rush Games leaderboard", options: [{ type: 3, name: "board", description: "Which board (default: overall)", required: false, choices: BOARD_CHOICES.map(([name, value]) => ({ name, value })) }] },
   { name: "streak", description: "Your streaks and this week's points" },
   { name: "today", description: "How the linked players in this server did in today's dailies" },
-].map(c => Object.assign({ type: 1, integration_types: [0, 1], contexts: [0, 1, 2] }, c));
+].map(c => Object.assign({ type: 1, integration_types: [0, 1], contexts: [0, 1, 2] }, c))
+  // the Activity's own "Launch" command (Discord made it when Activities were switched on). Left to Discord, each
+  // launch also posts a "Game Invitation" card in the channel that later reads "Game ended. Start a new one?"; handled
+  // here (handler 1) the Activity just opens. It has to be listed, or Discord refuses the whole list.
+  .concat(CLIENT_SECRET ? [{ type: 4, handler: 1, name: "launch", description: "Launch Rush Games", integration_types: [0, 1], contexts: [0, 1, 2] }] : []);
 
 async function command(i, boards) {
   const name = i.data && i.data.name, user = (i.member && i.member.user) || i.user || {}, duid = String(user.id || ""), guild = i.guild_id || null;
@@ -510,6 +514,7 @@ async function handle(req, res, url, { send, readJson, readBody, ip }, limits) {
     // the "Play now!" button under the channel's messages: Discord opens the Activity for whoever pressed it
     if (i.type === 3) { if (i.data && i.data.custom_id === "rush-play") send(res, 200, { type: 12 }); else send(res, 400, { error: "Unsupported" }); return true; }
     if (i.type !== 2) { send(res, 400, { error: "Unsupported" }); return true; }
+    if (i.data && (i.data.type === 4 || i.data.name === "launch")) { send(res, 200, { type: 12 }); return true; } // "Launch": open the Activity
     try { send(res, 200, await command(i, boards)); }
     catch (e) { console.error("Discord command", e); send(res, 200, say("Something went wrong. Try again in a moment.")); }
     return true;
