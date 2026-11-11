@@ -41,12 +41,18 @@
 //   dstreak:<channel> -> {n, last}   days in a row someone there played a daily through the Activity
 //   dactive           -> {channel: last day played}   where to post the recap (channels drop out after a day off)
 //   drecap            -> the day whose recap round has been done
+//   dremind           -> the day whose streak reminders have gone out
+// Both messages carry a picture card (card.js): each player's avatar and a grid of how their dailies went, in the
+// site's fonts. The recap is posted as a reply to the day's summary it sums up. In the evening (DISCORD_REMIND_HOUR,
+// Saudi time, default 21; "off" for none) a channel whose streak of two days or more hasn't been kept up today gets
+// one short reminder.
 //
 // Commands and messages never show a daily's word, letter or answers: only points, times and how many were right.
 const crypto = require("crypto");
 const store = require("./store");
 const ident = require("./ident");
 const R = require("./site/shared/rules");
+const card = require("./card");
 
 const APP_ID = process.env.DISCORD_APP_ID || "";
 const PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY || "";
@@ -57,6 +63,8 @@ const API = process.env.DISCORD_API || "https://discord.com/api/v10";
 const SITE = (process.env.SITE_URL || "https://rushgames.cc").replace(/\/+$/, "");
 const enabled = () => !!(APP_ID && PUBLIC_KEY);
 
+const CDN = process.env.DISCORD_CDN || "https://cdn.discordapp.com";
+const REMIND_HOUR = /^off$/i.test(process.env.DISCORD_REMIND_HOUR || "") ? -1 : Math.min(23, Math.max(0, Number(process.env.DISCORD_REMIND_HOUR || 21)));
 const RECAP_HOURS = Number(process.env.DISCORD_RECAP_HOURS || 6); // a restart later in the day than this skips that day's recaps
 const CODE_MS = 10 * 60e3;
 const CODE_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I
@@ -164,15 +172,17 @@ async function stats(boards, uid) {
 
 // today's results for the linked players seen in this Discord server: no words, letters or answers
 // today's results for some linked players (player id -> Discord id): no words, letters or answers
-async function results(boards, who) {
+// day (optional): a Map filled with each player's day for the picture card: id -> {name, color, pts, g: {board: detail}}
+async function results(boards, who, tab = "today", day = null) {
   const lines = [];
   for (const [game, lg, name] of BOARDS) {
-    const d = await boards.board(game, lg, "today", "");
+    const d = await boards.board(game, lg, tab, "");
     const rows = d.rows.filter(r => who.has(r.id));
     if (!rows.length) continue;
     lines.push(`**${name}**`);
     rows.forEach(r => {
       const x = r.d || {};
+      if (day) { const p = day.get(r.id) || { name: clean(r.n), color: r.c, pts: 0, g: {} }; p.pts += r.pts; p.g[game + (lg ? "-" + lg : "")] = game === "hangman" ? { ok: x.ok, m: x.m } : game === "trivia" ? { s: x.s } : { c: x.c }; day.set(r.id, p); }
       const what = game === "hangman" ? (x.ok ? `✅ ${secs(x.t)}, ${x.m} miss${x.m === 1 ? "" : "es"}` : "❌")
         : game === "trivia" ? String(x.s || "").split("").map(c => (c === "1" ? "🟩" : "🟥")).join("") + ` ${secs(x.t)}`
         : `${x.c} answer${x.c === 1 ? "" : "s"}`;
@@ -192,6 +202,38 @@ async function today(boards, guild) {
   if (!who.size) return null;
   const lines = await results(boards, who);
   return embed(`Today · ${R.todayKey()}`, lines.length ? lines : ["Nobody linked here has played today's games yet."], { url: SITE + "/", footer: { text: "Play the dailies at rushgames.cc" } });
+}
+
+/* ---------- sending to a channel, with the picture card when it can be drawn ---------- */
+// a player's Discord avatar, kept for a few hours (null when they have none, or Discord can't be reached)
+const avatars = new Map();
+async function avatarOf(duid) {
+  const had = avatars.get(duid);
+  if (had && Date.now() - had.at < 6 * 3600e3) return had.img;
+  let img = null;
+  try {
+    const u = await fetch(`${API}/users/${duid}`, { headers: { Authorization: "Bot " + BOT_TOKEN }, signal: AbortSignal.timeout(5000) });
+    const j = u.ok ? await u.json() : null;
+    if (j && /^[\w]{6,64}$/.test(j.avatar || "")) { const r = await fetch(`${CDN}/avatars/${duid}/${j.avatar}.png?size=128`, { signal: AbortSignal.timeout(5000) }); if (r.ok) img = Buffer.from(await r.arrayBuffer()); }
+  } catch (e) {}
+  if (avatars.size > 2000) avatars.clear();
+  avatars.set(duid, { img, at: Date.now() });
+  return img;
+}
+// the card for a day: who (player id -> Discord id) and day (from results), best first
+async function drawCard(title, who, day) {
+  if (!card.available() || !day.size) return null;
+  const players = [...day].sort((a, b) => b[1].pts - a[1].pts).map(([id, p]) => Object.assign({ duid: who.get(id) }, p));
+  await Promise.all(players.slice(0, card.MAX_PLAYERS).map(async p => { p.avatar = await avatarOf(p.duid); }));
+  return card.render({ title, players });
+}
+function channelSend(method, url, body, png) {
+  const headers = { Authorization: "Bot " + BOT_TOKEN };
+  if (!png) return fetch(API + url, { method, headers: Object.assign(headers, { "Content-Type": "application/json" }), body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+  const form = new FormData();
+  form.append("payload_json", JSON.stringify(Object.assign({}, body, { attachments: [{ id: 0, filename: "rush-games.png" }] })));
+  form.append("files[0]", new Blob([png], { type: "image/png" }), "rush-games.png");
+  return fetch(API + url, { method, headers, body: form, signal: AbortSignal.timeout(20000) });
 }
 
 // the button under the channel's messages: pressing it opens the Activity (see handle)
@@ -217,8 +259,8 @@ const fires = n => "🔥".repeat(n >= 7 ? 3 : n >= 3 ? 2 : 1);
 async function postRecap(boards, channel, yd) {
   const who = await whoOf((await store.metaGet(`dchan:${channel}:${yd}`)) || []);
   if (!who.size) return false;
-  const tot = new Map();
-  for (const [game, lg] of BOARDS) for (const r of (await boards.board(game, lg, "yday", "")).rows) if (who.has(r.id)) tot.set(r.id, (tot.get(r.id) || 0) + r.pts);
+  const day = new Map(); await results(boards, who, "yday", day);
+  const tot = new Map([...day].map(([id, p]) => [id, p.pts]));
   if (!tot.size) return false;
   const byPts = new Map();
   for (const [id, pts] of [...tot].sort((a, b) => b[1] - a[1])) byPts.set(pts, (byPts.get(pts) || []).concat(`<@${who.get(id)}>`));
@@ -226,7 +268,11 @@ async function postRecap(boards, channel, yd) {
   const s = (await store.metaGet("dstreak:" + channel)) || { n: 1 }, n = Math.max(1, s.n | 0);
   const head = n > 1 ? `**Your group is on a ${n} day streak!** ${fires(n)}` : "**Your group started a streak yesterday!** 🔥";
   const body = Object.assign({ content: `${head} Here are yesterday's results:\n${lines.join("\n")}`.slice(0, 1900), allowed_mentions: { parse: [] } }, PLAY);
-  const r = await fetch(API + `/channels/${channel}/messages`, { method: "POST", headers: { Authorization: "Bot " + BOT_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+  // as a reply to yesterday's summary ("X was playing"), when it's still there
+  const prev = await store.metaGet(`dmsg:${channel}:${yd}`);
+  if (prev) body.message_reference = { message_id: String(prev), fail_if_not_exists: false };
+  const png = await drawCard(`Rush Games No. ${R.dailyNo() - 1}`, who, day);
+  const r = await channelSend("POST", `/channels/${channel}/messages`, body, png);
   if (!r.ok) console.log("Discord: posting the recap failed", r.status);
   return r.ok;
 }
@@ -252,10 +298,37 @@ async function recapRound() {
   } catch (e) { console.log("Discord recap round", e.message); return 0; }
   finally { recapping = false; }
 }
+// in the evening: channels with a streak of two days or more that nobody has kept up today get one reminder
+let reminding = false;
+async function remindRound() {
+  if (reminding || !enabled() || !BOT_TOKEN || REMIND_HOUR < 0) return 0;
+  const left = R.msToMidnight(), hour = Math.floor((R.DAY - left) / 36e5);
+  if (hour < REMIND_HOUR) return 0;
+  reminding = true;
+  try {
+    const day = R.todayKey();
+    if ((await store.metaGet("dremind")) === day) return 0;
+    await store.metaPut("dremind", day); // first, so a crash can't post twice
+    const yd = R.ydayKey(), act = (await store.metaGet("dactive")) || {}, hrs = Math.max(1, Math.round(left / 36e5));
+    let n = 0;
+    for (const [channel, last] of Object.entries(act)) {
+      if (last !== yd) continue; // played today already, or the streak is over
+      const s = await store.metaGet("dstreak:" + channel);
+      if (!s || s.last !== yd || (s.n | 0) < 2) continue;
+      const body = Object.assign({ content: `⏳ **Your group's ${s.n} day streak ends in ${hrs === 1 ? "about an hour" : hrs + " hours"}.** Nobody has played today's dailies here yet.`, allowed_mentions: { parse: [] } }, PLAY);
+      try { const r = await channelSend("POST", `/channels/${channel}/messages`, body); if (r.ok) n++; else console.log("Discord: posting the reminder failed", r.status); } catch (e) { console.log("Discord reminder", e.message); }
+      await new Promise(r => setTimeout(r, 300));
+    }
+    if (n) console.log(`Discord: posted ${n} streak reminder(s)`);
+    return n;
+  } catch (e) { console.log("Discord reminder round", e.message); return 0; }
+  finally { reminding = false; }
+}
 function start() {
   if (!enabled() || !BOT_TOKEN) return;
-  setTimeout(recapRound, 1500).unref();
-  setInterval(recapRound, 60e3).unref();
+  const round = () => recapRound().then(remindRound);
+  setTimeout(round, 1500).unref();
+  setInterval(round, 60e3).unref();
 }
 
 // the Activity's summary in a channel: one message per channel per day, edited as more people play
@@ -265,10 +338,14 @@ async function postSummary(boards, channel, duid) {
   const streak = await touchChannel(channel, day);
   const list = (await store.metaGet(kc)) || [];
   if (!list.includes(duid)) { list.push(duid); while (list.length > 100) list.shift(); await store.metaPut(kc, list); }
-  const lines = await results(boards, await whoOf(list));
+  const who = await whoOf(list), cardDay = new Map(), lines = await results(boards, who, "today", cardDay);
   if (!lines.length) return false;
-  const body = Object.assign({ allowed_mentions: { parse: [] } }, embed(`Rush Games · today's dailies`, lines, { url: SITE + "/", footer: { text: (streak > 1 ? `Group streak: ${streak} days ${fires(streak)} · ` : "") + day } }), PLAY);
-  const call = (method, url) => fetch(API + url, { method, headers: { Authorization: "Bot " + BOT_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+  // "Ann was playing" / "Ann and Ben were playing" / "Ann and 3 others were playing", latest first, nobody pinged
+  const names = list.slice().reverse().map(d => `<@${d}>`);
+  const playing = names.length === 1 ? `${names[0]} was playing` : names.length === 2 ? `${names[0]} and ${names[1]} were playing` : `${names[0]} and ${names.length - 1} others were playing`;
+  const png = await drawCard(`Rush Games No. ${R.dailyNo()}`, who, cardDay);
+  const body = Object.assign({ content: playing, allowed_mentions: { parse: [] } }, embed(`Rush Games · today's dailies`, lines, Object.assign({ url: SITE + "/", footer: { text: (streak > 1 ? `Group streak: ${streak} days ${fires(streak)} · ` : "") + day } }, png ? { image: { url: "attachment://rush-games.png" } } : {})), PLAY);
+  const call = (method, url) => channelSend(method, url, body, png);
   const prev = await store.metaGet(km);
   if (prev) { const r = await call("PATCH", `/channels/${channel}/messages/${prev}`); if (r.ok) return true; if (r.status !== 404) return false; }
   const r = await call("POST", `/channels/${channel}/messages`);

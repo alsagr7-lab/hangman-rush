@@ -8,6 +8,7 @@ const { startServer, hashToken } = require("./helper");
 const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
 const PUB = publicKey.export({ format: "der", type: "spki" }).subarray(12).toString("hex");
 const se = R.curSeason(), today = R.todayKey();
+const CARD = require("../card").available(); // picture cards need the optional drawing package
 const TOK = id => "token-" + id.replace(/_(ar|en)$/, "");
 const rec = (id, n, h) => [id, { token: hashToken(TOK(id)), data: { n, c: "#d93c30", se, played: 1, wins: 1, streak: 3, best: 3, ls: today, h } }];
 const players = Object.fromEntries([rec("p_discA00001", "Ann", { [today]: { ok: 1, pts: 250, t: 42300, m: 1 } }), rec("p_discB00001", "Ben", { [today]: { ok: 0, pts: 0, t: 90000, m: 6 } })]);
@@ -19,12 +20,19 @@ let fake, FAKE;
 const USERS = { "code-ann-0001": "111111111111", "code-new-0001": "555555555555", "code-old-0001": "666666666666" };
 before(async () => {
   fake = http.createServer((req, res) => {
-    let b = ""; req.on("data", c => (b += c)); req.on("end", () => {
+    const chunks = []; req.on("data", c => chunks.push(c)); req.on("end", () => {
+      const raw = Buffer.concat(chunks), b = raw.toString("utf8");
       const j = (code, o) => { res.writeHead(code, { "Content-Type": "application/json" }); res.end(JSON.stringify(o)); };
       if (req.url === "/oauth2/token") { const code = new URLSearchParams(b).get("code"); return USERS[code] ? j(200, { access_token: "at-" + USERS[code] }) : j(400, { error: "invalid_grant" }); }
       if (req.url === "/users/@me") return j(200, { id: String(req.headers.authorization || "").replace("Bearer at-", ""), global_name: "Tester" });
       const m = req.url.match(/^\/channels\/(\d+)\/messages(?:\/(\w+))?$/);
-      if (m) { sent.push({ method: req.method, channel: m[1], id: m[2], body: JSON.parse(b) }); return j(200, { id: "m" + sent.length }); }
+      if (m) {
+        // a message with the picture card arrives as a form: the message itself (payload_json) and the PNG
+        let body, png = false;
+        if (/^multipart\/form-data/.test(req.headers["content-type"] || "")) { const t = raw.toString("latin1"), pj = /name="payload_json"\r\n\r\n([\s\S]*?)\r\n--/.exec(t); body = JSON.parse(Buffer.from(pj[1], "latin1").toString("utf8")); png = t.includes("\x89PNG\r\n"); }
+        else body = JSON.parse(b);
+        sent.push({ method: req.method, channel: m[1], id: m[2], body, png }); return j(200, { id: "m" + sent.length });
+      }
       j(404, {});
     });
   });
@@ -101,6 +109,10 @@ test("the Activity: the linked player comes with its token, new players can star
   assert.deepEqual(sent.map(x => [x.method, x.id || ""]), [["POST", ""], ["PATCH", "m1"]]);
   assert.match(sent[0].body.embeds[0].description, /<@111111111111> Ann · ✅ 42\.3s, 1 miss · \*\*250\*\*/);
   assert.deepEqual(sent[0].body.allowed_mentions, { parse: [] });
+  // it says who was playing (nobody is pinged), with the picture card inside the embed when it can be drawn
+  assert.equal(sent[0].body.content, "<@111111111111> was playing");
+  assert.equal(sent[0].png, CARD); assert.equal(sent[1].png, CARD);
+  if (CARD) assert.deepEqual(sent[0].body.embeds[0].image, { url: "attachment://rush-games.png" });
   // the message carries the button that opens the Activity; pressing it gets Discord's "launch activity" reply
   assert.equal(sent[0].body.components[0].components[0].custom_id, "rush-play");
   const press = await discord({ type: 3, member: { user: { id: "111111111111" } }, data: { custom_id: "rush-play", component_type: 2 } });
@@ -111,7 +123,7 @@ test("the Activity: the linked player comes with its token, new players can star
 test("a new day: channels that played yesterday get one recap with the group's streak, and nobody is pinged", async () => {
   const yd = R.ydayKey(), old = R.dayKey(R.dayNum() - 3), A = "700000000000000007", B = "700000000000000008";
   const p = (id, n, pts) => [id, { token: hashToken(TOK(id)), data: { n, c: "#d93c30", se, played: 1, wins: 1, streak: 1, best: 1, ls: yd, h: { [yd]: { ok: 1, pts, t: 30000, m: 0 } } } }];
-  const meta = { drecap: yd, dactive: { [A]: yd, [B]: old }, ["dstreak:" + A]: { n: 3, last: yd }, ["dchan:" + A + ":" + yd]: ["111", "222", "333"].map(x => x.repeat(4)), ["dchan:" + B + ":" + old]: ["111111111111"],
+  const meta = { drecap: yd, ["dmsg:" + A + ":" + yd]: "m77", dactive: { [A]: yd, [B]: old }, ["dstreak:" + A]: { n: 3, last: yd }, ["dchan:" + A + ":" + yd]: ["111", "222", "333"].map(x => x.repeat(4)), ["dchan:" + B + ":" + old]: ["111111111111"],
     "dlink:111111111111": "p_recapA0001", "dlink:222222222222": "p_recapB0001", "dlink:333333333333": "p_recapC0001" };
   sent.length = 0;
   const s2 = await startServer({ seed: { players: Object.fromEntries([p("p_recapA0001", "Ann", 250), p("p_recapB0001", "Ben", 250), p("p_recapC0001", "Cat", 100)]), trivia: {}, harf: {}, meta },
@@ -125,7 +137,31 @@ test("a new day: channels that played yesterday get one recap with the group's s
     assert.match(m.content, /👑 \*\*250\*\* pts: <@111111111111> <@222222222222>\n\*\*100\*\* pts: <@333333333333>/);
     assert.deepEqual(m.allowed_mentions, { parse: [] });
     assert.equal(m.components[0].components[0].label, "Play now!");
+    // it answers yesterday's summary, and carries the picture card when the drawing package is installed
+    assert.deepEqual(m.message_reference, { message_id: "m77", fail_if_not_exists: false });
+    assert.equal(sent[0].png, CARD);
+    if (CARD) assert.deepEqual(m.attachments, [{ id: 0, filename: "rush-games.png" }]);
   } finally { await s2.stop(); }
+});
+
+test("in the evening a channel whose streak nobody kept up today gets one reminder; a one-day streak or a played day gets none", async () => {
+  const yd = R.ydayKey(), A = "710000000000000001", B = "710000000000000002", C = "710000000000000003";
+  const meta = { drecap: today, dactive: { [A]: yd, [B]: yd, [C]: today }, ["dstreak:" + A]: { n: 12, last: yd }, ["dstreak:" + B]: { n: 1, last: yd }, ["dstreak:" + C]: { n: 30, last: today } };
+  sent.length = 0;
+  const env = { DISCORD_APP_ID: "123456789", DISCORD_PUBLIC_KEY: PUB, DISCORD_BOT_TOKEN: "bot", DISCORD_API: FAKE, DISCORD_REMIND_HOUR: "0" };
+  const s2 = await startServer({ seed: { players: {}, trivia: {}, harf: {}, meta }, env });
+  try {
+    for (let i = 0; i < 60 && !sent.length; i++) await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 600));
+    assert.deepEqual(sent.map(x => [x.method, x.channel]), [["POST", A]]);
+    assert.match(sent[0].body.content, /Your group's 12 day streak ends in /);
+    assert.deepEqual(sent[0].body.allowed_mentions, { parse: [] });
+    assert.equal(sent[0].body.components[0].components[0].label, "Play now!");
+  } finally { await s2.stop(); }
+  // switched off: nothing is sent
+  sent.length = 0;
+  const s3 = await startServer({ seed: { players: {}, trivia: {}, harf: {}, meta }, env: Object.assign({}, env, { DISCORD_REMIND_HOUR: "off" }) });
+  try { await new Promise(r => setTimeout(r, 2600)); assert.equal(sent.length, 0); } finally { await s3.stop(); }
 });
 
 test("a link made before tokens were kept asks to link again in the Activity", async () => {

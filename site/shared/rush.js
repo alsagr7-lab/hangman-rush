@@ -290,11 +290,12 @@
     };
   }
   const room = {
-    join(name) {
+    // presence (optional): what this tab says about itself from the moment it joins
+    join(name, presence) {
       if (!/^[a-z0-9][a-z0-9_.-]{0,47}$/.test(name)) return Promise.reject({ code: "invalid_argument", message: "Bad room name" });
       if (joined.has(name)) return Promise.resolve(joined.get(name).api);
       if (!ws) connect();
-      const s = { presence: {}, peers: Object.freeze([]), listeners: new Set(), conn: new Set(), msgs: new Set(), pending: null };
+      const s = { presence: Object.assign({}, presence), peers: Object.freeze([]), listeners: new Set(), conn: new Set(), msgs: new Set(), pending: null };
       s.api = {
         name,
         presence(patch) {

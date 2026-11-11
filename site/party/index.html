@@ -303,6 +303,27 @@ button.ans:hover{background:rgba(255,255,255,.12)}button.ans:focus-visible{outli
 .imcard small{font-size:15px;font-weight:700;opacity:.8}
 .pcl{display:grid;gap:6px}.pcl div{display:flex;justify-content:space-between;gap:10px;background:rgba(255,255,255,.12);border-radius:14px;padding:6px 12px;font-weight:800}
 .pcl div span:last-child{opacity:.9}.pcl div.now{background:var(--yel);color:var(--yel-ink)}
+/* ---------- a party in a Discord call: the website's fonts; screens are only looked at, never clicked ---------- */
+.call{--fb:"Figtree",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;--fd:"Saira","Figtree",system-ui,sans-serif}
+.call[lang="ar"]{--fb:"Cairo","Figtree",system-ui,Tahoma,sans-serif;--fd:"Cairo","Figtree",system-ui,Tahoma,sans-serif}
+.call #pty .ptitle,.call #pty .bigmsg,.call #pty .imbig,.call #pty .secs,.call #pty .pbtn,.call #pty .pchip,.call #pty .tt,.call #pty .sc,.call #pty .ab{font-family:var(--fd)}
+.call #pty .ptitle{font-stretch:112%;letter-spacing:0}
+.call .rbar,.call .rfoot{display:none!important}
+.call-screen .tv{grid-template-columns:minmax(0,1fr);padding:20px;gap:14px;height:100dvh}
+.call-screen .stage{min-height:0}
+.call-screen .tvside,.call-screen .tvbar,.call-screen .hfhead .mini,.call-screen .tvhead .pbtn,.call-screen .hfhead .pbtn,.call-screen .hffoot .pbtn{display:none!important}
+.call-screen .hf{padding:18px 20px;gap:12px}
+.call-screen .hffoot{justify-content:center;min-height:30px}
+.call-screen .hffoot .nx{margin:0;font-size:20px;color:var(--pmuted)}
+.call-screen #view button,.call-screen #view select,.call-screen .chr{pointer-events:none}
+.call-pad .ph{padding-top:12px;gap:10px}
+.call-pad .ph .ptop{position:absolute;top:8px;inset-inline-end:12px;z-index:2}
+.call-pad .ph .ptop .pbtn{min-height:36px!important;font-size:14px!important;padding:0 14px;box-shadow:none}
+.call-pad .pstatus{font-size:17px;min-height:36px;display:grid;place-items:center;padding-inline:84px;margin:0}
+.call-pad .ph .ptop .code{visibility:hidden}
+.autobar{display:flex;align-items:center;gap:12px;background:var(--pv2);border-radius:20px;padding:10px 14px;font-weight:800}
+.autobar .tx{flex:1;min-width:0;font-variant-numeric:tabular-nums}
+.autobar .pbtn{min-height:44px;font-size:16px;padding:0 18px;box-shadow:0 4px 0 var(--sky2)}
 </style>
 </head>
 <body>
@@ -315,6 +336,11 @@ document.documentElement.classList.add("party");
 const $=s=>document.querySelector(s);
 const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
 const view=$("#view");
+/* A party in a Discord call (site/discord/party/index.html): there's no TV. Every player's window holds this page
+   twice, side by side: a screen (the frame named "rush-screen") and a controller (the frame named "rush-pad", which is
+   this page as a phone). One of the screens runs the game, as the TV does; the rest copy what it shows ("watch"). */
+const CALL=window.name==="rush-screen"?"screen":window.name==="rush-pad"?"pad":"";
+if(CALL)document.documentElement.classList.add("call","call-"+CALL);
 /* ---------- words ---------- */
 const I18N={
 en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, everyone on their phones.",host:"Host on this screen",hostSub:"Put this on a TV or laptop. Everyone joins by scanning the code with their phone.",
@@ -330,7 +356,7 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   hc_animals:"Animals",hc_food:"Food & drink",hc_countries:"Countries",hc_cities:"Cities",hc_sports:"Sports",hc_hotel:"Hotel life",hc_jobs:"Jobs",hc_house:"Around the house",hc_space:"Space",hc_tech:"Tech",
   qn:"Question {i} of {n}",loadingQ:"Loading questions…",noBank:"Couldn't load the questions. Try again.",roundEnd:"Round {r} results",answered:"{n} of {m} answered",gotIt:"Got it: {names}",nobody:"Nobody got it",
   hmClue:"Clue: {c}",hmFin:"{n} of {m} finished",myScore:"Your score: {s}",lookTv:"Watch the big screen",thisRound:"+{p} this round",locked:"Answer locked in",noAns:"No answer",rightA:"Correct!",wrongA:"Not this time",
-  hmSolved:"Solved!",hmMissed:"Not this time",hmMiss:"Misses: {m} of {x}",hmOut:"Out of guesses",hmWait:"Waiting for the others…",hostNext:"The host or this screen starts the next round",
+  hmSolved:"Solved!",hmMissed:"Not this time",hmMiss:"Misses: {m} of {x}",hmOut:"Out of guesses",hmWait:"Waiting for the others…",hostNext:"The host or this screen starts the next round",auNext:"Next round in {s}",auPaused:"Paused by {n}",auHost:"The host starts the next round",auPause:"Pause",auResume:"Resume",callHarf:"Harf Rush is on. Play it in your panel.",callWait:"Waiting for players…",
   chat:"Chat",chatOn:"Typing on",chatQuick:"Quick only",chatOff:"The big screen turned typing off. Quick messages still work.",chatNo:"That message isn't allowed.",chatSlow:"Slow down a little.",starting:"Starting {g}…",tvGone:"The big screen left the party.",
   round:"Round {r}",get:"Get ready…",write:"Write!",stopBy:"{n} pressed STOP!",checking:"Checking answers…",results:"Round {r}",
   total:"Score",nextIn:"Next round in {s}",nextNow:"Next round",pause:"Pause",resume:"Resume",lobby:"Back to lobby",
@@ -369,7 +395,7 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   hc_animals:"حيوانات",hc_food:"أكل ومشروبات",hc_countries:"دول",hc_cities:"مدن",hc_sports:"رياضات",hc_hotel:"عالم الفنادق",hc_jobs:"مهن",hc_house:"في البيت",hc_space:"الفضاء",hc_tech:"تقنية",
   qn:"السؤال {i} من {n}",loadingQ:"جارٍ تحميل الأسئلة…",noBank:"تعذّر تحميل الأسئلة. حاول مرة أخرى.",roundEnd:"نتائج الجولة {r}",answered:"أجاب {n} من {m}",gotIt:"أصاب: {names}",nobody:"لم يُصب أحد",
   hmClue:"تلميح: {c}",hmFin:"انتهى {n} من {m}",myScore:"نقاطك: {s}",lookTv:"تابع الشاشة الكبيرة",thisRound:"+{p} في هذه الجولة",locked:"تم تثبيت إجابتك",noAns:"لم تُجب",rightA:"إجابة صحيحة!",wrongA:"ليست هذه المرة",
-  hmSolved:"حللتها!",hmMissed:"ليست هذه المرة",hmMiss:"الأخطاء: {m} من {x}",hmOut:"انتهت محاولاتك",hmWait:"بانتظار البقية…",hostNext:"المضيف أو هذه الشاشة يبدأ الجولة التالية",
+  hmSolved:"حللتها!",hmMissed:"ليست هذه المرة",hmMiss:"الأخطاء: {m} من {x}",hmOut:"انتهت محاولاتك",hmWait:"بانتظار البقية…",hostNext:"المضيف أو هذه الشاشة يبدأ الجولة التالية",auNext:"الجولة التالية بعد {s}",auPaused:"أوقفها {n} مؤقتاً",auHost:"المضيف يبدأ الجولة التالية",auPause:"إيقاف مؤقت",auResume:"استمرار",callHarf:"سباق الحروف شغّال. العبوا من لوحتكم.",callWait:"بانتظار اللاعبين…",
   chat:"الدردشة",chatOn:"الكتابة مفعّلة",chatQuick:"السريعة فقط",chatOff:"الشاشة الكبيرة أوقفت الكتابة. الرسائل السريعة متاحة.",chatNo:"هذه الرسالة غير مسموحة.",chatSlow:"على مهلك شوي.",starting:"جارٍ بدء {g}…",tvGone:"الشاشة الكبيرة غادرت الحفلة.",
   round:"الجولة {r}",get:"استعدوا…",write:"اكتبوا!",stopBy:"{n} ضغط ستوب!",checking:"جارٍ تصحيح الإجابات…",results:"الجولة {r}",
   total:"النقاط",nextIn:"الجولة التالية بعد {s}",nextNow:"الجولة التالية",pause:"إيقاف مؤقت",resume:"استئناف",lobby:"العودة للردهة",
@@ -454,7 +480,8 @@ function saveMe(){try{localStorage.setItem("hr-me",JSON.stringify(me))}catch(e){
 
 function draw(){
   view.textContent="";
-  if(role==="tv")return tvMode==="harf"?drawHarf():tvMode==="lobby"?drawTv():drawGame();
+  if(role==="watch"&&tvMode==="harf")return drawWatchHarf();
+  if(role==="tv"||role==="watch")return tvMode==="harf"?drawHarf():tvMode==="lobby"?drawTv():drawGame();
   if(role==="phone")return drawPhone();
   drawLanding();
 }
@@ -487,7 +514,7 @@ async function startTv(){
   draw();
 }
 // st: lobby, play (Harf: the phones open the Harf page) or game (Trivia and Hangman, played on this page: gm, tot, rp)
-const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":tvMode==="lobby"?"lobby":"game",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch,ns:tvGame.ns,tc:tvGame.tc,pm:tvGame.pm,i2:tvGame.i2,ia:tvGame.ia,is:tvGame.is,in:tvGame.in,cap,
+const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":tvMode==="lobby"?"lobby":"game",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch,ns:tvGame.ns,tc:tvGame.tc,pm:tvGame.pm,i2:tvGame.i2,ia:tvGame.ia,is:tvGame.is,in:tvGame.in,cap,au:autoPub(),
   gm:gameGm(),tot:tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"||tvMode==="imposter"?gTot:null,rp:gameRp()});
 let roomCount=0; // how many games this party has started (phones only follow a new one)
 const players=()=>pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv):[];
@@ -496,14 +523,16 @@ const players=()=>pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence
    its presence (hq: its last few, each with a rising n), from the party lobby or from the game. The first player to
    join is the host; the host or the big screen (tap a character) can hand it to someone else; a host who's been
    gone for 15 seconds (not just moving between pages) passes it to the next player. */
-let cap="",capSeenAt=0;const cmdSeen=new Map();
+let cap="",capSeenAt=0,capWaitAt=0;const cmdSeen=new Map();
 const activePlayers=()=>tvMode==="harf"?hfPlayers():players();
-function pushTv(){if(pApi)pApi.presence(tvPresence());if(hApi&&hs)hApi.presence(hfPresence())}
-function setCap(u){if(u===cap)return;cap=u;capSeenAt=Date.now();pushTv();if(tvMode==="lobby")draw();else{lastCenter="";lastSide=""}}
+function pushTv(){if(role!=="tv")return;if(pApi)pApi.presence(tvPresence());if(hApi&&hs)hApi.presence(hfPresence())}
+function setCap(u){if(role!=="tv"||u===cap)return;cap=u;capSeenAt=Date.now();pushTv();if(tvMode==="lobby")draw();else{lastCenter="";lastSide=""}}
 function ensureCap(){
   if(role!=="tv")return;const list=activePlayers().filter(p=>p.presence.u),now=Date.now();
   if(cap&&list.some(p=>p.presence.u===cap)){capSeenAt=now;return}
   if(cap&&now-capSeenAt<15000)return;
+  // in a Discord call everyone's controller arrives at once: wait a moment, so the host is whoever opened it first
+  if(CALL&&!cap&&list.length){if(!capWaitAt){capWaitAt=now;return}if(now-capWaitAt<1500)return}
   const next=list[0]?String(list[0].presence.u):"";
   if(next!==cap)setCap(next);
 }
@@ -630,9 +659,9 @@ function drawStage(){
     if(show){if(!say||say.dataset.mi!==String(s.mi)){if(say)say.remove();say=el("div","say",s.msg);say.dataset.mi=String(s.mi);n.prepend(say)}}else if(say)say.remove();
   }
 }
-setInterval(()=>{if(role==="tv"&&tvMode==="lobby")drawStage()},150);
+setInterval(()=>{if((role==="tv"||role==="watch")&&tvMode==="lobby")drawStage()},150);
 document.addEventListener("keydown",e=>{
-  if(role!=="tv"||e.target&&/INPUT|TEXTAREA|BUTTON|SELECT|A/.test(e.target.tagName))return; // a focused control handles its own Enter
+  if(role!=="tv"||CALL||e.target&&/INPUT|TEXTAREA|BUTTON|SELECT|A/.test(e.target.tagName))return; // a focused control handles its own Enter
   if(e.key==="Enter"){if(tvMode==="lobby"){const g=$("#tvGo");if(g&&!g.disabled)tvStart()}else if(tvMode==="harf"&&hfView==="results")hfNext();else if(tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"||tvMode==="imposter")gameNext()}
 });
 
@@ -640,7 +669,7 @@ document.addEventListener("keydown",e=>{
 let pos={x:.06+Math.random()*.88,y:.1+Math.random()*.8},held=new Set(),msgId=0,jumpId=0,lastSent="",phoneJoined=false,followRc=-1;
 async function bootPhone(c){
   role="phone";code=c;let back=null;try{back=sessionStorage.getItem("rush-party")}catch(e){}
-  if(back===c&&goodName(me.nick))return phoneJoin();
+  if((back===c||CALL)&&goodName(me.nick))return phoneJoin();
   draw();
 }
 async function phoneJoin(){
@@ -648,7 +677,8 @@ async function phoneJoin(){
   try{await Rush.ready;pApi=await Rush.room.join("pt-"+code.toLowerCase())}
   catch(e){pApi=null;joinMsg=e&&e.code==="party_full"?"full":"noParty";draw();return}
   // nobody is hosting this code: say so instead of standing alone in an empty room
-  for(let i=0;i<25&&!tvPeer();i++)await new Promise(r=>setTimeout(r,100));
+  // (in a Discord call one of the players' own screens runs the game, and it may still be starting)
+  for(let i=0;i<(CALL?200:25)&&!tvPeer();i++)await new Promise(r=>setTimeout(r,100));
   if(!tvPeer()){try{pApi.leave()}catch(e){}pApi=null;joinMsg="noParty";draw();return}
   phoneJoined=true;joinMsg="";
   pApi.presence(phonePresence());
@@ -656,7 +686,7 @@ async function phoneJoin(){
   if(pApi.onMessage)pUnsub.push(pApi.onMessage(imOnMessage));
   draw();phoneFollow();
 }
-const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null,ta:myTa.r?myTa:null,tpv:myTpv.r?myTpv:null,hg:myHg.r?myHg:null,bl:myBl.r?myBl:null,ia:myIm.r||null,ic:myIc.r?myIc:null,iv:myIv.r?myIv:null,ig:myIg.r?myIg:null});
+const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null,pz:pzN||null,ta:myTa.r?myTa:null,tpv:myTpv.r?myTpv:null,hg:myHg.r?myHg:null,bl:myBl.r?myBl:null,ia:myIm.r||null,ic:myIc.r?myIc:null,iv:myIv.r?myIv:null,ig:myIg.r?myIg:null});
 // the host player's commands to the big screen (see runCmds on the TV side)
 let hq=[],hqN=0;
 function hostCmd(o){hqN=Math.max(Date.now(),hqN+1);hq=hq.concat([Object.assign({n:hqN},o)]).slice(-6);send()}
@@ -708,7 +738,7 @@ function phoneFollow(){
   // the big screen can turn typing off: quick phrases still work
   const cr=$("#chatRow"),cn=$("#chatNote"),typing=P.ch!==0;
   if(cr&&cr.hidden===typing){cr.hidden=!typing;if(cn)cn.textContent=typing?"":t("chatOff")}
-  drawHostPanel(P);
+  drawHostPanel(P);drawAuto(P);
   if(followRc<0)followRc=num(P.rc)-(P.st==="play"?1:0); // joined while a game was on: follow it straight away
   if(P.st==="play"&&num(P.rc)>followRc&&P.g==="harf"){
     followRc=num(P.rc);
@@ -763,7 +793,8 @@ function drawPhone(){
   const quick=el("div","quick");["q1","q2","q3","q4"].forEach(k=>{const b=el("button",null,t(k));b.type="button";b.onclick=()=>say(t(k));quick.append(b)});
   const hpn=el("div");hpn.id="hostPanel";lastHostKey="";
   const pg=el("div","pg");pg.id="phGame";pg.hidden=true;pg.setAttribute("aria-live","polite");phKey="";card.id="phCard";
-  card.append(prev,pad,chat,quick,cn);w.append(st,hpn,pg,card);view.append(w);phoneFollow();
+  const ab=el("div","autobar");ab.id="autoBar";ab.hidden=true;
+  card.append(prev,pad,chat,quick,cn);w.append(st,ab,hpn,pg,card);view.append(w);phoneFollow();
 }
 // moving: arrows on the pad (or the keyboard on a laptop), sent a few times a second
 const KEYS={ArrowUp:"u",ArrowDown:"d",ArrowLeft:"l",ArrowRight:"r"};
@@ -966,7 +997,8 @@ const hmGm=()=>hg?{k:"hm",r:hg.r,ph:hg.ph,at:hg.at,end:hg.end,lg:hg.lg,c:hg.c,w:
 const gameGm=()=>tvMode==="trivia"?trGm():tvMode==="hangman"?hmGm():tvMode==="bluff"?blGm():tvMode==="imposter"?imGm():null;
 // this round's points per player, sent with each answer reveal and the results
 const gameRp=()=>{const ph=tvMode==="trivia"?tg&&tg.ph:tvMode==="bluff"?bg&&bg.ph:tvMode==="imposter"?im&&im.ph:hg&&hg.ph;if(ph!=="res"&&ph!=="rev"&&ph!=="show")return null;const o={};for(const id of Object.keys(gRound))o[id]=gRound[id].reduce((a,b)=>a+(b||0),0);return o};
-setInterval(()=>{if(role!=="tv")return;if(tvMode==="trivia")trTick();else if(tvMode==="hangman")hmTick();else if(tvMode==="bluff")blTick();else if(tvMode==="imposter")imTick();else return;drawGameLive()},200);
+setInterval(()=>{if(role==="watch"){if(tvMode!=="lobby"&&tvMode!=="harf")drawGameLive();return}
+  if(role!=="tv")return;autoTick();if(tvMode==="trivia")trTick();else if(tvMode==="hangman")hmTick();else if(tvMode==="bluff")blTick();else if(tvMode==="imposter")imTick();else return;drawGameLive()},200);
 function gameNext(){if(tvMode==="trivia"&&(!tg||tg.ph==="res"))trNext();else if(tvMode==="hangman"&&(!hg||hg.ph==="res"))hmNext();else if(tvMode==="bluff"&&(!bg||bg.ph==="res"))blNext();else if(tvMode==="imposter"){if(im&&im.ph==="talk"){im.ph="vote";im.end=Rush.now()+IM.VOTE_MS;im.fast=0;pushTv();gKey=""}else if(!im||im.ph==="res")imNext()}}
 
 /* ---------- Bluff Rush on the big screen ----------
@@ -1051,7 +1083,7 @@ function blTick(){
 const blGm=()=>bg?{k:"bl",r:bg.r,i:bg.i,n:bg.ids.length,ph:bg.ph,id:bg.ids[bg.i],end:bg.end,lg:bg.lg,
   o:bg.opts&&(bg.ph==="pick"||bg.ph==="show")?bg.opts.map(o=>o.x):null,
   rv:bg.ph==="show"?bg.rv.slice(0,bg.si+1).map(v=>({k:v.k,t:bg.opts[v.k].t,d:bg.opts[v.k].d,by:bg.opts[v.k].own,pk:v.pk})):null}:{k:"bl",ph:"load"};
-const blName=id=>{const p=players().find(p=>pid(p)===id);return p?shownName(p.presence.n):blNames[id]||"?"};
+const blName=id=>{const p=players().find(p=>pid(p)===id);return p?shownName(p.presence.n):blNames[id]||(id===Rush.uid&&me.nick?nm16(me.nick):"?")};
 // the fact with its blank; the truth fills the blank once it's revealed
 function blText(cls,q,lg,fill){const d=el("div",cls);d.dir="auto";String(q.q[blL(lg)]||"").split("____").forEach((part,k)=>{if(k)d.append(fill?el("span","blank fill",fill):el("span","blank"));d.append(document.createTextNode(part))});return d}
 
@@ -1192,7 +1224,9 @@ function drawGameLive(){
   // foot: next round after the results, back to the lobby
   const foot=$("#gFoot"),res=tvMode==="trivia"?tg&&tg.ph==="res":tvMode==="bluff"?bg&&bg.ph==="res":tvMode==="imposter"?im&&im.ph==="res":hg&&hg.ph==="res",talk=tvMode==="imposter"&&im&&im.ph==="talk";
   const fkey=lang+"|"+res+"|"+talk;
-  if(foot&&fkey!==gFootKey){gFootKey=fkey;foot.textContent="";
+  if(foot&&CALL){if(fkey!==gFootKey){gFootKey=fkey;foot.textContent="";const a=el("span","nx");a.id="gAuto";foot.append(a)}
+    const a=$("#gAuto"),tx=res?autoText():"";if(a&&a.textContent!==tx)a.textContent=tx}
+  else if(foot&&fkey!==gFootKey){gFootKey=fkey;foot.textContent="";
     if(res){foot.append(el("span","nx",t("hostNext")));const nb=el("button","pbtn",t("nextNow"));nb.type="button";nb.onclick=gameNext;foot.append(nb)}
     else if(talk){foot.append(el("span","nx"));const nb=el("button","pbtn pink",t("imVoteNow"));nb.type="button";nb.onclick=gameNext;foot.append(nb)}else foot.append(el("span","nx"));
     const lb=el("button","pbtn ghost",t("lobby"));lb.type="button";lb.onclick=backToLobby;foot.append(lb)}
@@ -1756,10 +1790,114 @@ function resultsTable(rows){
   tbl.append(tb);wrap.append(tbl);return wrap;
 }
 
+/* ---------- a party in a Discord call: the screens ----------
+   Every player's window has a screen. The screens sit in the party's room as watchers (w: 1: they only read, and the
+   server keeps their places apart from the players'), and in a second room, pw-<code>, where they agree who runs the
+   game: the screen that has been there longest, when no screen is running it (wj: when it arrived). That one becomes
+   the TV, exactly as on the big screen of a normal party, and puts what it's showing in its presence there (s: the
+   mode, the settings and the round's state); the others set the same state and draw it with the TV's own code. If the
+   running screen leaves, the next one takes over from the lobby with the same settings and host.
+   Nothing is clicked on a screen in a call: the host player runs the party from their controller.
+   Results move on by themselves after two minutes, as a safety net (au: {at, pz, by} in the TV's presence); any player
+   can pause and resume that from their controller (pz in the phone's presence: a number that goes up on each press). */
+let mApi=null,noTvAt=0,lastMirror=null,mirrorLast="";
+const AUTO_MS=120000;let auto={at:0,pz:0,by:""},pzN=0;const pzSeen=new Map();
+const autoPub=()=>CALL&&(auto.at||auto.pz)?auto:null;
+const atRes=()=>tvMode==="trivia"?!!tg&&tg.ph==="res":tvMode==="hangman"?!!hg&&hg.ph==="res":tvMode==="bluff"?!!bg&&bg.ph==="res":tvMode==="imposter"?!!im&&im.ph==="res":false;
+const mmss=ms=>{const x=Math.max(0,Math.ceil(ms/1000));return Math.floor(x/60)+":"+String(x%60).padStart(2,"0")};
+function autoText(){return num(auto.pz)>0?t("auPaused",{n:auto.by||"?"}):auto.at?t("auNext",{s:mmss(auto.at-Rush.now())}):t("auHost")}
+function autoTick(){
+  if(!CALL)return;const now=Rush.now();
+  if(!atRes()){if(auto.at||auto.pz){auto={at:0,pz:0,by:""};pushTv()}return}
+  if(!auto.at&&!auto.pz){auto={at:now+AUTO_MS,pz:0,by:""};pushTv();return}
+  if(auto.at&&now>=auto.at){auto={at:0,pz:0,by:""};gameNext();if(atRes())auto={at:now+AUTO_MS,pz:0,by:""};pushTv()}
+}
+// a player pressed pause (or resume) on their controller
+function pzScan(){
+  for(const p of players()){const u=pid(p),n=num(p.presence.pz);
+    if(!pzSeen.has(u)){pzSeen.set(u,n);continue}
+    if(n===pzSeen.get(u))continue;pzSeen.set(u,n);
+    if(!atRes())continue;const now=Rush.now();
+    if(auto.pz)auto={at:now+auto.pz,pz:0,by:""};else if(auto.at)auto={at:0,pz:Math.max(1000,auto.at-now),by:shownName(p.presence.n)};
+    pushTv()}
+}
+// on the controller: the countdown to the next round, with pause and resume
+function drawAuto(P){
+  const b=$("#autoBar");if(!b)return;const a=P&&P.au&&typeof P.au==="object"?P.au:null;
+  if(!a){if(!b.hidden){b.hidden=true;b.textContent=""}return}
+  const paused=num(a.pz)>0,key=paused+"|"+lang;
+  if(b.dataset.key!==key||b.hidden){b.dataset.key=key;b.hidden=false;b.textContent="";
+    const tx=el("span","tx"),bt=el("button","pbtn sky",t(paused?"auResume":"auPause"));bt.type="button";
+    bt.onclick=()=>{pzN=Math.max(Date.now(),pzN+1);send();bt.disabled=true;setTimeout(()=>{bt.disabled=false},1200)};b.append(tx,bt)}
+  b.firstChild.textContent=paused?t("auPaused",{n:shownName(a.by)}):t("auNext",{s:mmss(num(a.at)-Rush.now())});
+}
+setInterval(()=>{if(role==="phone"&&phoneJoined){const tv=tvPeer();drawAuto(tv?tv.presence:null)}},500);
+
+async function bootScreen(c){
+  role="watch";code=c;tvMode="lobby";document.documentElement.classList.add("party-tv");draw();
+  const stamp=Date.now()+Math.random();
+  try{await Rush.ready;pApi=await Rush.room.join("pt-"+c.toLowerCase(),{w:1});mApi=await Rush.room.join("pw-"+c.toLowerCase(),{wj:stamp})}
+  catch(e){tvErr=t("noParty");draw();return}
+  pUnsub.push(pApi.onPeers(()=>{track();if(role==="tv"){ensureCap();runCmds(players());pzScan()}if(tvMode==="lobby")drawStage()}));
+  pUnsub.push(pApi.onConnection(v=>{connected=v}));
+  pUnsub.push(mApi.onPeers(()=>{if(role!=="watch")return;const tv=mApi.peers().find(p=>!p.sameTab&&p.presence&&p.presence.tvs===1&&p.presence.s);if(tv)mirrorApply(tv.presence.s)}));
+  setInterval(electTick,400);setInterval(mirrorTick,250);
+}
+// who runs the game: nobody yet (or they left) and this screen has been here longest -> it does; two at once -> one steps back
+function electTick(){
+  if(!pApi||!mApi||!connected)return;
+  const tvs=pApi.peers().filter(p=>p.presence&&p.presence.tv===1),meP=Rush.mePeer(pApi);
+  if(role==="tv"){if(meP&&tvs.some(p=>!p.sameTab&&p.peer<meP.peer))location.reload();return}
+  if(tvs.length){noTvAt=0;return}
+  const now=Date.now();if(!noTvAt){noTvAt=now;return}
+  if(now-noTvAt<1500)return;
+  const first=mApi.peers().filter(p=>p.presence&&Number.isFinite(p.presence.wj)).sort((a,b)=>a.presence.wj-b.presence.wj||(a.peer<b.peer?-1:1))[0];
+  if(first&&first.sameTab)becomeTv();
+}
+function becomeTv(){
+  const s=lastMirror;
+  if(s){if(s.g&&typeof s.g==="object")tvGame=Object.assign({},tvGame,s.g);cap=String(s.cap||"");capSeenAt=Date.now();roomCount=num(s.rc)}
+  if(cap&&!players().some(p=>p.presence.u===cap))cap=""; // the host left with the screen that ran the game: the next player hosts
+  tg=null;hg=null;bg=null;im=null;gTot={};gRound={};auto={at:0,pz:0,by:""};tvErr="";
+  role="tv";tvMode="lobby";keepAwake();
+  pApi.presence(Object.assign({w:null},tvPresence()));mApi.presence({wj:null,tvs:1});
+  track();ensureCap();mirrorTick();draw();
+}
+// the imposter's secrets stay on the screen that runs the game until the game itself shows them
+function imSafe(){const after=["caught","guess","res"].includes(im.ph),end=im.ph==="res";
+  return Object.assign({},im,{sent:null,goIdx:null,wi:end?im.wi:-1,fake:end?im.fake:-1,imps:end?im.imps:after&&im.caught&&im.imps.includes(im.caught)?[im.caught]:[]})}
+function mirrorTick(){
+  if(role!=="tv"||!mApi)return;
+  const s={m:tvMode,g:tvGame,cap,rc:roomCount,err:tvErr,au:autoPub()};
+  if(tvMode!=="lobby"&&tvMode!=="harf"){s.tot=gTot;s.rnd=gRound;s.nm=blNames;
+    if(tvMode==="trivia"){s.tg=tg;s.tp=tpOpts}else if(tvMode==="hangman")s.hg=hg;else if(tvMode==="bluff")s.bg=bg;else if(tvMode==="imposter"&&im)s.im=imSafe()}
+  let j=JSON.stringify(s);
+  // the server holds a size limit: past it, the names kept for players who left go first
+  if(j.length>10000||new Blob([j]).size>22000){delete s.nm;j=JSON.stringify(s);if(j.length>10000||new Blob([j]).size>22000)return}
+  if(j===mirrorLast)return;mirrorLast=j;mApi.presence({tvs:1,s});
+}
+function mirrorApply(s){
+  if(!s||typeof s!=="object")return;lastMirror=s;
+  const mode=["lobby","harf","trivia","hangman","bluff","imposter"].includes(s.m)?s.m:"lobby";
+  const g=s.g&&typeof s.g==="object"?Object.assign({},tvGame,s.g):tvGame;
+  const lobbyKey=x=>JSON.stringify([x.g,x.cap,x.err]),was=lobbyKey({g:tvGame,cap,err:tvErr});
+  tvGame=g;cap=String(s.cap||"");roomCount=num(s.rc);tvErr=String(s.err||"");
+  gTot=s.tot&&typeof s.tot==="object"?s.tot:{};gRound=s.rnd&&typeof s.rnd==="object"?s.rnd:{};if(s.nm&&typeof s.nm==="object")Object.assign(blNames,s.nm);
+  auto=s.au&&typeof s.au==="object"?s.au:{at:0,pz:0,by:""};
+  tg=s.tg||null;tpOpts=s.tp||null;hg=s.hg||null;bg=s.bg||null;im=s.im||null;
+  if(mode==="trivia"&&!QB)loadBank().then(()=>{gKey=""}).catch(()=>{});
+  if(mode==="bluff"&&!BQ)loadBluff().then(()=>{gKey=""}).catch(()=>{});
+  if(mode!==tvMode){tvMode=mode;draw()}else if(tvMode==="lobby"&&was!==lobbyKey({g:tvGame,cap,err:tvErr}))draw();
+}
+// Harf is played on the controller itself (the Harf page), so the screen has nothing to add
+function drawWatchHarf(){const w=el("section","land"),inn=el("div","land-in");inn.append(el("h1","ptitle",t("harf")),el("p","pnote",t("callHarf")));w.append(inn);view.append(w)}
+
 /* ---------- start ---------- */
 function boot(){
   const m=location.hash.match(/^#p=([A-Za-z]{4})$/);
   if(m)return bootPhone(m[1].toUpperCase());
+  const sc=CALL==="screen"&&location.hash.match(/^#call=([A-Za-z]{4})$/);
+  if(sc)return bootScreen(sc[1].toUpperCase());
   if(location.hash==="#tv"){history.replaceState(null,"",location.pathname)} // a reloaded TV makes a new party
   role=null;draw();
 }

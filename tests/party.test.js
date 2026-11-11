@@ -67,3 +67,35 @@ test("a private message reaches only the peer it's for, stamped with who sent it
   assert.ok(!b.msgs.some(m => m.t === "msg") && !JSON.stringify(b.msgs).includes("Messi"));
   [tv, a, b, out].forEach(s => s.ws.close());
 });
+
+// A party in a Discord call: the screens join as watchers, apart from the players; the screen that runs the game shares
+// its state in the party's pw- room, which allows a larger presence than a player's.
+test("a call party's watchers don't take the players' places, and have a limit of their own", async () => {
+  const socks = [];
+  for (let i = 0; i < 9; i++) socks.push(await open());
+  // PARTY_MAX is 3: four player places (three players and the TV) and four watcher places
+  for (const s of socks.slice(0, 5)) { s.ws.send(JSON.stringify({ t: "join", room: "pt-call", presence: { w: 1 } })); await wait(30); }
+  for (const s of socks.slice(5)) { s.ws.send(JSON.stringify({ t: "join", room: "pt-call", presence: { n: "P" } })); await wait(30); }
+  await wait(150);
+  const full = socks.map(s => s.msgs.some(m => m.t === "error" && m.code === "party_full"));
+  assert.deepStrictEqual(full, [false, false, false, false, true, false, false, false, false]);
+  socks.forEach(s => s.ws.close());
+});
+
+test("the state shared in a pw- room may be larger than a player's presence", async () => {
+  const a = await open(), b = await open(), big = "x".repeat(9000);
+  a.ws.send(JSON.stringify({ t: "join", room: "pw-call" })); b.ws.send(JSON.stringify({ t: "join", room: "pw-call" }));
+  a.ws.send(JSON.stringify({ t: "join", room: "pt-size" })); b.ws.send(JSON.stringify({ t: "join", room: "pt-size" }));
+  await wait(100);
+  a.ws.send(JSON.stringify({ t: "presence", room: "pw-call", patch: { tvs: 1, s: big } }));
+  a.ws.send(JSON.stringify({ t: "presence", room: "pt-size", patch: { s: big } }));
+  await wait(200);
+  const last = room => b.msgs.filter(m => m.t === "peers" && m.room === room).pop().peers.map(p => (p.presence.s || "").length).sort((x, y) => y - x)[0];
+  assert.equal(last("pw-call"), 9000);
+  assert.equal(last("pt-size"), 0); // too big for a party's own room: ignored, as before
+  // and far too big is ignored there too
+  a.ws.send(JSON.stringify({ t: "presence", room: "pw-call", patch: { s: "y".repeat(13000) } }));
+  await wait(150);
+  assert.equal(last("pw-call"), 9000);
+  a.ws.close(); b.ws.close();
+});
