@@ -419,6 +419,13 @@ html.pip .app{display:none} html.pip .mini{display:flex}
     } catch (e) {}
   }
   async function connect() {
+    // The saved login can outlive the launch it came from (Discord keeps the page's storage): opened again somewhere
+    // else, it still named the old channel, and a server's summary went to a DM. Discord puts this launch's channel
+    // and instance in the address, so a saved login from another launch is dropped and the player signs in afresh.
+    if (S) try {
+      const now = new window.DiscordSDK(APP_ID);
+      if ((now.channelId && now.channelId !== S.channel) || (now.instanceId && S.instance && now.instanceId !== S.instance) || (now.guildId || null) !== (S.guild || null)) { S = null; try { sessionStorage.removeItem("rush-dc"); } catch (e) {} }
+    } catch (e) {}
     if (S && S.exp > Date.now() + 600e3) {
       if (S.player) usePlayer(S.player);
       render(); loadHome();
