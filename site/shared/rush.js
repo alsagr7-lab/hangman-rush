@@ -545,7 +545,7 @@
           switchQ: "This Google account already has progress from another device. Switch to it? Your results from this device will be added to it (if both played the same day, the first result counts).",
           merged: "Added {e} day(s) from your other device.", mergedNone: "Nothing new to add from your other device.", mergeSkipped: "Results from another device were already added this season, so this device's weren't added.",
           fail: "Sign-in didn't work. Try again in a moment.", relink: "This browser lost track of your Google account. Sign in again to get your progress back.", taken: "This progress is already linked to a different Google account.",
-          guest: "Playing as a guest", saved: "Progress saved to Google", priv: "We don't keep your email or name, only your Google account number, so your progress can follow you.",
+          guest: "Playing as a guest", saved: "Progress saved to Google", priv: "We don't keep your email or name, only your Google account number, so your progress can follow you.", gBtn: "Sign in with Google",
           save: "Save progress", saveShort: "Save", profile: "Your profile", close: "Close", allGames: "All games", home: "Rush Games home",
           switchT: "Switch to this account?", switchOk: "Switch account", outT: "Sign out?", cancel: "Cancel",
           plusFree: "Free plan", plusSee: "See plans", me: "Your profile" },
@@ -554,7 +554,7 @@
           switchQ: "لهذا الحساب تقدّم من جهاز آخر. هل تنتقل إليه؟ ستُضاف نتائجك من هذا الجهاز إليه (إذا لعب الجهازان نفس اليوم تُحتسب النتيجة الأولى).",
           merged: "أُضيفت {e} يوماً من جهازك الآخر.", mergedNone: "لا جديد لإضافته من جهازك الآخر.", mergeSkipped: "سبق أن أُضيفت نتائج جهاز آخر هذا الموسم، فلم تُضف نتائج هذا الجهاز.",
           fail: "تعذّر تسجيل الدخول. حاول بعد لحظات.", relink: "فقد هذا المتصفح ربطه بحسابك في Google. سجّل الدخول من جديد لتستعيد تقدّمك.", taken: "هذا التقدّم مرتبط بحساب Google آخر.",
-          guest: "تلعب كضيف", saved: "تقدّمك محفوظ في Google", priv: "لا نحتفظ ببريدك أو اسمك، بل برقم حسابك في Google فقط، ليتبعك تقدّمك.",
+          guest: "تلعب كضيف", saved: "تقدّمك محفوظ في Google", priv: "لا نحتفظ ببريدك أو اسمك، بل برقم حسابك في Google فقط، ليتبعك تقدّمك.", gBtn: "تسجيل الدخول عبر Google",
           save: "احفظ تقدّمك", saveShort: "احفظ", profile: "ملفك", close: "إغلاق", allGames: "كل الألعاب", home: "الصفحة الرئيسية",
           switchT: "الانتقال إلى هذا الحساب؟", switchOk: "انتقل للحساب", outT: "تسجيل الخروج؟", cancel: "إلغاء",
           plusFree: "الخطة المجانية", plusSee: "الخطط", me: "ملفك" },
@@ -677,9 +677,18 @@
   }
   // Google draws its own button; its dark version sits on the dark design. It needs a width, so it's drawn once the sheet is open.
   let gsiSlot = null, gsiDrawn = null;
+  // Google's script is only fetched once the player asks for it (our own button first), so just opening the
+  // profile tells Google nothing. The choice is remembered on this device ("rush-gsi"), like any other setting.
   function drawGsi() {
     if (!gsiSlot || gsiDrawn === gsiSlot || !sheetOpen || !(authCfg && authCfg.google)) return;
     const slot = gsiSlot; gsiDrawn = slot;
+    if (store.get("rush-gsi") !== "1") {
+      const b = mkEl("button", "rush-gbtn"); b.type = "button";
+      const g = mkEl("span", "gdot"); g.append(svg(G_LOGO)); b.append(g, mkEl("span", null, at("gBtn")));
+      b.onclick = () => { store.set("rush-gsi", "1"); slot.textContent = ""; gsiDrawn = null; drawGsi(); };
+      slot.append(b);
+      return;
+    }
     const w = Math.max(220, Math.min(400, Math.round(slot.getBoundingClientRect().width || 300)));
     loadGsi().then(() => window.google.accounts.id.renderButton(slot, { type: "standard", theme: "filled_black", size: "large", text: "signin_with", shape: "pill", width: w, locale: isAr() ? "ar" : "en" }))
       .catch(() => { gsiDrawn = null; });
@@ -1046,14 +1055,16 @@
       const ps = uiAr()
         ? ["نحتفظ فقط بما تحتاجه الألعاب: رقم لاعب عشوائي على جهازك، والاسم واللون اللذين تختارهما، ونتائجك.",
            "عند تسجيل الدخول بحساب Google نحفظ رقم حسابك فقط، لا بريدك ولا اسمك.",
-           "نعدّ زيارات الصفحات دون حفظ عناوين IP. وتُرسل إجابات «الحروف» إلى خدمة ذكاء اصطناعي (Claude من Anthropic) للتحقق منها، والإجابات فقط.",
+           "لا نضع ملفات كوكيز ولا إعلانات ولا أدوات تتبّع، ولا يتصل متصفحك بـ Google إلا إذا اخترت تسجيل الدخول. نعدّ الزيارات دون حفظ عناوين IP، وتُرسل كلمات «الحروف» فقط إلى Claude من Anthropic للتحقق منها.",
            "لا نبيع بياناتك ولا نشاركها للإعلانات. لحذف بياناتك أو لأي سؤال، راسلنا من زر «تواصل معنا» واذكر رمز لاعبك (#" + tagOf(uid) + ")."]
         : ["We keep only what the games need: a random player id on your device, the name and colour you pick, and your results.",
            "If you sign in with Google we keep your Google account number only, not your email or name.",
-           "Page visits are counted without storing IP addresses. Harf answers are checked by an AI service (Anthropic's Claude); only the answers are sent.",
+           "No cookies, ads or trackers, and your browser only contacts Google if you choose to sign in. Visits are counted without storing IP addresses; only Harf words are sent to Anthropic's Claude to check them.",
            "Nothing is sold or shared for ads. To have your data removed, or for anything else, use Contact us and mention your player tag (#" + tagOf(uid) + ")."];
       box.append(mkEl("h2", null, L2("Privacy", "الخصوصية")));
-      const body = mkEl("div", "rprivacy"); ps.forEach(t => body.append(mkEl("p", null, t))); box.append(body);
+      const body = mkEl("div", "rprivacy"); ps.forEach(t => body.append(mkEl("p", null, t)));
+      const full = mkEl("a", "rprivacy-more", L2("Read the full privacy policy and terms", "اقرأ سياسة الخصوصية والشروط كاملة"));
+      full.href = arPrefix() + "/privacy/"; body.append(mkEl("p", null)); body.lastChild.append(full); box.append(body);
       const acts = mkEl("div", "acts"); acts.append(ok, rep); box.append(acts);
     });
   }
