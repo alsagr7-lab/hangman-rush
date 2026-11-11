@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>(function(){var t;try{t=localStorage.getItem("rush-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.setAttribute("data-theme",t)})()</script>
+<style>:root{color-scheme:dark;background:#0B0C10}body{margin:0;font:14px system-ui,sans-serif;background:#0B0C10;color:#F4F1EA}[hidden]{display:none!important}:root[data-theme="light"]{color-scheme:light;background:#F4F1EA}:root[data-theme="light"] body{background:#F4F1EA;color:#16171D}</style>
+<title>Privacy and terms · Rush Games</title>
+<meta name="description" content="What Rush Games keeps about players, who else sees it, how long it's kept, your choices, and the rules for playing.">
+<meta name="theme-color" content="#0B0C10">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rush Games">
+<meta property="og:title" content="Privacy and terms · Rush Games">
+<meta property="og:description" content="What Rush Games keeps about players, who else sees it, how long it's kept, your choices, and the rules for playing.">
+<meta property="og:url" content="https://rushgames.cc/privacy/">
+<meta property="og:image" content="https://rushgames.cc/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rush Games">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="/shared/config.js"></script>
+<script src="/shared/rules.js"></script>
+<script src="/shared/rush.js"></script>
+<link rel="stylesheet" href="/shared/fonts.css">
+<link rel="stylesheet" href="/shared/rush.css">
+<style>
+/* privacy and terms: one page, English and Arabic side by side in the file, the other language hidden */
+#legal{max-width:760px;margin:0 auto;display:grid;gap:18px}
+.lh{display:grid;gap:6px}
+.lh h1{margin:0;font-family:var(--f-display);font-stretch:118%;font-weight:800;font-size:clamp(28px,6vw,40px);line-height:1.05}
+:root[lang="ar"] .lh h1{font-family:var(--f-ar);font-stretch:100%;font-weight:900;line-height:1.3}
+.lh a{color:var(--accent-hi);font-weight:700;text-decoration:none;justify-self:start}
+.lh a:hover{text-decoration:underline}
+.lh .upd{margin:0;color:var(--muted);font-size:13px}
+.doc{display:grid;gap:14px}
+.doc .card{display:grid;gap:10px}
+.doc h2{margin:0;font-size:19px;font-weight:800}
+.doc p,.doc li{margin:0;color:var(--soft);font-size:15px;line-height:1.6}
+.doc ul{margin:0;padding-inline-start:20px;display:grid;gap:6px}
+.doc b{color:var(--ink)}
+.doc .sum{border-color:var(--accent-hi)}
+.doc .sum p{color:var(--ink)}
+.doc button.link{background:none;border:0;padding:0;font:inherit;color:var(--accent-hi);font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+:root[lang="ar"] [data-l="en"],:root:not([lang="ar"]) [data-l="ar"]{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main id="legal">
+    <div class="lobbytop"><button class="langbtn" id="lang" type="button"></button></div>
+    <header class="lh">
+      <a href="/" id="back"></a>
+      <h1 id="h1"></h1>
+      <p class="upd" id="upd"></p>
+    </header>
+
+    <!-- ===================== English ===================== -->
+    <div class="doc" data-l="en">
+      <section class="card sum">
+        <h2>The short version</h2>
+        <p>Rush Games is a small, free, independent project. We keep only what the games need to work: a random player id, the name you pick, and your results. We don't set cookies, and we don't use ads, trackers or analytics companies, and we never sell your data. Your browser only contacts Google if you choose to sign in with Google. You can ask us to delete everything at any time.</p>
+      </section>
+
+      <section class="card">
+        <h2>1. What's saved on your device</h2>
+        <p>We don't set any cookies. The site uses your browser's own storage (local storage) for things the games can't work without, or that you chose:</p>
+        <ul>
+          <li><b>Your player id and a secret key</b>, made up at random the first time you play. They're how the server knows your results are yours. There's no name, email or phone number in them.</li>
+          <li><b>Today's games in progress</b>, so a reload doesn't lose your place.</li>
+          <li><b>Your settings:</b> language, light or dark look, the name and colour you picked, and choices like "don't show the rules again".</li>
+          <li>If you sign in with Google: a note that you're signed in, and that you chose to use Google sign-in on this device.</li>
+        </ul>
+        <p>Because all of this is needed for the games or is a setting you chose, the law doesn't require a cookie banner for it. You can clear it at any time from your browser's settings ("clear site data"). On a guest account that also ends your progress on this device.</p>
+      </section>
+
+      <section class="card">
+        <h2>2. What our server keeps</h2>
+        <ul>
+          <li><b>Your game records:</b> your player id, the name and colour you picked, your scores, times, streaks, medals and recent daily history. The day-by-day history inside a record keeps about the last 40 days.</li>
+          <li><b>Harf answers:</b> every finished Harf daily (your answers and score, with your player id) is kept in an archive. Words that are judged valid join a shared word list without your id, so later players get faster checks.</li>
+          <li><b>Google sign-in</b> (only if you use it): Google's account number for you, linked to your player id. We never store your email address or your name. Your email is shown on your own device only.</li>
+          <li><b>Discord</b> (only if you link it or use the Rush Games Activity): your Discord user id linked to your player id, and the ids of the Discord servers and channels where you played, so the bot can post daily summaries and streaks there. Summaries show names, points and times, never the answers.</li>
+          <li><b>Reports</b> you send with "Report a problem" or "Contact us": what you wrote, which page and question it was about, and your player id. We keep up to the latest 1,000.</li>
+          <li><b>Visit counts:</b> each page load is counted with a short scrambled code made from your player id (a one-way hash). We use it only to count daily visitors. It's kept for 35 days and never with an IP address.</li>
+          <li><b>Your IP address:</b> used briefly, in memory, to stop spam and abuse (for example too many requests in a minute). For Harf's AI answer checks we keep a one-way hash of it (never the address itself) for the current month, to stop one network from using up everyone's free checks.</li>
+          <li><b>Party rooms</b> exist only in the server's memory while the room is open, and disappear when it closes.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>3. What other players can see</h2>
+        <p>Leaderboards, rooms and profiles show your chosen name, your 4-character player tag, your scores and medals. You can make your profile private from your profile panel. Then others see only your name and tag, though you still appear on the leaderboards. Please don't use your real full name or anything personal as your player name.</p>
+      </section>
+
+      <section class="card">
+        <h2>4. Other companies involved</h2>
+        <p>These services handle data for us to run the site. Each has its own privacy policy.</p>
+        <ul>
+          <li><b>Render</b> (United States) hosts the website, game server and database. Like any host, it receives your IP address with each request and keeps standard server logs.</li>
+          <li><b>Cloudflare</b> runs our domain and passes all traffic to Render. It also sees your IP address, keeps standard logs, and may set a short-lived security cookie to block attacks (this is strictly necessary and not used for tracking).</li>
+          <li><b>Anthropic</b> (Claude) checks whether Harf answers are real words. Our server sends only the category, the letter and the word. No IP address, player id or name is sent, and your browser never contacts Anthropic.</li>
+          <li><b>Google</b>, only if you tap "Sign in with Google". Google's sign-in is then loaded on your device and Google receives your IP address and may set its own cookies, under Google's privacy policy. Until you tap it, nothing is loaded from Google. Fonts are served from our own site, not Google.</li>
+          <li><b>Discord</b>, only if you use our Discord bot or Activity, under Discord's privacy policy.</li>
+        </ul>
+        <p>Because Render and Cloudflare run in the United States, your data may be handled outside your country.</p>
+      </section>
+
+      <section class="card">
+        <h2>5. What we don't do</h2>
+        <ul>
+          <li>No advertising, tracking pixels or analytics companies.</li>
+          <li>No selling, renting or sharing your data for marketing.</li>
+          <li>No collecting of email addresses, phone numbers, real names, location or contacts.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>6. Your choices</h2>
+        <ul>
+          <li><b>Play without signing in.</b> Google sign-in is optional; the games work fully as a guest.</li>
+          <li><b>Make your profile private</b> from your profile panel.</li>
+          <li><b>Sign out</b> of Google, or <b>unlink Discord</b>, from your profile at any time.</li>
+          <li><b>Clear your device's data</b> from your browser settings.</li>
+          <li><b>See, correct or delete your data.</b> Use <button class="link" type="button" data-contact>Contact us</button> and mention your player tag. We'll remove your records, Harf archive entries, Google and Discord links and reports, normally within 30 days. Words already in the shared word list carry no link to you and stay.</li>
+          <li>You can also object to how we use your data, or complain to your local data protection authority (in the UK, the ICO; in Saudi Arabia, SDAIA).</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>7. Children</h2>
+        <p>The games are made for everyone, but Google sign-in needs a Google account, which has its own minimum age. If you're under 13, please ask a parent before signing in. Parents can ask us to delete a child's data using Contact us.</p>
+      </section>
+
+      <section class="card">
+        <h2>8. Terms of use</h2>
+        <ul>
+          <li><b>Free, as it is.</b> Rush Games is free and offered "as is". We try to keep it running and correct, but we can't promise it will always be available, error-free or that scores will never be lost.</li>
+          <li><b>Play fair.</b> No bots, scripts, multiple accounts to boost scores, or exploiting bugs. Please report bugs instead.</li>
+          <li><b>Be decent.</b> No offensive, hateful or impersonating names, chat or answers.</li>
+          <li><b>Our calls.</b> We may hide or change names, remove scores or medals, hide players from leaderboards or block access when these rules are broken, and reset leaderboards each season.</li>
+          <li><b>What you submit.</b> Answers, appeals and reports you send can be used to run and improve the games, for example adding valid words to the word list.</li>
+          <li><b>Content.</b> Questions and word lists are checked but can contain mistakes. Use "Report a problem" and we'll fix them. Nothing on the site is professional advice.</li>
+          <li><b>Liability.</b> As far as the law allows, we aren't liable for losses from using or not being able to use the site. Nothing here limits rights you have by law.</li>
+          <li><b>Changes.</b> We may change the games, these terms or this policy. The date at the top shows the latest version; big changes will be announced on the site.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>9. Contact</h2>
+        <p>For questions about your data or these terms, use <button class="link" type="button" data-contact>Contact us</button> (it reaches the Rush Games team directly). Please include your player tag.</p>
+      </section>
+    </div>
+
+    <!-- ===================== العربية ===================== -->
+    <div class="doc" data-l="ar">
+      <section class="card sum">
+        <h2>باختصار</h2>
+        <p>ألعاب رش مشروع صغير ومستقل ومجاني. نحتفظ فقط بما تحتاجه الألعاب لتعمل: رقم لاعب عشوائي، والاسم الذي تختاره، ونتائجك. لا نضع ملفات تعريف الارتباط (الكوكيز)، ولا نستخدم إعلانات ولا أدوات تتبّع ولا شركات تحليلات، ولا نبيع بياناتك أبداً. لا يتصل متصفحك بـ Google إلا إذا اخترت تسجيل الدخول عبر Google. ويمكنك أن تطلب منا حذف كل شيء في أي وقت.</p>
+      </section>
+
+      <section class="card">
+        <h2>1. ما يُحفظ على جهازك</h2>
+        <p>لا نضع أي ملفات كوكيز، بل يستخدم الموقع التخزين المحلي في متصفحك، وذلك لأشياء لا تعمل الألعاب بدونها أو اخترتها بنفسك:</p>
+        <ul>
+          <li><b>رقم لاعبك ومفتاح سري</b> يُنشآن عشوائياً أول مرة تلعب، ليعرف الخادم أن نتائجك لك. لا يحتويان على اسم أو بريد أو رقم جوال.</li>
+          <li><b>ألعاب اليوم الجارية</b>، حتى لا تضيع إذا أعدت تحميل الصفحة.</li>
+          <li><b>إعداداتك:</b> اللغة، والمظهر الفاتح أو الداكن، والاسم واللون اللذان اخترتهما، وخيارات مثل «لا تعرض القواعد مرة أخرى».</li>
+          <li>إذا سجّلت الدخول بحساب Google: ملاحظة بأنك مسجّل، وبأنك اخترت استخدام تسجيل Google على هذا الجهاز.</li>
+        </ul>
+        <p>ولأن هذا كله ضروري للألعاب أو إعداد اخترته، لا يتطلب القانون نافذة موافقة على الكوكيز. يمكنك مسحه في أي وقت من إعدادات متصفحك («مسح بيانات الموقع»). وإذا كنت تلعب كضيف فسيُمسح تقدّمك على هذا الجهاز أيضاً.</p>
+      </section>
+
+      <section class="card">
+        <h2>2. ما يحتفظ به خادمنا</h2>
+        <ul>
+          <li><b>سجلات ألعابك:</b> رقم لاعبك، والاسم واللون اللذان اخترتهما، ونقاطك وأوقاتك وسلاسلك وميدالياتك وسجلك اليومي الأخير. يحتفظ السجل اليومي بآخر 40 يوماً تقريباً.</li>
+          <li><b>إجابات «الحروف»:</b> كل تحدٍّ يومي منتهٍ في الحروف (إجاباتك ونتيجتك مع رقم لاعبك) يُحفظ في أرشيف. والكلمات المقبولة تُضاف إلى قائمة كلمات مشتركة دون رقمك، لتُفحص أسرع للاعبين بعدك.</li>
+          <li><b>تسجيل الدخول عبر Google</b> (إن استخدمته فقط): رقم حسابك في Google مربوطاً برقم لاعبك. لا نحفظ بريدك ولا اسمك أبداً، ويظهر بريدك على جهازك فقط.</li>
+          <li><b>ديسكورد</b> (إن ربطته أو استخدمت نشاط ألعاب رش فقط): رقم مستخدمك في ديسكورد مربوطاً برقم لاعبك، وأرقام السيرفرات والقنوات التي لعبت فيها، ليرسل البوت ملخصات اليوم والسلاسل هناك. تعرض الملخصات الأسماء والنقاط والأوقات، ولا تعرض الإجابات أبداً.</li>
+          <li><b>البلاغات</b> التي ترسلها من «أبلغ عن مشكلة» أو «تواصل معنا»: ما كتبته، والصفحة والسؤال المعنيّان، ورقم لاعبك. نحتفظ بآخر 1000 بلاغ.</li>
+          <li><b>عدد الزيارات:</b> يُعدّ كل تحميل للصفحة برمز قصير مُشفَّر من رقم لاعبك (تجزئة باتجاه واحد)، فقط لمعرفة عدد الزوار يومياً. يُحفظ 35 يوماً، ولا يُحفظ معه عنوان IP أبداً.</li>
+          <li><b>عنوان IP:</b> يُستخدم مؤقتاً في الذاكرة لمنع الإزعاج وإساءة الاستخدام (مثل كثرة الطلبات في الدقيقة). ولفحص إجابات الحروف بالذكاء الاصطناعي نحفظ تجزئة باتجاه واحد له (لا العنوان نفسه) خلال الشهر الحالي فقط، حتى لا تستهلك شبكة واحدة الفحوصات المجانية للجميع.</li>
+          <li><b>غرف الحفلة</b> موجودة في ذاكرة الخادم فقط ما دامت الغرفة مفتوحة، وتختفي عند إغلاقها.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>3. ما يراه اللاعبون الآخرون</h2>
+        <p>تعرض لوحات الترتيب والغرف والملفات الشخصية اسمك المختار، ورمز لاعبك المكوّن من 4 خانات، ونقاطك وميدالياتك. يمكنك جعل ملفك خاصاً من لوحة ملفك، فيرى الآخرون اسمك ورمزك فقط، وتبقى في لوحات الترتيب. نرجو ألا تستخدم اسمك الكامل الحقيقي أو أي معلومة شخصية كاسم لاعب.</p>
+      </section>
+
+      <section class="card">
+        <h2>4. شركات أخرى تشارك في التشغيل</h2>
+        <p>تعالج هذه الخدمات البيانات لنا لتشغيل الموقع، ولكلٍّ منها سياسة خصوصية خاصة بها.</p>
+        <ul>
+          <li><b>Render</b> (الولايات المتحدة) تستضيف الموقع وخادم الألعاب وقاعدة البيانات. وككل استضافة، تستلم عنوان IP مع كل طلب وتحتفظ بسجلات خادم عادية.</li>
+          <li><b>Cloudflare</b> تشغّل نطاقنا وتمرّر كل الزيارات إلى Render، فترى عنوان IP أيضاً وتحتفظ بسجلات عادية، وقد تضع ملف كوكيز أمني قصير المدة لصدّ الهجمات (ضروري ولا يُستخدم للتتبّع).</li>
+          <li><b>Anthropic</b> (Claude) تتحقق من أن إجابات الحروف كلمات حقيقية. يرسل خادمنا الفئة والحرف والكلمة فقط، دون عنوان IP أو رقم لاعب أو اسم، ولا يتصل متصفحك بـ Anthropic أبداً.</li>
+          <li><b>Google</b>، فقط إذا ضغطت «تسجيل الدخول عبر Google». حينها يُحمَّل تسجيل Google على جهازك، فيستلم Google عنوان IP وقد يضع ملفات كوكيز خاصة به وفق سياسة خصوصيته. وقبل أن تضغط لا يُحمَّل شيء من Google. والخطوط تأتي من موقعنا نفسه لا من Google.</li>
+          <li><b>ديسكورد</b>، فقط إذا استخدمت البوت أو النشاط، وفق سياسة خصوصية ديسكورد.</li>
+        </ul>
+        <p>ولأن Render وCloudflare تعملان في الولايات المتحدة، قد تُعالج بياناتك خارج بلدك.</p>
+      </section>
+
+      <section class="card">
+        <h2>5. ما لا نفعله</h2>
+        <ul>
+          <li>لا إعلانات، ولا بكسلات تتبّع، ولا شركات تحليلات.</li>
+          <li>لا بيع ولا تأجير ولا مشاركة لبياناتك لأغراض تسويقية.</li>
+          <li>لا نجمع البريد الإلكتروني ولا أرقام الجوال ولا الأسماء الحقيقية ولا الموقع ولا جهات الاتصال.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>6. خياراتك</h2>
+        <ul>
+          <li><b>العب دون تسجيل دخول.</b> تسجيل Google اختياري، والألعاب تعمل كاملة للضيوف.</li>
+          <li><b>اجعل ملفك خاصاً</b> من لوحة ملفك.</li>
+          <li><b>سجّل الخروج</b> من Google، أو <b>ألغِ ربط ديسكورد</b>، من ملفك في أي وقت.</li>
+          <li><b>امسح بيانات جهازك</b> من إعدادات المتصفح.</li>
+          <li><b>اطّلع على بياناتك أو صحّحها أو احذفها.</b> استخدم <button class="link" type="button" data-contact>تواصل معنا</button> واذكر رمز لاعبك. سنحذف سجلاتك وأرشيف الحروف الخاص بك وربط Google وديسكورد وبلاغاتك، عادةً خلال 30 يوماً. أما الكلمات الموجودة في قائمة الكلمات المشتركة فلا ترتبط بك وتبقى.</li>
+          <li>يمكنك أيضاً الاعتراض على طريقة استخدامنا لبياناتك، أو تقديم شكوى إلى جهة حماية البيانات في بلدك (في السعودية: سدايا، وفي المملكة المتحدة: ICO).</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>7. الأطفال</h2>
+        <p>الألعاب للجميع، لكن تسجيل الدخول يتطلب حساب Google، وله حدّ أدنى للعمر. إذا كان عمرك أقل من 13 سنة فاستأذن أحد والديك قبل تسجيل الدخول. ويمكن للوالدين طلب حذف بيانات طفلهم من «تواصل معنا».</p>
+      </section>
+
+      <section class="card">
+        <h2>8. شروط الاستخدام</h2>
+        <ul>
+          <li><b>مجانية كما هي.</b> ألعاب رش مجانية وتُقدَّم «كما هي». نحرص على أن تعمل وتكون صحيحة، لكن لا نضمن أن تكون متاحة دائماً أو خالية من الأخطاء أو ألا تضيع النتائج أبداً.</li>
+          <li><b>العب بنزاهة.</b> لا بوتات ولا سكربتات ولا حسابات متعددة لرفع النقاط ولا استغلال للأخطاء، وأبلغنا عنها بدلاً من ذلك.</li>
+          <li><b>الاحترام.</b> لا أسماء أو محادثات أو إجابات مسيئة أو تحريضية أو تنتحل شخصية أحد.</li>
+          <li><b>صلاحياتنا.</b> قد نخفي الأسماء أو نغيّرها، أو نحذف النقاط والميداليات، أو نخفي لاعبين من لوحات الترتيب، أو نمنع الوصول عند مخالفة هذه القواعد، ونعيد تصفير اللوحات كل موسم.</li>
+          <li><b>ما ترسله.</b> الإجابات والاعتراضات والبلاغات التي ترسلها قد تُستخدم لتشغيل الألعاب وتحسينها، مثل إضافة الكلمات الصحيحة إلى قائمة الكلمات.</li>
+          <li><b>المحتوى.</b> الأسئلة وقوائم الكلمات مراجَعة لكنها قد تحتوي أخطاء، أبلغنا عنها وسنصلحها. ولا شيء في الموقع نصيحة مهنية.</li>
+          <li><b>المسؤولية.</b> في حدود ما يسمح به القانون، لسنا مسؤولين عن أي خسارة ناتجة عن استخدام الموقع أو تعذّر استخدامه. ولا شيء هنا يحدّ من حقوقك النظامية.</li>
+          <li><b>التغييرات.</b> قد نغيّر الألعاب أو هذه الشروط أو هذه السياسة. التاريخ في الأعلى يوضح آخر نسخة، والتغييرات الكبيرة سنعلن عنها في الموقع.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>9. التواصل</h2>
+        <p>لأي سؤال عن بياناتك أو هذه الشروط، استخدم <button class="link" type="button" data-contact>تواصل معنا</button> (يصل مباشرة إلى فريق ألعاب رش)، واذكر رمز لاعبك.</p>
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+(function(){
+const T={en:{back:"← All games",h1:"Privacy and terms",upd:"Last updated 11 November 2026",sw:"عربي",doc:"Privacy and terms · Rush Games"},
+         ar:{back:"→ كل الألعاب",h1:"الخصوصية والشروط",upd:"آخر تحديث: 11 نوفمبر 2026",sw:"English",doc:"الخصوصية والشروط · ألعاب رش"}};
+let lang;try{lang=localStorage.getItem("hr-lang")}catch(e){}
+if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en";
+const $=s=>document.querySelector(s);
+function render(){
+  const t=T[lang],root=document.documentElement;root.lang=lang;root.dir=lang==="ar"?"rtl":"ltr";document.title=t.doc;
+  $("#back").textContent=t.back;$("#back").href=/^\/ar(\/|$)/.test(location.pathname)?"/ar/":"/";
+  $("#h1").textContent=t.h1;$("#upd").textContent=t.upd;
+  const lb=$("#lang");lb.textContent=t.sw;lb.lang=lang==="ar"?"en":"ar";
+}
+$("#lang").onclick=()=>{lang=lang==="ar"?"en":"ar";try{localStorage.setItem("hr-lang",lang)}catch(e){}render()};
+document.querySelectorAll("[data-contact]").forEach(b=>{b.onclick=()=>{if(window.Rush&&Rush.openReport)Rush.openReport("other")}});
+render();
+})();
+</script>
+</body>
+</html>

@@ -195,6 +195,10 @@ input.need{border-color:var(--hot);box-shadow:0 0 0 3px rgba(255,122,102,.2)}
 .rush-acct .merged{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:rgba(61,214,140,.1);color:var(--good-ink);font-size:13px;font-weight:600}
 .rush-acct .note.warn{font-weight:700}
 .rush-acct-btn{min-height:44px;display:flex;justify-content:center;color-scheme:normal}
+.rush-gbtn{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 20px 0 6px;border-radius:999px;background:#131314;border:1px solid #8E918F;color:#E3E3E3;font:600 14px/1 var(--f-body);cursor:pointer}
+:root[lang="ar"] .rush-gbtn{font-family:var(--f-ar);padding:0 6px 0 20px}
+.rush-gbtn .gdot{width:32px;height:32px;border-radius:50%;background:#fff;border:0;display:grid;place-items:center}
+.rush-gbtn .gdot svg{width:18px;height:18px}
 .rush-acct-out{height:44px;border-radius:999px;background:transparent;border:1px solid var(--line3);color:var(--soft);font-weight:700;font-size:14px}
 .rsheet-plus{display:flex;align-items:center;gap:12px;height:56px;padding:0 14px;border-radius:16px;background:var(--plus-bg);border:1px solid var(--plus-line);color:var(--ink);text-decoration:none;font-weight:800}
 .rsheet-plus[hidden]{display:none}
@@ -468,6 +472,7 @@ textarea.rinput{resize:vertical;min-height:84px}
 .rmsg{color:var(--hot)!important;text-align:center}
 .rprivacy{display:grid;gap:10px;text-align:start}
 .rprivacy p{font-size:14px!important}
+.rprivacy-more{color:var(--accent-hi);font-weight:700;text-underline-offset:3px}
 .linkbtn{background:none;border:0;padding:8px 4px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line3);justify-self:center}
 @media (hover:hover) and (pointer:fine){.linkbtn:hover{color:var(--ink)}}
 .rnext,.rtip{position:fixed;z-index:40;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:6px;
