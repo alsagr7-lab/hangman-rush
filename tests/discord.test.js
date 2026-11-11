@@ -118,6 +118,9 @@ test("the Activity: the linked player comes with its token, new players can star
   const press = await discord({ type: 3, member: { user: { id: "111111111111" } }, data: { custom_id: "rush-play", component_type: 2 } });
   assert.equal(press.status, 200); assert.deepEqual(press.body, { type: 12 });
   assert.equal((await discord({ type: 3, data: { custom_id: "something-else" } })).status, 400);
+  // the Activity's own Launch command is answered the same way (no invitation card is left in the channel)
+  const launch = await discord({ type: 2, member: { user: { id: "111111111111" } }, data: { name: "launch", type: 4 } });
+  assert.deepEqual(launch.body, { type: 12 });
 });
 
 test("a new day: channels that played yesterday get one recap with the group's streak, and nobody is pinged", async () => {
