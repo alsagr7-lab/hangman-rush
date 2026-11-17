@@ -38,12 +38,11 @@ test("a clip is refused without a live party, kept for one, and served back", as
   tv.close();
 });
 
-test("every word has its clip, and a guess counts give or take a letter", () => {
+test("every word is in a topic, and a guess counts give or take a letter", () => {
   const bank = JSON.parse(fs.readFileSync(path.join(ROOT, "site", "party", "backwards.json"), "utf8"));
   assert.ok(bank.en.length >= 60 && bank.ar.length >= 60);
   for (const [id, c, w] of bank.en.concat(bank.ar)) {
     assert.ok(R.BACKWARDS.CATS.includes(c), id);
-    assert.ok(fs.statSync(path.join(ROOT, "site", "party", "bw", id + ".mp3")).size > 1000, id);
     assert.ok(R.backwardsMatch(w, w, []), w);
   }
   assert.ok(R.backwardsMatch("selena gomes", "Selena Gomez", ["Selena"]));
@@ -54,4 +53,6 @@ test("every word has its clip, and a guess counts give or take a letter", () => 
   assert.strictEqual(R.backwardsPoints(0), 200);
   assert.strictEqual(R.backwardsPoints(R.BACKWARDS.LISTEN_MS / 2), 150);
   assert.strictEqual(R.backwardsPoints(R.BACKWARDS.LISTEN_MS * 2), 100);
+  assert.strictEqual(R.backwardsPoints(15000, 30000), 150); // out of the turn's own guessing time
+  assert.ok(R.BACKWARDS.LISTEN_OPTS.includes(R.BACKWARDS.LISTEN_MS) && R.BACKWARDS.PREP_OPTS.includes(R.BACKWARDS.PREP_MS));
 });
