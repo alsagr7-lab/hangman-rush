@@ -127,8 +127,8 @@ const imposter = [];
 }
 
 // Backwards Rush (party): content/party/backwards.json, words to say backwards, per language:
-// {en: [[id, topic, word, [other accepted forms]], ...], ar: [...]}, each with its spoken clip site/party/bw/<id>.mp3
-// (made by scripts/make-backwards-audio.py). No word twice in a language.
+// {en: [[id, topic, word, [other accepted forms]], ...], ar: [...]}. The speaker records the word in their own voice.
+// No word twice in a language.
 const backwards = { en: [], ar: [] };
 {
   const file = path.join(__dirname, "..", "content", "party", "backwards.json"), ids = new Set();
@@ -147,7 +147,6 @@ const backwards = { en: [], ar: [] };
       if (!Array.isArray(al) || al.some(x => typeof x !== "string" || !x.trim())) problems.push(`${where}: other forms must be a list of words`);
       if (!RR.backwardsMatch(w, w, [])) problems.push(`${where}: ${w} wouldn't count as a guess of itself`);
       if (seen.some(x => RR.bluffSame(x, w))) problems.push(`${where}: ${w} twice`);
-      if (!fs.existsSync(path.join(__dirname, "..", "site", "party", "bw", id + ".mp3"))) problems.push(`${where}: no clip site/party/bw/${id}.mp3 (run scripts/make-backwards-audio.py)`);
       seen.push(w);
       backwards[lg].push([id, c, w, al || []]);
     }

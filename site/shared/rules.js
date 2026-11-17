@@ -280,14 +280,16 @@
     return s && s.split(/\s+/).length <= 2 ? s : "";
   }
   /* ---------- Backwards Rush (party, بالمقلوب) ----------
-     One player at a time gets a word, hears it played backwards on their phone and records themselves copying that
-     backwards sound. The big screen plays their recording backwards, which brings the word roughly back, and everyone
+     One player at a time gets a word, records it in their own voice, hears that backwards on their phone and records
+     themselves copying the backwards sound. The big screen plays their recording backwards, which brings the word roughly back, and everyone
      else types what they think it was. */
-  const BACKWARDS = { PREP_MS: 75000, LOAD_MS: 10000, LISTEN_MS: 30000, SHOW_MS: 13000, SKIP_MS: 6000, FAST_MS: 1500, GRACE_MS: 3000,
-    REC_MS: 5000, WORD_REC_MS: 4000, REPLAY_AT: [0, 10000, 20000], GUESS_PTS: 100, SPEED_PTS: 100, SPEAKER_PTS: 50, MAXLEN: 40, MAX_TRIES: 12,
+  // times in ms; 0 in PREP_OPTS or LISTEN_OPTS means no limit (the host moves the turn on)
+  const BACKWARDS = { PREP_MS: 90000, PREP_OPTS: [60000, 90000, 120000, 0], LISTEN_MS: 45000, LISTEN_OPTS: [30000, 45000, 60000, 90000, 0],
+    LOAD_MS: 10000, SHOW_MS: 13000, SKIP_MS: 6000, FAST_MS: 1500, GRACE_MS: 3000, LOOP_GAP_MS: 900,
+    REC_MS: 5000, WORD_REC_MS: 4000, GUESS_PTS: 100, SPEED_PTS: 100, SPEAKER_PTS: 50, MAXLEN: 40, MAX_TRIES: 12,
     CATS: ["people", "football", "animals", "food", "places", "things"] };
-  // points for guessing it msUsed after the clip first played
-  const backwardsPoints = msUsed => BACKWARDS.GUESS_PTS + Math.round(BACKWARDS.SPEED_PTS * Math.max(0, Math.min(1, 1 - msUsed / BACKWARDS.LISTEN_MS)));
+  // points for guessing it msUsed after the clip first played, out of the turn's guessing time
+  const backwardsPoints = (msUsed, total = BACKWARDS.LISTEN_MS) => BACKWARDS.GUESS_PTS + Math.round(BACKWARDS.SPEED_PTS * Math.max(0, Math.min(1, 1 - msUsed / total)));
   const AR_DIGITS = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9", "٫": ".", "٪": "%" };
   // the comparable form: folded letters, Arabic digits as 0-9, no "the/a/an" or Arabic ال, no spaces or punctuation
   function bluffKey(s) {
