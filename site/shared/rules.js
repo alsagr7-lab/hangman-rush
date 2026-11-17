@@ -283,7 +283,8 @@
      One player at a time gets a word, records it in their own voice, hears that backwards on their phone and records
      themselves copying the backwards sound. The big screen plays their recording backwards, which brings the word roughly back, and everyone
      else types what they think it was. */
-  const BACKWARDS = { PREP_MS: 90000, PREP_OPTS: [60000, 90000, 120000], LISTEN_MS: 45000, LISTEN_OPTS: [30000, 45000, 60000, 90000],
+  // times in ms; 0 in PREP_OPTS or LISTEN_OPTS means no limit (the host moves the turn on)
+  const BACKWARDS = { PREP_MS: 90000, PREP_OPTS: [60000, 90000, 120000, 0], LISTEN_MS: 45000, LISTEN_OPTS: [30000, 45000, 60000, 90000, 0],
     LOAD_MS: 10000, SHOW_MS: 13000, SKIP_MS: 6000, FAST_MS: 1500, GRACE_MS: 3000, LOOP_GAP_MS: 900,
     REC_MS: 5000, WORD_REC_MS: 4000, GUESS_PTS: 100, SPEED_PTS: 100, SPEAKER_PTS: 50, MAXLEN: 40, MAX_TRIES: 12,
     CATS: ["people", "football", "animals", "food", "places", "things"] };
