@@ -22,13 +22,14 @@ const boards = require("./boards");
 const move = require("./move");
 const reports = require("./reports");
 const discord = require("./discord");
+const clips = require("./clips");
 // while moving servers (MOVE_MODE=readonly) every database write does nothing; see move.js
 move.guard(store, ["put", "tPut", "hPut", "hSetData", "hDel", "seenMark", "seenPrune", "wordsPut", "wordsDel", "wordsPurge", "wordsPurgeValid", "archivePut", "ipAdd", "metaPut", "metaPruneBefore", "acctPut"]);
 // pages are served as single files with the shared styles and scripts written in (see scripts/build-site.js)
 const PAGES = require("./scripts/build-site").build({ api: "", site: SITE_URL });
 const NOT_FOUND = (() => { try { return fs.readFileSync(path.join(__dirname, "site", "404.html")); } catch { return null; } })();
 
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8", ".mp3": "audio/mpeg" };
 
 // The API is called from the static site's origin too. Players are identified by a token in the request body,
 // never by cookies, so allowing any origin is safe.
@@ -89,7 +90,8 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, `window.RUSH_CONFIG={api:"",site:${JSON.stringify(SITE_URL)},home:${JSON.stringify(require("./scripts/build-site").HOME)}};`, "text/javascript; charset=utf-8");
     // a party is live while its big screen is in the party's lobby room (Harf gives party games their own AI allowance)
     const partyLive = code => { const r = rooms.get("pt-" + String(code).toLowerCase()); return !!r && [...r.values()].some(v => v.presence && v.presence.tv === 1); };
-    const ctx = { send, readJson, readBody, ip, partyLive };
+    const ctx = { send, readJson, readBody, ip, partyLive, headers: { ...CORS, ...SECURE } };
+    if (await clips.handle(req, res, url, ctx, limits)) return;
     if (await discord.handle(req, res, url, ctx, limits)) return;
     if (await boards.handle(req, res, url, ctx, limits)) return;
     if (await trivia.handle(req, res, url, ctx)) return;

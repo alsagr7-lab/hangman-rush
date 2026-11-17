@@ -56,6 +56,19 @@ html.party,html.party body,:root.party[data-theme] body{background:var(--pv)!imp
 .pbtn{appearance:none;border:0;border-radius:999px;padding:0 28px;min-height:56px;font-weight:800;font-size:20px;cursor:pointer;color:var(--yel-ink);background:var(--yel);
   box-shadow:0 6px 0 var(--yel2);transition:transform .08s,box-shadow .08s;display:inline-flex;align-items:center;justify-content:center;gap:10px}
 .pbtn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--yel2)}
+/* Backwards Rush */
+.bwspk{font-size:clamp(70px,10vw,140px);line-height:1}.bwspk.on{animation:bwpulse .5s ease-in-out infinite alternate}
+@keyframes bwpulse{to{transform:scale(1.14)}}
+.bwplay{font-size:clamp(20px,2.2vw,32px);font-weight:800;opacity:.35}.bwplay.on{opacity:1;color:var(--mint)}
+.bwsnd{font-size:20px;font-weight:800}
+.bwstudio{display:grid;gap:10px}.bwstudio .pbtn{width:100%}
+.bwstep{color:#fff;font-size:18px;margin-top:6px}
+.bwlink{appearance:none;background:none;border:0;color:var(--pmuted);text-decoration:underline;font:inherit;font-weight:700;cursor:pointer;justify-self:center;padding:6px;min-height:44px}
+.bwlink:disabled{opacity:.45;cursor:default}
+.pbtn.rec{background:#FF5A5A;color:#fff;box-shadow:0 6px 0 #C93C3C;animation:bwrec .7s ease-in-out infinite alternate}
+@keyframes bwrec{to{background:#E23B3B}}
+@media (prefers-reduced-motion:reduce){.bwspk.on,.pbtn.rec{animation:none}}
+
 .pbtn:focus-visible{outline:4px solid #fff;outline-offset:3px}
 .pbtn.pink{background:var(--pink);color:var(--pink-ink);box-shadow:0 6px 0 var(--pink2)}
 .pbtn.mint{background:var(--mint);color:var(--mint-ink);box-shadow:0 6px 0 var(--mint2)}
@@ -381,7 +394,17 @@ en:{title:"Party mode",hostQ:"Got a TV or laptop?",tagline:"One big screen, ever
   imWordWas:"The word was",imImpWas:"The imposter:",imImpsWas:"The imposters:",imHad:"(they had: {w})",imOutEscape:"The imposter got away! +{p}",imOutSteal:"Caught, but guessed the word! +{p}",imOutCaught:"Caught! +{p} for everyone who voted right",imGuessed:"Guessed: {w}",imNoGuess:"No guess",
   imYourWord:"Your word",imYouImp:"You're the imposter 🤫",imCatIs:"Category: {c}",imBlend:"Nobody knows. Blend in!",imShow:"Show my card",imHide:"Hide my card",imWait:"Waiting for your card…",imNextRound:"You'll be in the next round.",
   imClueRound:"Clue {r}",imYourTurn:"Your turn: one word",imCluePh:"Your clue",imSendClue:"Send",imClueIn:"Your clue:",imNoWord:"Don't say the word itself!",imDup:"Someone already said that.",imBadClue:"One or two words, nothing rude.",
-  imPickImp:"Who's the imposter?",imYouCaught:"You were caught! Guess the word:",imYouGot:"You got away! +{p}",imYouStole:"You guessed it! +{p}",imYouLost:"Caught…",imYouWere:"You were the imposter",imCrewWon:"You caught the imposter! +{p}",imCrewMissed:"The imposter fooled you",imSkip:"no clue"},
+  imPickImp:"Who's the imposter?",imYouCaught:"You were caught! Guess the word:",imYouGot:"You got away! +{p}",imYouStole:"You guessed it! +{p}",imYouLost:"Caught…",imYouWere:"You were the imposter",imCrewWon:"You caught the imposter! +{p}",imCrewMissed:"The imposter fooled you",imSkip:"no clue",
+  bwHelp:"One player hears a word backwards on their phone and copies the sound. The game flips their try back round and everyone else guesses the word. Phones need the microphone.",
+  backwards:"Backwards Rush",bwRules:"Guess the word: +100, plus up to +100 for speed. The speaker gets +50 for everyone who guesses it.",bwNeed2:"Backwards Rush needs at least 2 players.",bwTurnN:"Turn {i} of {n}",bwTurnOf:"{n}'s turn",
+  bwPractising:"Learning the word backwards on their phone 🎧",bwGetReady:"Everyone else: get ready to guess!",bwComing:"Here it comes…",bwWhat:"What is {n} saying? Type it on your phone",bwGotN:"{n} of {m} got it",bwWas:"The word was",
+  bwPlayWord:"▶ The word",bwPlayBack:"▶ Backwards",bwPlayTry:"▶ {n}'s try, flipped",bwGotBy:"Got it: {names}",bwNobody:"Nobody got it",bwSpeakerPts:"{n} gets +{p}",bwSkipped:"{n} ran out of time",bwNoClip:"Couldn't play the clip",bwReplay:"Play again",bwSound:"🔊 Click anywhere on this screen to turn the sound on",
+  bt_people:"Famous people",bt_football:"Football",bt_animals:"Animals",bt_food:"Food",bt_places:"Places",bt_things:"Things & characters",
+  bwYourTurn:"Your turn!",bwYourWord:"Your word",bwSecret:"Don't show anyone 🤫",bwStep1:"1. Listen to it backwards",bwHear:"▶ Hear it backwards",bwOwnVoice:"Use my own voice instead",bwRobotVoice:"Use the robot voice",
+  bwRecWord:"🎙 Say the word (quietly!)",bwRecAgainWord:"🎙 Say it again",bwHearMine:"▶ Hear mine backwards",bwStep2:"2. Copy the backwards sound",bwRecTry:"🎙 Record my try",bwStop:"■ Stop · {s}",bwHearFlip:"▶ Hear it flipped",bwRetry:"🎙 Record again",bwSend:"Send it!",
+  bwSending:"Sending…",bwSent:"Sent! Watch the big screen 🔊",bwUpErr:"Couldn't send it. Try again.",bwMicNo:"Couldn't use the microphone. Allow it for this site and try again.",bwNoRec:"This browser can't record sound.",bwRecBad:"That recording didn't work. Try again.",
+  bwListening:"Everyone's listening to your try!",bwGotSome:"Guessed by {n} so far",bwYourPts:"{n} guessed it: +{p}",bwNone:"Nobody guessed yours this time",bwYouSkipped:"Time ran out",
+  bwPractisingPh:"{n} is practising… get ready to guess!",bwListenTv:"Listen to the big screen 🔊",bwGuessPh:"Your guess",bwGuess:"Guess",bwNotIt:"Not it, try again",bwChecking:"Checking…",bwTries:"Your tries: {list}",bwRightGuess:"✅ You got it!",bwYouGot:"You got it! +{p}",bwSame:"You already tried that.",bwNoTries:"No more tries this turn."},
 ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب؟",tagline:"شاشة كبيرة واحدة، والكل بجواله.",host:"استضف على هذه الشاشة",hostSub:"شغّلها على التلفزيون أو اللابتوب، والكل ينضم بمسح الرمز بجواله.",
   joinTitle:"انضم لحفلة",codePh:"ABCD",join:"انضم",codeBad:"رمز الحفلة 4 أحرف إنجليزية.",langBtn:"English",
   scan:"امسح للانضمام",orGo:"أو افتح {u} واكتب",players:"{n}/{m} لاعب",waiting:"بانتظار اللاعبين… امسح الرمز بجوالك",
@@ -420,7 +443,17 @@ ar:{title:"وضع الحفلة",hostQ:"عندك تلفزيون أو لابتوب
   imWordWas:"الكلمة كانت",imImpWas:"اللي مو منّا:",imImpsWas:"اللي مو منّا:",imHad:"(كانت عنده: {w})",imOutEscape:"اللي مو منّا نجا! +{p}",imOutSteal:"انكشف بس خمّن الكلمة! +{p}",imOutCaught:"انكشف! +{p} لكل اللي صوّتوا صح",imGuessed:"خمّن: {w}",imNoGuess:"ما خمّن",
   imYourWord:"كلمتك",imYouImp:"أنت مو منّا 🤫",imCatIs:"التصنيف: {c}",imBlend:"ما أحد يدري. اندمج معهم!",imShow:"اعرض بطاقتي",imHide:"اخفِ بطاقتي",imWait:"بانتظار بطاقتك…",imNextRound:"بتدخل الجولة الجاية.",
   imClueRound:"التلميح {r}",imYourTurn:"دورك: كلمة وحدة",imCluePh:"تلميحك",imSendClue:"أرسل",imClueIn:"تلميحك:",imNoWord:"لا تقول الكلمة نفسها!",imDup:"أحد قالها قبلك.",imBadClue:"كلمة أو كلمتين، وبدون كلام بذيء.",
-  imPickImp:"مين مو منّا؟",imYouCaught:"انكشفت! خمّن الكلمة:",imYouGot:"نجوت! +{p}",imYouStole:"خمّنتها! +{p}",imYouLost:"انكشفت…",imYouWere:"كنت أنت اللي مو منّا",imCrewWon:"كشفتوه! +{p}",imCrewMissed:"اللي مو منّا ضحك عليكم",imSkip:"ما قال شيء"}};
+  imPickImp:"مين مو منّا؟",imYouCaught:"انكشفت! خمّن الكلمة:",imYouGot:"نجوت! +{p}",imYouStole:"خمّنتها! +{p}",imYouLost:"انكشفت…",imYouWere:"كنت أنت اللي مو منّا",imCrewWon:"كشفتوه! +{p}",imCrewMissed:"اللي مو منّا ضحك عليكم",imSkip:"ما قال شيء",
+  bwHelp:"واحد يسمع كلمة بالمقلوب في جواله ويقلّد الصوت. اللعبة تقلب تقليده، والباقي يخمّنون الكلمة. الجوالات تحتاج المايك.",
+  backwards:"بالمقلوب",bwRules:"خمّن الكلمة: +100، وزيادة لين +100 على السرعة. اللي يتكلم ياخذ +50 عن كل واحد يعرفها.",bwNeed2:"بالمقلوب تحتاج لاعبين اثنين على الأقل.",bwTurnN:"الدور {i} من {n}",bwTurnOf:"دور {n}",
+  bwPractising:"يحفظ الكلمة بالمقلوب في جواله 🎧",bwGetReady:"الباقي: استعدّوا تخمّنون!",bwComing:"جاية…",bwWhat:"وش يقول {n}؟ اكتبوها في جوالاتكم",bwGotN:"عرفها {n} من {m}",bwWas:"الكلمة كانت",
+  bwPlayWord:"▶ الكلمة",bwPlayBack:"▶ بالمقلوب",bwPlayTry:"▶ تقليد {n} مقلوب",bwGotBy:"عرفوها: {names}",bwNobody:"ما أحد عرفها",bwSpeakerPts:"{n} ياخذ +{p}",bwSkipped:"خلص وقت {n}",bwNoClip:"ما قدرنا نشغّل التسجيل",bwReplay:"شغّلها مرة ثانية",bwSound:"🔊 اضغط أي مكان في هذه الشاشة عشان يشتغل الصوت",
+  bt_people:"مشاهير",bt_football:"كورة",bt_animals:"حيوانات",bt_food:"أكل",bt_places:"أماكن",bt_things:"أشياء وشخصيات",
+  bwYourTurn:"دورك!",bwYourWord:"كلمتك",bwSecret:"لا توريها أحد 🤫",bwStep1:"١. اسمعها بالمقلوب",bwHear:"▶ اسمعها بالمقلوب",bwOwnVoice:"أبي أسجّلها بصوتي",bwRobotVoice:"رجّع صوت الروبوت",
+  bwRecWord:"🎙 قل الكلمة (بصوت واطي!)",bwRecAgainWord:"🎙 قلها مرة ثانية",bwHearMine:"▶ اسمع صوتي بالمقلوب",bwStep2:"٢. قلّد الصوت المقلوب",bwRecTry:"🎙 سجّل تقليدي",bwStop:"■ وقّف · {s}",bwHearFlip:"▶ اسمعه مقلوب",bwRetry:"🎙 سجّل من جديد",bwSend:"أرسل!",
+  bwSending:"يرسل…",bwSent:"انرسل! تابع الشاشة 🔊",bwUpErr:"ما انرسل. جرّب مرة ثانية.",bwMicNo:"ما قدرنا نستخدم المايك. اسمح له لهذا الموقع وجرّب مرة ثانية.",bwNoRec:"هذا المتصفح ما يقدر يسجّل صوت.",bwRecBad:"التسجيل ما ضبط. جرّب مرة ثانية.",
+  bwListening:"الكل يسمع تقليدك!",bwGotSome:"عرفها {n} لين الحين",bwYourPts:"عرفها {n}: +{p}",bwNone:"ما أحد عرف تقليدك هالمرة",bwYouSkipped:"خلص الوقت",
+  bwPractisingPh:"{n} يتدرّب… استعدّ تخمّن!",bwListenTv:"اسمع الشاشة 🔊",bwGuessPh:"تخمينك",bwGuess:"خمّن",bwNotIt:"مو هي، جرّب مرة ثانية",bwChecking:"نتأكد…",bwTries:"محاولاتك: {list}",bwRightGuess:"✅ عرفتها!",bwYouGot:"عرفتها! +{p}",bwSame:"جرّبتها قبل.",bwNoTries:"خلصت محاولاتك هالدور."}};
 let lang;try{lang=localStorage.getItem("hr-lang")}catch(e){}
 if(lang!=="ar"&&lang!=="en")lang=(navigator.language||"").toLowerCase().startsWith("ar")?"ar":"en";
 const t=(k,v)=>{let s=I18N[lang][k]!=null?I18N[lang][k]:I18N.en[k]!=null?I18N.en[k]:k;if(v)s=s.replace(/\{(\w+)\}/g,(_,n)=>v[n]!=null?v[n]:"");return s};
@@ -472,6 +505,9 @@ let tvGame={g:"harf",lg:lang,ms:H.ROOM_MS[1],ns:savedNs==="0"?0:1,ch:savedCh==="
 // Imposter Rush settings (saved on the TV): i2 clue rounds 1|2, ia round 1 all at once 0|1, is imposter gets a similar word 0|1, in imposters 1|2
 try{const v=JSON.parse(localStorage.getItem("rush-party-im")||"{}");tvGame.i2=v.i2===1?1:2;tvGame.ia=v.ia===1?1:0;tvGame.is=v.is===1?1:0;tvGame.in=v.in===2?2:1}catch(e){tvGame.i2=2;tvGame.ia=0;tvGame.is=0;tvGame.in=1}
 const saveIm=()=>{try{localStorage.setItem("rush-party-im",JSON.stringify({i2:tvGame.i2,ia:tvGame.ia,is:tvGame.is,in:tvGame.in}))}catch(e){}};
+// the games a party can play (Backwards Rush records sound, so not in a Discord call yet), and the ones played on this page
+const GAMES=CALL?["harf","trivia","hangman","bluff","imposter"]:["harf","trivia","hangman","bluff","imposter","backwards"];
+const ONPAGE=["trivia","hangman","bluff","imposter","backwards"];
 let seen=new Map();     // peer -> {x,y,lx,mt,mi,ji,dir,walkUntil,jumpAt}
 let me=null;try{me=JSON.parse(localStorage.getItem("hr-me")||"null")}catch(e){}
 if(!me||typeof me!=="object")me={nick:"",color:R.COLORS[Math.floor(Math.random()*R.COLORS.length)]};
@@ -511,11 +547,12 @@ async function startTv(){
   pApi.presence(tvPresence());
   pUnsub.push(pApi.onPeers(()=>{track();ensureCap();runCmds(players());if(tvMode==="lobby")drawStage()}));
   pUnsub.push(pApi.onConnection(v=>{connected=v}));
+  if(pApi.onMessage)pUnsub.push(pApi.onMessage(tvOnMessage));
   draw();
 }
 // st: lobby, play (Harf: the phones open the Harf page) or game (Trivia and Hangman, played on this page: gm, tot, rp)
 const tvPresence=()=>({tv:1,st:tvMode==="harf"?"play":tvMode==="lobby"?"lobby":"game",g:tvGame.g,lg:tvGame.lg,ms:tvGame.ms,rc:roomCount,ch:tvGame.ch,ns:tvGame.ns,tc:tvGame.tc,pm:tvGame.pm,i2:tvGame.i2,ia:tvGame.ia,is:tvGame.is,in:tvGame.in,cap,au:autoPub(),
-  gm:gameGm(),tot:tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"||tvMode==="imposter"?gTot:null,rp:gameRp()});
+  gm:gameGm(),tot:ONPAGE.includes(tvMode)?gTot:null,rp:gameRp()});
 let roomCount=0; // how many games this party has started (phones only follow a new one)
 const players=()=>pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv):[];
 /* ---------- the host: one player runs the party from their phone, and plays too ----------
@@ -553,7 +590,7 @@ function doCmd(c){
   const setAll=()=>{if(c.lg==="ar"||c.lg==="en")tvGame.lg=c.lg;if(H.ROOM_MS.includes(c.ms))tvGame.ms=c.ms;
     if(c.ns===0||c.ns===1){tvGame.ns=c.ns;try{localStorage.setItem("rush-party-ns",String(c.ns))}catch(e){}}
     if(c.ch===0||c.ch===1){tvGame.ch=c.ch;try{localStorage.setItem("rush-party-chat",String(c.ch))}catch(e){}}
-    if(tvMode==="lobby"&&["harf","trivia","hangman","bluff","imposter"].includes(c.g))tvGame.g=c.g;
+    if(tvMode==="lobby"&&GAMES.includes(c.g))tvGame.g=c.g;
     if(c.i2===1||c.i2===2)tvGame.i2=c.i2;if(c.ia===0||c.ia===1)tvGame.ia=c.ia;if(c.is===0||c.is===1)tvGame.is=c.is;if(c.in===1||c.in===2)tvGame.in=c.in;saveIm();
     if(TOPICS.includes(c.tc))tvGame.tc=c.tc;
     if(["vote","last","host"].includes(c.pm)){tvGame.pm=c.pm;try{localStorage.setItem("rush-party-pm",c.pm)}catch(e){}}};
@@ -562,8 +599,8 @@ function doCmd(c){
     else if(k==="start")tvStart();
     return;
   }
-  if(tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"||tvMode==="imposter"){
-    if(k==="next")gameNext();else if(k==="lobby")backToLobby();else if(k==="set"){setAll();pushTv()}
+  if(ONPAGE.includes(tvMode)){
+    if(k==="next")gameNext();else if(k==="replay")bwReplay();else if(k==="lobby")backToLobby();else if(k==="set"){setAll();pushTv()}
     return;
   }
   if(tvMode!=="harf"||!hs)return;
@@ -603,7 +640,7 @@ function drawTv(){
   const stage=el("div","stage");stage.id="stage";
   const bar=el("div","tvbar");
   const g1=el("div","grp"),gs=el("div","seg2");g1.append(el("span","lbl2",t("pickGame")),gs);
-  ["harf","trivia","hangman","bluff","imposter"].forEach(g=>{const b=el("button",null,t(g));b.type="button";b.setAttribute("aria-pressed",String(tvGame.g===g));b.onclick=()=>{tvGame.g=g;pushTv();draw()};gs.append(b)});
+  GAMES.forEach(g=>{const b=el("button",null,t(g));b.type="button";b.setAttribute("aria-pressed",String(tvGame.g===g));b.onclick=()=>{tvGame.g=g;pushTv();draw()};gs.append(b)});
   const g2=el("div","grp"),ls=el("div","seg2");g2.append(el("span","lbl2",t("wordLang")),ls);
   [["ar","عربي"],["en","English"]].forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.lang=v;b.setAttribute("aria-pressed",String(tvGame.lg===v));b.onclick=()=>{tvGame.lg=v;pApi&&pApi.presence(tvPresence());draw()};ls.append(b)});
   const g3=el("div","grp"),ts=el("div","seg2");g3.append(el("span","lbl2",t("time")),ts);
@@ -616,6 +653,7 @@ function drawTv(){
     b.onclick=()=>{tvGame.ch=v;try{localStorage.setItem("rush-party-chat",String(v))}catch(e){}pApi&&pApi.presence(tvPresence());draw()};cs.append(b)});
   const go=el("button","pbtn pink go",t("start"));go.type="button";go.id="tvGo";go.onclick=tvStart;
   bar.append(g1,g2);if(tvGame.g==="harf")bar.append(g3,g4);if(tvGame.g==="bluff"){const gb=el("div","grp");gb.append(el("span","lbl2",t("bluff")),el("p","tvhelp",t("blHelp")));bar.append(gb)}
+  if(tvGame.g==="backwards"){const gb=el("div","grp");gb.append(el("span","lbl2",t("backwards")),el("p","tvhelp",t("bwHelp")));bar.append(gb)}
   if(tvGame.g==="imposter"){const seg=(label,key,opts)=>{const g=el("div","grp"),sg=el("div","seg2");g.append(el("span","lbl2",label),sg);
       opts.forEach(([v,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(tvGame[key]===v));b.onclick=()=>{tvGame[key]=v;saveIm();pushTv();draw()};sg.append(b)});return g};
     bar.append(seg(t("imRounds"),"i2",[[1,"1"],[2,"2"]]),seg(t("imFirst"),"ia",[[0,t("imTurns")],[1,t("imAll")]]),seg(t("imGets"),"is",[[0,t("imGetsCat")],[1,t("imGetsSim")]]),seg(t("imCount"),"in",[[1,"1"],[2,"2"]]));
@@ -662,7 +700,7 @@ function drawStage(){
 setInterval(()=>{if((role==="tv"||role==="watch")&&tvMode==="lobby")drawStage()},150);
 document.addEventListener("keydown",e=>{
   if(role!=="tv"||CALL||e.target&&/INPUT|TEXTAREA|BUTTON|SELECT|A/.test(e.target.tagName))return; // a focused control handles its own Enter
-  if(e.key==="Enter"){if(tvMode==="lobby"){const g=$("#tvGo");if(g&&!g.disabled)tvStart()}else if(tvMode==="harf"&&hfView==="results")hfNext();else if(tvMode==="trivia"||tvMode==="hangman"||tvMode==="bluff"||tvMode==="imposter")gameNext()}
+  if(e.key==="Enter"){if(tvMode==="lobby"){const g=$("#tvGo");if(g&&!g.disabled)tvStart()}else if(tvMode==="harf"&&hfView==="results")hfNext();else if(ONPAGE.includes(tvMode))gameNext()}
 });
 
 /* ---------- phone: controller ---------- */
@@ -683,10 +721,10 @@ async function phoneJoin(){
   phoneJoined=true;joinMsg="";
   pApi.presence(phonePresence());
   pUnsub.push(pApi.onPeers(()=>phoneFollow()));
-  if(pApi.onMessage)pUnsub.push(pApi.onMessage(imOnMessage));
+  if(pApi.onMessage)pUnsub.push(pApi.onMessage((f,d)=>{imOnMessage(f,d);bwOnCard(f,d)}));
   draw();phoneFollow();
 }
-const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null,pz:pzN||null,ta:myTa.r?myTa:null,tpv:myTpv.r?myTpv:null,hg:myHg.r?myHg:null,bl:myBl.r?myBl:null,ia:myIm.r||null,ic:myIc.r?myIc:null,iv:myIv.r?myIv:null,ig:myIg.r?myIg:null});
+const phonePresence=()=>({n:nm16(me.nick),c:me.color,u:Rush.uid,x:Math.round(pos.x*1000)/1000,y:Math.round(pos.y*1000)/1000,mi:msgId,m:lastMsg,ji:jumpId,hq:hq.length?hq:null,pz:pzN||null,ta:myTa.r?myTa:null,tpv:myTpv.r?myTpv:null,hg:myHg.r?myHg:null,bl:myBl.r?myBl:null,ia:myIm.r||null,ic:myIc.r?myIc:null,iv:myIv.r?myIv:null,ig:myIg.r?myIg:null,ba:myBw?myBw.r+":"+myBw.t:null});
 // the host player's commands to the big screen (see runCmds on the TV side)
 let hq=[],hqN=0;
 function hostCmd(o){hqN=Math.max(Date.now(),hqN+1);hq=hq.concat([Object.assign({n:hqN},o)]).slice(-6);send()}
@@ -703,16 +741,17 @@ function drawHostPanel(P){
   box.append(el("b",null,t("youHost")),el("p","pnote",t("youHostHelp")));
   const seg3=(label,opts,v,f)=>{const g=el("div","hg");g.append(el("span","lbl3",label));const sg=el("div","seg3");
     opts.forEach(([x,l])=>{const b=el("button",null,l);b.type="button";b.setAttribute("aria-pressed",String(v===x));b.onclick=()=>{hostCmd(f(x));sg.querySelectorAll("button").forEach(y=>y.setAttribute("aria-pressed",String(y===b)))};sg.append(b)});g.append(sg);return g};
-  const g=["harf","trivia","hangman","bluff","imposter"].includes(P.g)?P.g:"harf";
+  const g=GAMES.includes(P.g)?P.g:"harf";
   if(P.st==="game"){
     // during Trivia or Hangman: next round once the results are up, the topic for it, and back to the lobby
+    if(gph==="listen"&&g==="backwards"){const rb=el("button","pbtn sky",t("bwReplay"));rb.type="button";rb.onclick=()=>{hostCmd({k:"replay"});rb.disabled=true;setTimeout(()=>rb.disabled=false,2500)};box.append(rb)}
     if(gph==="talk"){const vb=el("button","pbtn pink",t("imVoteNow"));vb.type="button";vb.onclick=()=>{hostCmd({k:"next"});vb.disabled=true;setTimeout(()=>vb.disabled=false,3000)};box.append(vb)}
     if(gph==="res"){if(g==="trivia"&&P.pm==="host")box.append(topicGrp("lbl3",v=>hostCmd({k:"set",tc:v}),P.tc));
       const nx=el("button","pbtn pink",t("nextNow"));nx.type="button";nx.onclick=()=>{hostCmd({k:"next"});nx.disabled=true;setTimeout(()=>nx.disabled=false,3000)};box.append(nx)}
     const lb=el("button","pbtn ghost",t("lobby"));lb.type="button";lb.style.color="var(--pdark)";lb.style.background="#EFEAFF";lb.onclick=()=>hostCmd({k:"lobby"});box.append(lb);
     return;
   }
-  box.append(seg3(t("pickGame"),[["harf",t("harf")],["trivia",t("trivia")],["hangman",t("hangman")],["bluff",t("bluff")],["imposter",t("imposter")]],g,x=>({k:"set",g:x})),
+  box.append(seg3(t("pickGame"),GAMES.map(x=>[x,t(x)]),g,x=>({k:"set",g:x})),
     seg3(t("wordLang"),[["ar","عربي"],["en","English"]],P.lg,x=>({k:"set",lg:x})));
   if(g==="harf")box.append(seg3(t("time"),H.ROOM_MS.map(x=>[x,t("secsN",{n:x/1000})]),num(P.ms),x=>({k:"set",ms:x})),
     seg3(t("ends"),[[0,t("endStop")],[1,t("endFull")]],P.ns===0?0:1,x=>({k:"set",ns:x})));
@@ -720,6 +759,7 @@ function drawHostPanel(P){
     box.append(seg3(t("pickBy"),[["vote",t("pmVote")],["last",t("pmLast")],["host",t("pmHost")]],pm,x=>({k:"set",pm:x})));
     if(pm==="host")box.append(topicGrp("lbl3",v=>hostCmd({k:"set",tc:v}),P.tc));box.append(el("p","pnote",t(pmHelpKey(pm))))}
   if(g==="bluff")box.append(el("p","pnote",t("blHelp")));
+  if(g==="backwards")box.append(el("p","pnote",t("bwHelp")));
   if(g==="imposter")box.append(seg3(t("imRounds"),[[1,"1"],[2,"2"]],P.i2===1?1:2,x=>({k:"set",i2:x})),seg3(t("imFirst"),[[0,t("imTurns")],[1,t("imAll")]],P.ia===1?1:0,x=>({k:"set",ia:x})),
     seg3(t("imGets"),[[0,t("imGetsCat")],[1,t("imGetsSim")]],P.is===1?1:0,x=>({k:"set",is:x})),seg3(t("imCount"),[[1,"1"],[2,"2"]],P.in===2?2:1,x=>({k:"set",in:x})),el("p","pnote",t("imHelp")));
   box.append(seg3(t("chat"),[[1,t("chatOn")],[0,t("chatQuick")]],P.ch===0?0:1,x=>({k:"set",ch:x})));
@@ -747,9 +787,9 @@ function phoneFollow(){
     setTimeout(()=>{location.href=(lang==="ar"?"/ar":"")+"/harf/#room="+code},400);
     return;
   }
-  const game=P.st==="game"&&P.gm&&typeof P.gm==="object"&&(P.gm.k==="tr"||P.gm.k==="hm"||P.gm.k==="bl"||P.gm.k==="im"),pg=$("#phGame"),pc=$("#phCard");
+  const game=P.st==="game"&&P.gm&&typeof P.gm==="object"&&(P.gm.k==="tr"||P.gm.k==="hm"||P.gm.k==="bl"||P.gm.k==="im"||P.gm.k==="bw"),pg=$("#phGame"),pc=$("#phCard");
   if(pg&&pc&&pg.hidden===!!game){pg.hidden=!game;pc.hidden=!!game;phKey=""}
-  if(game){if(st)st.textContent=t(P.gm.k==="tr"?"trivia":P.gm.k==="hm"?"hangman":P.gm.k==="im"?"imposter":"bluff");drawPhGame();return}
+  if(game){if(st)st.textContent=t(P.gm.k==="tr"?"trivia":P.gm.k==="hm"?"hangman":P.gm.k==="im"?"imposter":P.gm.k==="bw"?"backwards":"bluff");drawPhGame();return}
   if(st)st.textContent=t("inLobby");
 }
 function drawPhone(){
@@ -994,12 +1034,12 @@ function hmTick(){
   if(ch){pushTv();gKey=""}
 }
 const hmGm=()=>hg?{k:"hm",r:hg.r,ph:hg.ph,at:hg.at,end:hg.end,lg:hg.lg,c:hg.c,w:hg.w,cl:hg.cl,m:hg.m}:{k:"hm",ph:"load"};
-const gameGm=()=>tvMode==="trivia"?trGm():tvMode==="hangman"?hmGm():tvMode==="bluff"?blGm():tvMode==="imposter"?imGm():null;
+const gameGm=()=>tvMode==="trivia"?trGm():tvMode==="hangman"?hmGm():tvMode==="bluff"?blGm():tvMode==="imposter"?imGm():tvMode==="backwards"?bwGm():null;
 // this round's points per player, sent with each answer reveal and the results
-const gameRp=()=>{const ph=tvMode==="trivia"?tg&&tg.ph:tvMode==="bluff"?bg&&bg.ph:tvMode==="imposter"?im&&im.ph:hg&&hg.ph;if(ph!=="res"&&ph!=="rev"&&ph!=="show")return null;const o={};for(const id of Object.keys(gRound))o[id]=gRound[id].reduce((a,b)=>a+(b||0),0);return o};
+const gameRp=()=>{const ph=tvMode==="backwards"?bw&&bw.ph:tvMode==="trivia"?tg&&tg.ph:tvMode==="bluff"?bg&&bg.ph:tvMode==="imposter"?im&&im.ph:hg&&hg.ph;if(ph!=="res"&&ph!=="rev"&&ph!=="show")return null;const o={};for(const id of Object.keys(gRound))o[id]=gRound[id].reduce((a,b)=>a+(b||0),0);return o};
 setInterval(()=>{if(role==="watch"){if(tvMode!=="lobby"&&tvMode!=="harf")drawGameLive();return}
-  if(role!=="tv")return;autoTick();if(tvMode==="trivia")trTick();else if(tvMode==="hangman")hmTick();else if(tvMode==="bluff")blTick();else if(tvMode==="imposter")imTick();else return;drawGameLive()},200);
-function gameNext(){if(tvMode==="trivia"&&(!tg||tg.ph==="res"))trNext();else if(tvMode==="hangman"&&(!hg||hg.ph==="res"))hmNext();else if(tvMode==="bluff"&&(!bg||bg.ph==="res"))blNext();else if(tvMode==="imposter"){if(im&&im.ph==="talk"){im.ph="vote";im.end=Rush.now()+IM.VOTE_MS;im.fast=0;pushTv();gKey=""}else if(!im||im.ph==="res")imNext()}}
+  if(role!=="tv")return;autoTick();if(tvMode==="trivia")trTick();else if(tvMode==="hangman")hmTick();else if(tvMode==="bluff")blTick();else if(tvMode==="imposter")imTick();else if(tvMode==="backwards")bwTick();else return;drawGameLive()},200);
+function gameNext(){if(tvMode==="backwards"){if(!bw||bw.ph==="res")bwNext();return}if(tvMode==="trivia"&&(!tg||tg.ph==="res"))trNext();else if(tvMode==="hangman"&&(!hg||hg.ph==="res"))hmNext();else if(tvMode==="bluff"&&(!bg||bg.ph==="res"))blNext();else if(tvMode==="imposter"){if(im&&im.ph==="talk"){im.ph="vote";im.end=Rush.now()+IM.VOTE_MS;im.fast=0;pushTv();gKey=""}else if(!im||im.ph==="res")imNext()}}
 
 /* ---------- Bluff Rush on the big screen ----------
    A round is three strange-but-true facts with a blank. For each: everyone writes a fake answer on their phone (bl.w),
@@ -1212,23 +1252,24 @@ function drawGameLive(){
   const center=$("#gCenter");if(!center)return;
   const now=Rush.now(),rows=rankRows(),rl=$("#gRound");
   const hfEl=center.closest(".hf");if(hfEl)hfEl.classList.toggle("many",rows.length>7);
-  if(tvMode==="trivia")drawTrCenter(center,now,rows,rl);else if(tvMode==="bluff")drawBlCenter(center,now,rows,rl);else if(tvMode==="imposter")drawImCenter(center,now,rows,rl);else drawHmCenter(center,now,rows,rl);
+  if(tvMode==="trivia")drawTrCenter(center,now,rows,rl);else if(tvMode==="bluff")drawBlCenter(center,now,rows,rl);else if(tvMode==="imposter")drawImCenter(center,now,rows,rl);else if(tvMode==="backwards")drawBwCenter(center,now,rows,rl);else drawHmCenter(center,now,rows,rl);
   // players: live progress during a question or a word, scores otherwise
-  const side=$("#gSide"),live=tvMode==="trivia"?tg&&tg.ph==="q":tvMode==="bluff"?bg&&(bg.ph==="write"||bg.ph==="pick"):tvMode==="imposter"?im&&["role","all","vote"].includes(im.ph):hg&&hg.ph==="play";
-  const prog=r=>tvMode==="trivia"?(trAns(r.p,tg.i)?"✓":""):tvMode==="bluff"?((bg.ph==="write"?blFake(r.p):blPickOf(r.p)>=0)?"✓":""):tvMode==="imposter"?(imDone(r.p)?"✓":""):(()=>{const s=hmPlayer(r.p);return s.solved?"✓":s.out?"✗":s.hit+"/"+s.need})();
+  const side=$("#gSide"),live=tvMode==="backwards"?!!bw&&bw.ph==="listen":tvMode==="trivia"?tg&&tg.ph==="q":tvMode==="bluff"?bg&&(bg.ph==="write"||bg.ph==="pick"):tvMode==="imposter"?im&&["role","all","vote"].includes(im.ph):hg&&hg.ph==="play";
+  const prog=r=>tvMode==="backwards"?(r.id===bw.order[bw.t]?"🎙":bw.got[r.id]!=null?"✓":""):tvMode==="trivia"?(trAns(r.p,tg.i)?"✓":""):tvMode==="bluff"?((bg.ph==="write"?blFake(r.p):blPickOf(r.p)>=0)?"✓":""):tvMode==="imposter"?(imDone(r.p)?"✓":""):(()=>{const s=hmPlayer(r.p);return s.solved?"✓":s.out?"✗":s.hit+"/"+s.need})();
   const skey=JSON.stringify([lang,cap,live,rows.map(r=>[r.id,r.n,r.c,r.s,live?prog(r):""])]);
   if(side&&skey!==gSideKey){gSideKey=skey;side.textContent="";
     rows.forEach((r,i)=>{const row=el("div","prow"+(!live&&i===0&&r.s>0?" lead":""));row.append(blob(r.c),el("b",null,(r.id===cap?"👑 ":"")+r.n));
       if(live){const v=prog(r);row.append(el("span","st"+(v==="✓"?" done":""),v))}else row.append(el("span","sc ltrx",String(r.s)));side.append(row)});
     if(!rows.length)side.append(el("p","pnote",t("noPlayers")))}
   // foot: next round after the results, back to the lobby
-  const foot=$("#gFoot"),res=tvMode==="trivia"?tg&&tg.ph==="res":tvMode==="bluff"?bg&&bg.ph==="res":tvMode==="imposter"?im&&im.ph==="res":hg&&hg.ph==="res",talk=tvMode==="imposter"&&im&&im.ph==="talk";
-  const fkey=lang+"|"+res+"|"+talk;
+  const foot=$("#gFoot"),res=tvMode==="backwards"?!!bw&&bw.ph==="res":tvMode==="trivia"?tg&&tg.ph==="res":tvMode==="bluff"?bg&&bg.ph==="res":tvMode==="imposter"?im&&im.ph==="res":hg&&hg.ph==="res",talk=tvMode==="imposter"&&im&&im.ph==="talk",replay=tvMode==="backwards"&&!!bw&&bw.ph==="listen";
+  const fkey=lang+"|"+res+"|"+talk+"|"+replay;
   if(foot&&CALL){if(fkey!==gFootKey){gFootKey=fkey;foot.textContent="";const a=el("span","nx");a.id="gAuto";foot.append(a)}
     const a=$("#gAuto"),tx=res?autoText():"";if(a&&a.textContent!==tx)a.textContent=tx}
   else if(foot&&fkey!==gFootKey){gFootKey=fkey;foot.textContent="";
     if(res){foot.append(el("span","nx",t("hostNext")));const nb=el("button","pbtn",t("nextNow"));nb.type="button";nb.onclick=gameNext;foot.append(nb)}
-    else if(talk){foot.append(el("span","nx"));const nb=el("button","pbtn pink",t("imVoteNow"));nb.type="button";nb.onclick=gameNext;foot.append(nb)}else foot.append(el("span","nx"));
+    else if(talk){foot.append(el("span","nx"));const nb=el("button","pbtn pink",t("imVoteNow"));nb.type="button";nb.onclick=gameNext;foot.append(nb)}
+    else if(replay){foot.append(el("span","nx"));const nb=el("button","pbtn sky",t("bwReplay"));nb.type="button";nb.onclick=bwReplay;foot.append(nb)}else foot.append(el("span","nx"));
     const lb=el("button","pbtn ghost",t("lobby"));lb.type="button";lb.onclick=backToLobby;foot.append(lb)}
 }
 function drawTrCenter(center,now,rows,rl){
@@ -1385,6 +1426,7 @@ function drawPhGame(){
   const scoreLine=()=>el("p","pnote",t("myScore",{s:mine}));
   if(g.k==="bl")return drawPhBluff(box,tv,g,now,mine,scoreLine);
   if(g.k==="im")return drawPhImp(box,tv,g,now,mine,scoreLine);
+  if(g.k==="bw")return drawPhBw(box,tv,g,now,mine,scoreLine);
   if(g.k==="tr"){
     const q=g.ph==="load"?null:qById(g.id);
     if(!q&&g.ph!=="load"&&g.ph!=="res"&&!QB)loadBank().then(()=>{phKey="";drawPhGame()}).catch(()=>{});
@@ -1550,19 +1592,286 @@ function drawPhImp(box,tv,g,now,mine,scoreLine){
 function gRoundPhone(tv){const r=tv.presence.rp;return r&&typeof r==="object"?r:{}}
 setInterval(()=>{if(role==="phone"&&phoneJoined&&!$("#phGame")?.hidden)drawPhGame()},250);
 
+/* ---------- Backwards Rush (بالمقلوب): website parties only, not in a Discord call ----------
+   Each player takes one turn a round, in a random order. The speaker's phone gets the word in a private message from
+   this screen (never in presence, which every phone can read), plays it backwards (the robot voice in
+   site/party/bw/<id>.mp3, or the player's own recording) and records the player copying that backwards sound. The clip
+   goes to the server (clips.js keeps it in memory for 15 minutes) and its id comes to this screen privately. This
+   screen plays the clip backwards, which turns it roughly back into the word, and everyone else types guesses on their
+   phone, sent privately to this screen ({k: "bwg", r, t, g: [guesses]}); only this screen and the speaker know the word,
+   so this screen checks them. Then the
+   reveal: the word, the word backwards, and the try flipped. */
+const BW=R.BACKWARDS;
+let BWQ=null,BWQ_LOAD=null;
+function loadBw(){
+  if(BWQ)return Promise.resolve(BWQ);
+  if(!BWQ_LOAD)BWQ_LOAD=fetch("/party/backwards.json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("backwards "+r.status);return r.json()})
+    .then(b=>{const m={en:[],ar:[]};for(const lg of ["en","ar"])for(const x of b[lg]||[])m[lg].push({id:x[0],c:x[1],w:x[2],al:x[3]||[]});if(!m.en.length||!m.ar.length)throw new Error("no words");BWQ=m;return m})
+    .catch(e=>{BWQ_LOAD=null;throw e});
+  return BWQ_LOAD;
+}
+let bwUsed=new Set();try{bwUsed=new Set(JSON.parse(localStorage.getItem("rush-party-bw")||"[]"))}catch(e){}
+function bwPickWord(lg){const all=BWQ[lg]||BWQ.en;let pool=all.filter(q=>!bwUsed.has(q.id));if(!pool.length)pool=all;const q=pickOf(pool);
+  bwUsed.add(q.id);const a=[...bwUsed].slice(-150);bwUsed=new Set(a);try{localStorage.setItem("rush-party-bw",JSON.stringify(a))}catch(e){}return q}
+
+/* sound: one AudioContext per page, woken by the first tap or key press (browsers only allow sound after one) */
+let actx=null,playing=null,playDone=null;
+function audioCtx(){if(!actx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;try{actx=new C()}catch(e){return null}}if(actx.state==="suspended")actx.resume().catch(()=>{});return actx}
+["pointerdown","keydown","touchend"].forEach(ev=>document.addEventListener(ev,()=>{if(role==="tv"||role==="phone")audioCtx()},true));
+const audioOk=()=>!!actx&&actx.state==="running";
+function decodeAudio(ab){const c=audioCtx();if(!c)return Promise.reject(new Error("no audio"));return new Promise((res,rej)=>{try{const p=c.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)}catch(e){rej(e)}})}
+function flipBuf(b){const c=audioCtx(),o=c.createBuffer(b.numberOfChannels,b.length,b.sampleRate);for(let ch=0;ch<b.numberOfChannels;ch++){const s=b.getChannelData(ch),d=o.getChannelData(ch);for(let i=0,n=s.length;i<n;i++)d[i]=s[n-1-i]}return o}
+function stopSound(){if(playing){const s=playing;playing=null;try{s.onended=null;s.stop()}catch(e){}}if(playDone){const d=playDone;playDone=null;d(false)}}
+// plays one clip: true when it played to the end, false when something else cut it off
+function playBuf(b){stopSound();const c=audioCtx();if(!c||!b)return Promise.resolve(false);const s=c.createBufferSource();s.buffer=b;s.connect(c.destination);playing=s;
+  return new Promise(r=>{playDone=r;s.onended=()=>{if(playing===s){playing=null;playDone=null;r(true)}};try{s.start()}catch(e){playing=null;playDone=null;r(false)}})}
+const fetchBuf=url=>fetch(url).then(r=>{if(!r.ok)throw new Error("clip "+r.status);return r.arrayBuffer()}).then(decodeAudio);
+const clipUrl=id=>Rush.api+"/api/party/clip/"+id;
+
+/* the big screen */
+let bw=null,bwR=0;
+// bw: {r, lg, order: [player ids], t: turn, ph: prep|load|listen|show|res, end, at, q: {id, c, w, al}, clip: {a, o}, gs: {id: [guesses]}, got: {id: ms}, bad: {id: tries},
+//      sent, plays, pl: what's playing (word|back|try), skip, err, pts: {id: points}, bufs: {robot, own, flip}, fast, few}
+const bwP=id=>players().find(p=>pid(p)===id)||null;
+const bwTk=()=>bw?bw.r+":"+bw.t:"";
+async function bwEnter(){gTot={};gRound={};bw=null;draw();
+  try{await loadBw()}catch(e){tvErr=t("noBank");backToLobby();return}
+  bwNext()}
+function bwNext(){
+  if(!BWQ)return;const ps=players();if(ps.length<2){if(bw){bw.few=1;pushTv();gKey=""}return}
+  gRound={};bw={r:++bwR,lg:tvGame.lg,order:shuf(ps.map(pid)),t:-1,ph:"prep",end:0,few:0};
+  bwTurn(Rush.now());
+}
+// the next speaker who's still here, or the round's results
+function bwTurn(now){
+  stopSound();
+  do bw.t++;while(bw.t<bw.order.length&&!bwP(bw.order[bw.t]));
+  if(bw.t>=bw.order.length){bw.ph="res";bw.q=null;pushTv();gKey="";return}
+  const q=bwPickWord(bw.lg);
+  Object.assign(bw,{ph:"prep",end:now+BW.PREP_MS,at:now,q,clip:null,got:{},bad:{},gs:{},sent:0,plays:0,pl:"",skip:0,err:0,pts:null,bufs:{robot:null,own:null,flip:null},fast:0});
+  const tk=bwTk();fetchBuf("/party/bw/"+q.id+".mp3").then(b=>{if(bwTk()===tk)bw.bufs.robot=b}).catch(()=>{});
+  bwSendCard();pushTv();gKey="";
+}
+// the speaker's card, privately; sent again every 2 s until their phone says it has it
+function bwSendCard(){
+  if(!bw||bw.ph!=="prep"||!pApi||!pApi.sendTo)return;const p=bwP(bw.order[bw.t]);if(!p||p.presence.ba===bwTk())return;
+  const now=Date.now();if(now-bw.sent<2000)return;bw.sent=now;
+  pApi.sendTo(p.peer,{k:"bw",r:bw.r,t:bw.t,id:bw.q.id,w:bw.q.w,c:bw.q.c,lg:bw.lg});
+}
+// private messages from phones: a guesser's guesses for this turn (kept out of presence, so no phone can read another's),
+// or the speaker's phone saying its clip is up (only that phone, only for this turn)
+function tvOnMessage(from,data){
+  if(!data||!bw||num(data.r)!==bw.r||num(data.t)!==bw.t)return;
+  if(data.k==="bwg"){const p=players().find(x=>x.peer===from);if(!p||pid(p)===bw.order[bw.t]||!Array.isArray(data.g))return;
+    bw.gs[pid(p)]=data.g.slice(0,BW.MAX_TRIES).filter(x=>typeof x==="string").map(x=>x.slice(0,BW.MAXLEN));return}
+  if(data.k!=="bwc"||bw.ph!=="prep"||bw.clip)return;
+  const p=bwP(bw.order[bw.t]);if(!p||p.peer!==from||num(data.r)!==bw.r||num(data.t)!==bw.t)return;
+  const ok=v=>typeof v==="string"&&/^[0-9a-f]{32}$/.test(v);if(!ok(data.a))return;
+  bw.clip={a:data.a,o:ok(data.o)?data.o:null};bw.ph="load";bw.end=Rush.now()+BW.LOAD_MS;const tk=bwTk();
+  const own=bw.clip.o?fetchBuf(clipUrl(bw.clip.o)).catch(()=>null):Promise.resolve(null);
+  Promise.all([fetchBuf(clipUrl(bw.clip.a)),own]).then(([b,o])=>{if(bwTk()!==tk||bw.ph!=="load")return;bw.bufs.flip=flipBuf(b);if(o)bw.bufs.own=o;bwListen()})
+    .catch(()=>{if(bwTk()===tk&&bw.ph==="load")bwShow(Rush.now(),"err")});
+  pushTv();gKey="";
+}
+function bwListen(){const now=Rush.now();bw.ph="listen";bw.at=now;bw.end=now+BW.LISTEN_MS;bw.plays=0;bw.fast=0;pushTv();gKey=""}
+function bwPlayTry(){if(!bw||!bw.bufs.flip)return;bw.pl="try";gKey="";playBuf(bw.bufs.flip).then(()=>{if(bw&&bw.pl==="try"){bw.pl="";gKey=""}})}
+function bwReplay(){if(bw&&bw.ph==="listen")bwPlayTry()}
+// a player's guesses for this turn
+const bwGuesses=p=>bw&&p&&bw.gs[pid(p)]||[];
+const bwGuessers=()=>players().filter(p=>pid(p)!==bw.order[bw.t]);
+function bwScan(now){let ch=false;
+  for(const p of bwGuessers()){const id=pid(p);if(bw.got[id]!=null)continue;const g=bwGuesses(p);
+    if(g.some(x=>R.backwardsMatch(x,bw.q.w,bw.q.al))){bw.got[id]=Math.max(0,now-bw.at);ch=true}
+    else if(g.length!==(bw.bad[id]||0)){bw.bad[id]=g.length;ch=true}}
+  return ch}
+// the end of a turn: points, then the reveal (why: "" played, "skip" the speaker ran out of time or left, "err" the clip didn't load)
+function bwShow(now,why){
+  stopSound();const sp=bw.order[bw.t],pts={};
+  if(!why){for(const [id,ms] of Object.entries(bw.got))pts[id]=R.backwardsPoints(ms);const n=Object.keys(bw.got).length;if(n)pts[sp]=BW.SPEAKER_PTS*n}
+  for(const [id,v] of Object.entries(pts)){(gRound[id]||(gRound[id]=[]))[bw.t]=v;gTot[id]=(gTot[id]||0)+v}
+  bw.pts=pts;bw.skip=why==="skip"?1:0;bw.err=why==="err"?1:0;bw.ph="show";bw.at=now;bw.end=now+(why?BW.SKIP_MS:BW.SHOW_MS);pushTv();gKey="";bwReveal();
+}
+// on this screen's speakers: the word, the word backwards, then the try flipped
+async function bwReveal(){
+  const tk=bwTk(),b=bw.bufs,word=b.own||b.robot;
+  const step=async(lab,buf,gap)=>{if(!buf||bwTk()!==tk||bw.ph!=="show")return false;bw.pl=lab;gKey="";const ok=await playBuf(buf);if(bwTk()===tk){bw.pl="";gKey=""}
+    if(!ok)return false;await new Promise(r=>setTimeout(r,gap));return true};
+  await new Promise(r=>setTimeout(r,700));
+  if(!await step("word",word,600)||bw.skip||bw.err)return;
+  if(!await step("back",flipBuf(word),600))return;
+  await step("try",b.flip,0);
+}
+function bwTick(){
+  if(!bw||bw.ph==="res")return;const now=Rush.now();let ch=false;
+  for(const p of players())blNames[pid(p)]=shownName(p.presence.n);
+  if(bw.ph==="prep"){bwSendCard();
+    if(!bwP(bw.order[bw.t])&&now-bw.at>4000){bwShow(now,"skip");return} // the speaker left
+    if(now>=bw.end+BW.GRACE_MS){bwShow(now,"skip");return}}
+  else if(bw.ph==="load"){if(now>=bw.end){bwShow(now,"err");return}}
+  else if(bw.ph==="listen"){
+    if(bw.plays<BW.REPLAY_AT.length&&now-bw.at>=BW.REPLAY_AT[bw.plays]){bw.plays++;bwPlayTry()}
+    if(bwScan(now))ch=true;
+    const gs=bwGuessers();
+    if(!bw.fast&&gs.length&&gs.every(p=>bw.got[pid(p)]!=null)){bw.fast=1;bw.end=Math.min(bw.end,now+BW.FAST_MS);ch=true}
+    if(now>=bw.end){bwShow(now,"");return}}
+  else if(bw.ph==="show"){if(now>=bw.end){bwTurn(now);return}}
+  if(ch){pushTv();gKey=""}
+}
+// what the phones see: never the word before the reveal
+const bwGm=()=>{if(!bw)return{k:"bw",ph:"load"};if(bw.ph==="res")return{k:"bw",r:bw.r,ph:"res",few:bw.few||0};
+  const end=bw.ph==="show";
+  return{k:"bw",r:bw.r,t:bw.t,n:bw.order.length,sp:bw.order[bw.t],ph:bw.ph,end:bw.end,lg:bw.lg,c:bw.q.c,has:bw.clip?1:0,got:Object.keys(bw.got),bad:bw.bad,
+    w:end?bw.q.w:null,pts:end?bw.pts:null,sk:end?(bw.skip||bw.err):0}};
+function drawBwCenter(center,now,rows,rl){
+  if(rl)rl.textContent=bw?t("round",{r:bw.r})+(bw.ph!=="res"&&bw.order?" · "+t("bwTurnN",{i:bw.t+1,n:bw.order.length}):"")+" · "+t("backwards"):t("backwards");
+  if(!bw){const key="load|"+lang;if(key!==gKey){gKey=key;center.textContent="";center.append(el("div","bigmsg",t("loadingQ")))}return}
+  const gs=bw.ph==="res"?[]:bwGuessers(),nGot=gs.filter(p=>bw.got[pid(p)]!=null).length,spn=bw.ph!=="res"?blName(bw.order[bw.t]):"";
+  const key=[bw.r,bw.t,bw.ph,lang,nGot+"/"+gs.length,bw.pl,audioOk(),bw.ph==="res"?JSON.stringify(rows.map(r=>[r.id,r.s,r.rp])):""].join("|");
+  if(key!==gKey){gKey=key;center.textContent="";
+    if(bw.ph!=="res"&&!audioOk())center.append(el("p","pwarn bwsnd",t("bwSound")));
+    if(bw.ph==="res"){if(bw.few)center.append(el("p","pwarn",t("bwNeed2")));center.append(el("div","bigmsg",t("roundEnd",{r:bw.r})));const tb=el("div","tres");
+      rows.forEach((r,i)=>{const row=el("div","trow"+(i===0&&r.s>0?" lead":""));row.append(el("span","ltrx","#"+(i+1)),blob(r.c),el("b",null,r.n),el("span","rp ltrx","+"+r.rp),el("span","tt ltrx",String(r.s)));tb.append(row)});center.append(tb)}
+    else{
+      center.append(el("span","pchip",t("bt_"+bw.q.c)));
+      if(bw.ph==="prep"){center.append(el("div","imbig",t("bwTurnOf",{n:spn})),el("p","bltell",t("bwPractising")),el("p","pnote",t("bwGetReady")));tvTimer(center,bw.end-now,BW.PREP_MS);if(bw.r===1&&bw.t===0)center.append(el("p","pnote",t("bwRules")))}
+      else if(bw.ph==="load")center.append(el("div","imbig",t("bwComing")));
+      else if(bw.ph==="listen"){center.append(el("div","bwspk"+(bw.pl==="try"?" on":""),"🔊"),el("p","bltell",t("bwWhat",{n:spn})));tvTimer(center,bw.end-now,BW.LISTEN_MS);center.append(el("p","pnote",t("bwGotN",{n:nGot,m:gs.length})))}
+      else{ // the reveal
+        const w=el("div","imbig",bw.q.w);w.dir="auto";center.append(el("div","pnote",t("bwWas")),w);
+        const lab=bw.pl==="word"?t("bwPlayWord"):bw.pl==="back"?t("bwPlayBack"):bw.pl==="try"?t("bwPlayTry",{n:spn}):"";center.append(el("div","bwplay"+(lab?" on":""),lab||" "));
+        if(bw.skip)center.append(el("p","bltell",t("bwSkipped",{n:spn})));else if(bw.err)center.append(el("p","bltell",t("bwNoClip")));
+        else{const got=Object.keys(bw.got).sort((a,b)=>bw.got[a]-bw.got[b]);
+          center.append(el("p","bltell",got.length?t("bwGotBy",{names:got.map(id=>blName(id)+" +"+(bw.pts[id]||0)).join(" · ")}):t("bwNobody")));
+          if(got.length)center.append(el("p","pnote",t("bwSpeakerPts",{n:spn,p:bw.pts[bw.order[bw.t]]||0})))}}
+    }
+  }
+  if(bw.ph==="prep")tvTimerSet(bw.end-now,BW.PREP_MS);else if(bw.ph==="listen")tvTimerSet(bw.end-now,BW.LISTEN_MS);
+}
+
+/* Backwards Rush on a phone: the speaker's studio, or the guess box */
+let myBw=null,myBwg={r:0,t:-1,g:[]},bwDraft="",bwMsg="",bwRec=null;
+// myBw: the speaker's card {r, t, id, w, c, lg, robot: AudioBuffer, own: {blob, buf}, mine: {blob, buf}, useOwn, st: ""|up|sent|err, ids: {a, o}, sentAt, msg}
+function bwOnCard(from,data){const tv=tvPeer();if(!tv||from!==tv.peer||!data||data.k!=="bw"||!Number.isInteger(data.r)||!Number.isInteger(data.t)||typeof data.w!=="string")return;
+  if(myBw&&myBw.r===data.r&&myBw.t===data.t)return;
+  recCancel();myBw={r:data.r,t:data.t,id:/^[ea]\d{3}$/.test(data.id||"")?data.id:"",w:data.w.slice(0,40),c:String(data.c||""),lg:data.lg==="ar"?"ar":"en",robot:null,own:null,mine:null,useOwn:false,st:"",ids:null,sentAt:0,msg:""};
+  const card=myBw;if(card.id)fetchBuf("/party/bw/"+card.id+".mp3").then(b=>{card.robot=b;phKey=""}).catch(()=>{});
+  try{navigator.vibrate&&navigator.vibrate([30,40,30])}catch(e){}
+  send();phKey="";if(role==="phone")drawPhGame()}
+const recMime=()=>{if(!window.MediaRecorder||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return null;
+  for(const m of ["audio/webm;codecs=opus","audio/mp4","audio/webm","audio/ogg;codecs=opus"])try{if(MediaRecorder.isTypeSupported(m))return m}catch(e){}return ""};
+async function recStart(kind){
+  const card=myBw;if(!card||bwRec)return;stopSound();audioCtx();
+  const mime=recMime();if(mime===null){card.msg=t("bwNoRec");phKey="";drawPhGame();return}
+  let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}catch(e){card.msg=t("bwMicNo");phKey="";drawPhGame();return}
+  if(myBw!==card||bwRec){stream.getTracks().forEach(x=>x.stop());return}
+  let mr;try{mr=mime?new MediaRecorder(stream,{mimeType:mime,audioBitsPerSecond:48000}):new MediaRecorder(stream)}
+  catch(e){try{mr=new MediaRecorder(stream)}catch(e2){stream.getTracks().forEach(x=>x.stop());card.msg=t("bwNoRec");phKey="";drawPhGame();return}}
+  const chunks=[],max=kind==="own"?BW.WORD_REC_MS:BW.REC_MS,job=bwRec={mr,kind,card,at:Date.now(),max,cancel:0,timer:setTimeout(recStop,max)};
+  mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  mr.onstop=async()=>{stream.getTracks().forEach(x=>x.stop());clearTimeout(job.timer);if(bwRec===job)bwRec=null;if(job.cancel||myBw!==card){phKey="";return}
+    const blob=new Blob(chunks,{type:mr.mimeType||mime||"audio/webm"});
+    try{const buf=await decodeAudio(await blob.arrayBuffer());card[kind==="own"?"own":"mine"]={blob,buf};card.msg="";if(card.st==="err")card.st="";playBuf(flipBuf(buf))}catch(e){card.msg=t("bwRecBad")}
+    phKey="";drawPhGame()};
+  card.msg="";try{mr.start()}catch(e){bwRec=null;stream.getTracks().forEach(x=>x.stop());card.msg=t("bwNoRec")}phKey="";drawPhGame();
+}
+function recStop(){if(bwRec&&bwRec.mr.state!=="inactive")try{bwRec.mr.stop()}catch(e){}}
+function recCancel(){if(bwRec){bwRec.cancel=1;recStop();bwRec=null}}
+// send the try (and the player's own recording of the word, if they used one) to the server, then its id to the big screen
+async function bwSendClip(){
+  const card=myBw;if(!card||!card.mine||card.st==="up"||card.st==="sent")return;card.st="up";card.msg="";phKey="";drawPhGame();
+  const up=b=>fetch(Rush.api+"/api/party/clip?c="+encodeURIComponent(code),{method:"POST",headers:{"Content-Type":(b.type||"audio/webm").split(";")[0]},body:b})
+    .then(r=>r.ok?r.json():Promise.reject(new Error("upload "+r.status))).then(j=>{if(!j||!/^[0-9a-f]{32}$/.test(j.id||""))throw new Error("bad id");return j.id});
+  try{const a=await up(card.mine.blob),o=card.useOwn&&card.own?await up(card.own.blob).catch(()=>null):null;if(myBw!==card)return;card.ids={a,o};card.st="sent";bwTellTv()}
+  catch(e){if(myBw===card){card.st="err";card.msg=t("bwUpErr")}}
+  phKey="";drawPhGame();
+}
+function bwTellTv(){const card=myBw,tv=tvPeer();if(!card||!card.ids||!tv||!pApi||!pApi.sendTo)return;const g=tv.presence.gm;
+  if(g&&g.k==="bw"&&num(g.r)===card.r&&num(g.t)===card.t&&(g.has||g.ph!=="prep"))return;
+  if(Date.now()-card.sentAt<1000)return;card.sentAt=Date.now();pApi.sendTo(tv.peer,{k:"bwc",r:card.r,t:card.t,a:card.ids.a,o:card.ids.o||null})}
+function bwGuess(v,g){
+  const x=R.cleanChat(String(v||"")).slice(0,BW.MAXLEN).trim();if(!x){bwMsg=String(v||"").trim()?t("blBad"):"";phKey="";return}
+  if(myBwg.r!==num(g.r)||myBwg.t!==num(g.t))myBwg={r:num(g.r),t:num(g.t),g:[]};
+  if(myBwg.g.length>=BW.MAX_TRIES){bwMsg=t("bwNoTries");phKey="";return}
+  if(myBwg.g.some(y=>R.bluffKey(y)===R.bluffKey(x))){bwMsg=t("bwSame");phKey="";return}
+  myBwg={r:myBwg.r,t:myBwg.t,g:myBwg.g.concat([x]),at:0};bwDraft="";bwMsg="";phKey="";bwSendGuesses(true);
+}
+// guesses go privately to the big screen, again every second until it has checked them all
+function bwSendGuesses(now){const tv=tvPeer();if(!tv||!pApi||!pApi.sendTo||!myBwg.g.length)return;if(!now&&Date.now()-(myBwg.at||0)<1000)return;
+  myBwg.at=Date.now();pApi.sendTo(tv.peer,{k:"bwg",r:myBwg.r,t:myBwg.t,g:myBwg.g})}
+const pbtn=(txt,cls,f)=>{const b=el("button",cls,txt);b.type="button";b.onclick=f;return b};
+const bwSpName=id=>{if(id===Rush.uid)return nm16(me.nick);const p=pApi&&pApi.peers().find(p=>p.presence&&p.presence.u===id);return p?shownName(p.presence.n):"?"};
+function drawPhBw(box,tv,g,now,mine,scoreLine){
+  const meId=Rush.uid,isSp=!!g.sp&&g.sp===meId,card=myBw&&myBw.r===num(g.r)&&myBw.t===num(g.t)?myBw:null;
+  if(isSp&&card&&card.st==="sent")bwTellTv();
+  // a try that's recorded but not sent when the time runs out goes by itself
+  if(isSp&&card&&g.ph==="prep"&&card.mine&&!card.st&&!bwRec&&num(g.end)-now<1500)bwSendClip();
+  if(g.ph!=="prep"&&bwRec)recCancel();
+  if(myBwg.r!==num(g.r)||myBwg.t!==num(g.t)){myBwg={r:num(g.r),t:num(g.t),g:[]};bwDraft="";bwMsg=""}
+  const got=Array.isArray(g.got)&&g.got.includes(meId),bad=g.bad&&typeof g.bad==="object"?num(g.bad[meId]):0,left=Math.max(0,num(g.end)-now),nGot=Array.isArray(g.got)?g.got.length:0;
+  if(g.ph==="listen"&&!got&&myBwg.g.length>bad)bwSendGuesses(false);
+  const key=["bw",g.r,g.t,g.ph,lang,mine,isSp,card?[!!card.robot,!!card.own,!!card.mine,card.useOwn,card.st,card.msg].join():"",bwRec?bwRec.kind:"",got,bad,myBwg.g.length,bwMsg,nGot].join("|");
+  if(key!==phKey){phKey=key;box.textContent="";
+    if(g.ph==="load"&&!g.sp){box.append(el("div","pbig",t("get")),el("p","pnote",t("lookTv")),scoreLine());return}
+    if(g.ph==="res"){const rp=gRoundPhone(tv)[meId];box.append(el("div","pbig",t("roundEnd",{r:g.r})),el("p","pbig",t("myScore",{s:mine})));if(rp!=null)box.append(el("p","pnote",t("thisRound",{p:rp})));return}
+    box.append(el("p","pnote",t("bwTurnN",{i:num(g.t)+1,n:num(g.n)})+" · "+t("bt_"+g.c)));
+    if(g.ph==="prep"||g.ph==="listen"){const tb=el("div","ptimer"),ti=el("i");tb.id="bwBar";tb.append(ti);box.append(tb)}
+    const reveal=()=>{box.append(el("p","pnote",t("bwWas")));const w=el("div","pbig",g.w||"");w.dir="auto";box.append(w)};
+    const pts=g.pts&&typeof g.pts==="object"?num(g.pts[meId]):0;
+    if(isSp){
+      if(g.ph==="show"){reveal();box.append(el("p","pbig",g.sk?t("bwYouSkipped"):nGot?t("bwYourPts",{n:nGot,p:pts}):t("bwNone")))}
+      else if(g.ph==="load"||g.ph==="listen")box.append(el("p","pbig",t("bwListening")),el("p","pnote",t("bwGotSome",{n:nGot})));
+      else drawBwStudio(box,card);
+    }else{
+      if(g.ph==="prep")box.append(el("p","pbig",t("bwPractisingPh",{n:bwSpName(g.sp)})));
+      else if(g.ph==="load")box.append(el("p","pbig",t("bwComing")),el("p","pnote",t("bwListenTv")));
+      else if(g.ph==="show"){reveal();box.append(el("p","pbig",got?t("bwYouGot",{p:pts}):t("hmMissed")))}
+      else if(got)box.append(el("p","pnote",t("bwListenTv")),el("p","pbig",t("bwRightGuess")));
+      else{box.append(el("p","pnote",t("bwListenTv")));
+        const f=el("div","pfake"),row=el("div","row"),inp=el("input","pin");inp.id="bwIn";inp.maxLength=BW.MAXLEN;inp.placeholder=t("bwGuessPh");inp.value=bwDraft;inp.autocomplete="off";inp.dir="auto";inp.enterKeyHint="send";
+        inp.lang=g.lg;inp.setAttribute("aria-label",t("bwGuessPh"));inp.oninput=()=>{bwDraft=inp.value};
+        const go=()=>{bwGuess(inp.value,g);drawPhGame()},sb=pbtn(t("bwGuess"),"pbtn pink",go);inp.addEventListener("keydown",e=>{if(e.key==="Enter")go()});row.append(inp,sb);
+        const n=myBwg.g.length,m=el("p","pmsg",bwMsg||(n?(n>bad?t("bwChecking"):t("bwNotIt")):""));m.setAttribute("aria-live","polite");f.append(row,m);
+        if(n){const tr=el("p","pnote",t("bwTries",{list:myBwg.g.join(" · ")}));tr.dir="auto";f.append(tr)}
+        box.append(f);setTimeout(()=>{const i=$("#bwIn");if(i&&document.activeElement!==i)try{i.focus()}catch(e){}},30)}
+    }
+    box.append(scoreLine());
+  }
+  const bar=$("#bwBar");if(bar)bar.firstChild.style.width=Math.max(0,100*left/(g.ph==="prep"?BW.PREP_MS:BW.LISTEN_MS))+"%";
+  const rs=$("#bwRecS");if(rs&&bwRec)rs.textContent=t("bwStop",{s:Math.max(0,Math.ceil((bwRec.max-(Date.now()-bwRec.at))/1000))});
+}
+// the speaker: the secret word, hear it backwards, record a copy of that, hear it flipped, send
+function drawBwStudio(box,card){
+  if(!card){box.append(el("p","pbig",t("bwYourTurn")),el("p","pnote",t("imWait")));return}
+  const c=el("div","imcard"),w=el("div","w",card.w);w.dir="auto";c.append(el("small",null,t("bwYourWord")),w,el("small",null,t("bwSecret")));box.append(c);
+  if(card.st==="up"||card.st==="sent"){box.append(el("p","pbig",card.st==="up"?t("bwSending"):t("bwSent")));return}
+  const st=el("div","bwstudio"),recB=()=>{const b=pbtn(t("bwStop",{s:Math.ceil(bwRec.max/1000)}),"pbtn rec",recStop);b.id="bwRecS";return b};
+  st.append(el("b","bwstep",t("bwStep1")));
+  if(!card.useOwn){const hb=pbtn(card.robot?t("bwHear"):t("loadingQ"),"pbtn sky",()=>{if(card.robot)playBuf(flipBuf(card.robot))});hb.disabled=!card.robot||!!bwRec;st.append(hb)}
+  else{if(bwRec&&bwRec.kind==="own")st.append(recB());else{const b=pbtn(card.own?t("bwRecAgainWord"):t("bwRecWord"),card.own?"pbtn ghost":"pbtn pink",()=>recStart("own"));b.disabled=!!bwRec;st.append(b)}
+    if(card.own&&!bwRec)st.append(pbtn(t("bwHearMine"),"pbtn sky",()=>playBuf(flipBuf(card.own.buf))))}
+  const sw=el("button","bwlink",card.useOwn?t("bwRobotVoice"):t("bwOwnVoice"));sw.type="button";sw.disabled=!!bwRec;sw.onclick=()=>{card.useOwn=!card.useOwn;phKey="";drawPhGame()};st.append(sw);
+  st.append(el("b","bwstep",t("bwStep2")));
+  if(bwRec&&bwRec.kind==="mine")st.append(recB());
+  else{const b=pbtn(card.mine?t("bwRetry"):t("bwRecTry"),card.mine?"pbtn ghost":"pbtn pink",()=>recStart("mine"));b.disabled=!!bwRec||(card.useOwn&&!card.own);st.append(b)}
+  if(card.mine&&!bwRec)st.append(pbtn(t("bwHearFlip"),"pbtn sky",()=>playBuf(flipBuf(card.mine.buf))),pbtn(t("bwSend"),"pbtn",bwSendClip));
+  box.append(st);
+  if(card.msg){const m=el("p","pmsg",card.msg);m.setAttribute("aria-live","polite");box.append(m)}
+}
+
 /* ---------- start a game from the TV ---------- */
 function tvStart(){
   if(!players().length)return;
   if(tvGame.g==="trivia"){tvErr="";tvMode="trivia";pushTv();trEnter();return}
   if(tvGame.g==="hangman"){tvErr="";tvMode="hangman";pushTv();draw();hmEnter();return}
   if(tvGame.g==="bluff"){tvErr="";tvMode="bluff";pushTv();blEnter();return}
+  if(tvGame.g==="backwards"){if(players().length<2){tvErr=t("bwNeed2");draw();return}tvErr="";tvMode="backwards";pushTv();bwEnter();return}
   if(tvGame.g==="imposter"){if(players().length<3){tvErr=t("imNeed3");draw();return}tvErr="";tvMode="imposter";pushTv();imEnter();return}
   roomCount++;tvMode="harf";pApi.presence(tvPresence());
   hfEnter();
 }
 function backToLobby(){
   if(hfRound&&hs.vo){for(const k of Object.keys(hs.vo))hfCloseVote(k,true);hfLearn()}
-  hfLeave();tg=null;hg=null;bg=null;im=null;tvMode="lobby";pApi&&pApi.presence(tvPresence());draw();
+  hfLeave();tg=null;hg=null;bg=null;im=null;bw=null;stopSound();tvMode="lobby";pApi&&pApi.presence(tvPresence());draw();
 }
 
 /* ---------- Harf on the TV: this screen hosts the room and doesn't play ----------
@@ -1803,7 +2112,7 @@ function resultsTable(rows){
 let mApi=null,noTvAt=0,lastMirror=null,mirrorLast="";
 const AUTO_MS=120000;let auto={at:0,pz:0,by:""},pzN=0;const pzSeen=new Map();
 const autoPub=()=>CALL&&(auto.at||auto.pz)?auto:null;
-const atRes=()=>tvMode==="trivia"?!!tg&&tg.ph==="res":tvMode==="hangman"?!!hg&&hg.ph==="res":tvMode==="bluff"?!!bg&&bg.ph==="res":tvMode==="imposter"?!!im&&im.ph==="res":false;
+const atRes=()=>tvMode==="trivia"?!!tg&&tg.ph==="res":tvMode==="hangman"?!!hg&&hg.ph==="res":tvMode==="bluff"?!!bg&&bg.ph==="res":tvMode==="imposter"?!!im&&im.ph==="res":tvMode==="backwards"?!!bw&&bw.ph==="res":false;
 const mmss=ms=>{const x=Math.max(0,Math.ceil(ms/1000));return Math.floor(x/60)+":"+String(x%60).padStart(2,"0")};
 function autoText(){return num(auto.pz)>0?t("auPaused",{n:auto.by||"?"}):auto.at?t("auNext",{s:mmss(auto.at-Rush.now())}):t("auHost")}
 function autoTick(){
