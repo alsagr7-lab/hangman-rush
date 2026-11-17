@@ -126,6 +126,35 @@ const imposter = [];
   console.log(`imposter   ${String(imposter.length).padStart(3)} categories, ${imposter.reduce((a, c) => a + c.w.length, 0)} words`);
 }
 
+// Backwards Rush (party): content/party/backwards.json, words to say backwards, per language:
+// {en: [[id, topic, word, [other accepted forms]], ...], ar: [...]}, each with its spoken clip site/party/bw/<id>.mp3
+// (made by scripts/make-backwards-audio.py). No word twice in a language.
+const backwards = { en: [], ar: [] };
+{
+  const file = path.join(__dirname, "..", "content", "party", "backwards.json"), ids = new Set();
+  let src = {};
+  try { src = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { problems.push(`backwards.json: ${e.message}`); }
+  for (const lg of ["en", "ar"]) {
+    const seen = [];
+    for (const row of src[lg] || []) {
+      const [id, c, w, al] = Array.isArray(row) ? row : [], where = `backwards.json ${id}`;
+      if (!/^[ea]\d{3}$/.test(id || "") || id[0] !== lg[0] || ids.has(id)) { problems.push(`${where}: bad or repeated id`); continue; }
+      ids.add(id);
+      if (!RR.BACKWARDS.CATS.includes(c)) problems.push(`${where}: unknown topic ${c}`);
+      if (typeof w !== "string" || !w.trim() || w.length > 30) { problems.push(`${where}: bad word`); continue; }
+      if (lg === "ar" && !/[؀-ۿ]/.test(w)) problems.push(`${where}: ${w} has no Arabic`);
+      if (lg === "en" && /[؀-ۿ]/.test(w)) problems.push(`${where}: ${w} is Arabic`);
+      if (!Array.isArray(al) || al.some(x => typeof x !== "string" || !x.trim())) problems.push(`${where}: other forms must be a list of words`);
+      if (!RR.backwardsMatch(w, w, [])) problems.push(`${where}: ${w} wouldn't count as a guess of itself`);
+      if (seen.some(x => RR.bluffSame(x, w))) problems.push(`${where}: ${w} twice`);
+      if (!fs.existsSync(path.join(__dirname, "..", "site", "party", "bw", id + ".mp3"))) problems.push(`${where}: no clip site/party/bw/${id}.mp3 (run scripts/make-backwards-audio.py)`);
+      seen.push(w);
+      backwards[lg].push([id, c, w, al || []]);
+    }
+  }
+  console.log(`backwards  ${String(backwards.en.length).padStart(3)} English words, ${backwards.ar.length} Arabic`);
+}
+
 const di = process.argv.indexOf("--daily");
 if (di > 0) {
   const file = process.argv[di + 1];
@@ -162,3 +191,6 @@ console.log(`wrote ${path.relative(process.cwd(), bout)}: ${bluff.length} Bluff 
 const iout = path.join(__dirname, "..", "site", "party", "imposter.json");
 fs.writeFileSync(iout, JSON.stringify({ v: 1, c: imposter }));
 console.log(`wrote ${path.relative(process.cwd(), iout)}: ${imposter.length} Imposter Rush categories`);
+const wout = path.join(__dirname, "..", "site", "party", "backwards.json");
+fs.writeFileSync(wout, JSON.stringify({ v: 1, en: backwards.en, ar: backwards.ar }));
+console.log(`wrote ${path.relative(process.cwd(), wout)}: ${backwards.en.length + backwards.ar.length} Backwards Rush words`);

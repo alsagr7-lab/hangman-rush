@@ -1,0 +1,3 @@
+These spoken words were made with eSpeak NG (https://github.com/espeak-ng/espeak-ng), the open-source speech
+synthesizer, by scripts/make-backwards-audio.py. They are part of Rush Games and are released under the same MIT
+licence as the rest of this repository. eSpeak NG itself (GPL-3.0) is not included here; only its output is.

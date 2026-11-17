@@ -279,6 +279,15 @@
     const s = cleanChat(v).slice(0, IMPOSTER.CLUE_MAX).trim();
     return s && s.split(/\s+/).length <= 2 ? s : "";
   }
+  /* ---------- Backwards Rush (party, بالمقلوب) ----------
+     One player at a time gets a word, hears it played backwards on their phone and records themselves copying that
+     backwards sound. The big screen plays their recording backwards, which brings the word roughly back, and everyone
+     else types what they think it was. */
+  const BACKWARDS = { PREP_MS: 75000, LOAD_MS: 10000, LISTEN_MS: 30000, SHOW_MS: 13000, SKIP_MS: 6000, FAST_MS: 1500, GRACE_MS: 3000,
+    REC_MS: 5000, WORD_REC_MS: 4000, REPLAY_AT: [0, 10000, 20000], GUESS_PTS: 100, SPEED_PTS: 100, SPEAKER_PTS: 50, MAXLEN: 40, MAX_TRIES: 12,
+    CATS: ["people", "football", "animals", "food", "places", "things"] };
+  // points for guessing it msUsed after the clip first played
+  const backwardsPoints = msUsed => BACKWARDS.GUESS_PTS + Math.round(BACKWARDS.SPEED_PTS * Math.max(0, Math.min(1, 1 - msUsed / BACKWARDS.LISTEN_MS)));
   const AR_DIGITS = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9", "٫": ".", "٪": "%" };
   // the comparable form: folded letters, Arabic digits as 0-9, no "the/a/an" or Arabic ال, no spaces or punctuation
   function bluffKey(s) {
@@ -304,6 +313,8 @@
   // the true answer in every accepted form: as shown, without its note in brackets, and the other spellings
   const bluffTruths = (ans, alts) => [ans, String(ans || "").replace(/\s*\([^)]*\)\s*/g, " ").trim(), String(ans || "").replace(/^.*\(([^)]*)\).*$/, "$1")].concat(alts || []).filter(Boolean);
   const bluffIsTrue = (fake, ans, alts) => bluffTruths(ans, alts).some(t => bluffSame(fake, t));
+  // a Backwards Rush guess: the word or one of its other forms, give or take a letter (as Bluff Rush's truth)
+  const backwardsMatch = (guess, word, alts) => !!cleanChat(guess) && bluffIsTrue(guess, word, alts);
 
   /* ---------- tags: a short, permanent code per player so same-named players stay distinguishable ---------- */
   const TAG_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -324,6 +335,6 @@
     COLORS, safeColor, nm16, badName, junkText, cleanChat, namedRec, seasonOfRec, rollover, seasonPts, curStreak, countDaily,
     SK_MIN, SK_MAX, clampSk, cluePctFor, bonusFor, speedBonus, TRIVIA, triviaPoints, tagOf, shuffledOrder,
     HARF, harfNorm, harfStem, harfKey, harfGroup, harfNear, harfLetterOk, harfRoomPoints,
-    BLUFF, bluffKey, bluffSame, bluffIsTrue, IMPOSTER, imposterClue,
+    BLUFF, bluffKey, bluffSame, bluffIsTrue, IMPOSTER, imposterClue, BACKWARDS, backwardsPoints, backwardsMatch,
   };
 });
