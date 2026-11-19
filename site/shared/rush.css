@@ -575,3 +575,6 @@ html,body{overflow-x:clip}
 /* Inside the Discord Activity (html.in-discord, set in scripts/build-site.js): just the daily and its leaderboard;
    rooms, practice and past days stay on rushgames.cc */
 .in-discord .card:has(#createBtn), .in-discord .card:has(#archList), .in-discord #roomChip { display: none !important; }
+
+/* phones: no double-tap zoom on anything you tap, so quick taps all count (drag areas set touch-action:none) */
+button,input,label,select,textarea,a{touch-action:manipulation;-webkit-tap-highlight-color:transparent}

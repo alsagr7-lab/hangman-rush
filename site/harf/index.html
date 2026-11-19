@@ -962,6 +962,8 @@ const baseId=id=>String(id||"").replace(/_(ar|en)$/,"");
 let lastPanelKey="";
 // the countdown before a round or the daily: the shared one in rush.js (Rush.countdown), left in ms
 function showCount(ov,panel,left){lastPanelKey="cd";Rush.countdown(ov,panel,left,H.COUNT_MS)}
+let autoNote=null;
+setInterval(()=>{const a=$("#hfAuto");if(a&&autoNote){const v=autoNote();if(a.textContent!==v)a.textContent=v}},250);
 function setPanel(ov,panel,key,build){
   key=lang+"|"+key;const again=!ov.hidden&&!panel.hidden;ov.hidden=false;if(key===lastPanelKey)return;lastPanelKey=key;panel.classList.toggle("still",again);
   const c=ov.querySelector(".count");if(c)c.hidden=true;
@@ -1009,7 +1011,7 @@ function renderOverlay(){
   if(cur){const P=phaseOf(cur,now);if(P.ph==="count")return showCount(ov,panel,P.left);if(P.ph==="write"||!cur.scored)return hideOverlay(ov)}
   const h=hostInfo(),hp=hostPeer();
   const rows=cur?roundRows():[];
-  const key=[mode,cur?cur.round:0,cur&&cur.scored,host,!!hp,h&&h.lg,h&&h.ms,h&&h.st,rows.map(r=>r.n+r.rp+(r.v||[]).join("")).join(),cur?JSON.stringify(cur.ap)+cur.apMsg:"",isCap(),capName(),!cur&&partyTv()&&num(partyTv().presence.nx)?Math.ceil((num(partyTv().presence.nx)-RN())/1000):"",JSON.stringify(rows.map(r=>r.apl||[])),JSON.stringify(hostOv()||{}),partyTv()?partyTv().presence.lg+partyTv().presence.ms:""].join("|");
+  const key=[mode,cur?cur.round:0,cur&&cur.scored,host,!!hp,h&&h.lg,h&&h.ms,h&&h.st,rows.map(r=>r.n+r.rp+(r.v||[]).join("")).join(),cur?JSON.stringify(cur.ap)+cur.apMsg:"",isCap(),capName(),!cur&&partyTv()&&num(partyTv().presence.nx)?"auto":"",JSON.stringify(rows.map(r=>r.apl||[])),JSON.stringify(hostOv()||{}),partyTv()?partyTv().presence.lg+partyTv().presence.ms:""].join("|");
   setPanel(ov,panel,key,()=>{
     const out=[];
     if(!cur){
@@ -1017,9 +1019,13 @@ function renderOverlay(){
         if(mode==="room"){const p=el("p",null,t("roomCodeLine"));const c=ltr(code);c.style.cssText="font-family:var(--f-mono);font-weight:700;letter-spacing:.2em";p.appendChild(c);out.push(p,el("p","note",t("startsAtOnce")))}}
       else if(partyTv()){
         // the big screen starts the first round by itself a few seconds after the game opens (nx, on the shared clock)
-        const nx=num(partyTv().presence.nx),secs=nx?Math.max(0,Math.ceil((nx-RN())/1000)):0;
-        if(isCap()){out.push(el("h2",null,t("hostReady")),el("p","note",secs?t("autoStartIn",{s:secs}):t("hostReadyHelp")));out.push(...capControls())}
-        else{out.push(el("h2",null,t("partyGetReady")));const n=capName();out.push(el("p","note",secs?t("autoStartIn",{s:secs}):n?t("hostWillStart",{name:n}):t("tvWait")))}
+        // the countdown changes in place (autoNote), so the host's buttons here aren't rebuilt every second
+        const cap=isCap(),n=capName();
+        autoNote=()=>{const tv=partyTv(),nx=tv?num(tv.presence.nx):0,secs=nx?Math.max(0,Math.ceil((nx-RN())/1000)):0;
+          return secs?t("autoStartIn",{s:secs}):cap?t("hostReadyHelp"):n?t("hostWillStart",{name:n}):t("tvWait")};
+        const note=el("p","note",autoNote());note.id="hfAuto";
+        if(cap){out.push(el("h2",null,t("hostReady")),note);out.push(...capControls())}
+        else out.push(el("h2",null,t("partyGetReady")),note);
         return out}
       else if(hp)out.push(el("h2",null,t("waitingFor",{name:nm16(hp.presence.n)})),el("p",null,t("startsAtOnce")));
       else if(inParty()){out.push(...tvWait());return out}

@@ -739,7 +739,7 @@ let hq=[],hqN=0;
 function hostCmd(o){hqN=Math.max(Date.now(),hqN+1);hq=hq.concat([Object.assign({n:hqN},o)]).slice(-6);send()}
 let lastHostKey="";
 function drawHostPanel(P){
-  const box=$("#hostPanel");if(!box)return;
+  const box=$("#hostPanel");if(!box||tapping())return;
   const mine=P.cap===Rush.uid,others=pApi?pApi.peers().filter(p=>!p.sameTab&&p.presence&&p.presence.n&&!p.presence.tv&&p.presence.u&&p.presence.u!==Rush.uid):[];
   const capP=others.find(p=>p.presence.u===P.cap);
   const gph=P.gm&&typeof P.gm==="object"?P.gm.ph:"";
@@ -781,6 +781,15 @@ function drawHostPanel(P){
 let lastMsg="",lastSayAt=0;
 // names on the big screen: an insult or spam shows as Player
 const shownName=v=>R.junkText(String(v||""))?"Player":nm16(v);
+/* On iPhones a tap takes a moment between the finger touching and the click; if the button under the finger is
+   rebuilt in that moment, the tap is lost. So the phone's screens don't rebuild while a finger is down, until that
+   tap's click (or 600 ms after the finger lifts without one). The lobby's move pad is held down on purpose, so it
+   doesn't count. */
+let touchHeld=false,touchFree=0;
+document.addEventListener("pointerdown",e=>{if(!(e.target&&e.target.closest&&e.target.closest(".pad")))touchHeld=true},true);
+["pointerup","pointercancel"].forEach(ev=>document.addEventListener(ev,()=>{if(touchHeld){touchHeld=false;touchFree=Date.now()+600}},true));
+document.addEventListener("click",()=>{touchHeld=false;touchFree=0},true);
+const tapping=()=>role==="phone"&&(touchHeld||Date.now()<touchFree);
 function tvPeer(){return pApi?pApi.peers().find(p=>p.presence&&p.presence.tv===1&&!p.sameTab):null}
 function phoneFollow(){
   const tv=tvPeer(),st=$("#phStatus");
@@ -1432,6 +1441,7 @@ const ansBtn=(q,ord,lg,picked,cor)=>{const box=el("div","pans");
     if(cor!=null&&cor>=0){b.disabled=true;if(slot===cor)b.classList.add("pick")}
     b.onclick=()=>trAnswer(slot);box.append(b)});return box};
 function drawPhGame(){
+  if(tapping())return;
   const box=$("#phGame"),tv=tvPeer();if(!box||!tv)return;const g=tv.presence.gm;if(!g||typeof g!=="object")return;
   const now=Rush.now(),T=tv.presence.tot&&typeof tv.presence.tot==="object"?tv.presence.tot:{},mine=num(T[Rush.uid]);
   const scoreLine=()=>el("p","pnote",t("myScore",{s:mine}));
@@ -1444,7 +1454,8 @@ function drawPhGame(){
     const mineA=myTa.r===num(g.r)?myTa.a[g.i]:null,ord=q?qOrder(num(g.r),num(g.i),g.id):null;
     const left=g.ph==="q"?Math.max(0,num(g.end)-now):0;
     const chs=g.ph==="res"&&g.ch&&typeof g.ch==="object"&&Array.isArray(g.ch.k)?g.ch:null;
-    const key=[g.k,g.r,g.i,g.ph,!!q,mineA?mineA[0]:"",lang,mine,g.ph==="q"?Math.ceil(left/1000):"",chs?chs.k.join()+chs.pm+chs.pk+(myTpv.r===num(g.r)?myTpv.k:""):""].join("|");if(key===phKey)return;phKey=key;box.textContent="";
+    const key=[g.k,g.r,g.i,g.ph,!!q,mineA?mineA[0]:"",lang,mine,chs?chs.k.join()+chs.pm+chs.pk+(myTpv.r===num(g.r)?myTpv.k:""):""].join("|");
+    if(key===phKey){const b=$("#trBar");if(b)b.firstChild.style.width=Math.max(0,100*left/TQ_MS)+"%";return}phKey=key;box.textContent="";
     if(g.ph==="load"||g.ph==="count"){box.append(el("div","pbig",t("get")),el("p","pnote",t("lookTv")),scoreLine());return}
     if(g.ph==="res"){const rp=(gRoundPhone(tv)[Rush.uid]);box.append(el("div","pbig",t("roundEnd",{r:g.r})),el("p","pbig",t("myScore",{s:mine})));if(rp!=null)box.append(el("p","pnote",t("thisRound",{p:rp})));
       if(chs){const canPick=chs.pm==="vote"||chs.pk===Rush.uid,mineK=myTpv.r===num(g.r)?myTpv.k:"";
@@ -1457,7 +1468,7 @@ function drawPhGame(){
     if(q.img){const p=el("div","ppic");const im=el("img");im.src="/party/img/"+q.img+".svg";im.alt="";p.append(im);box.append(p)}
     if(q.lw){const b=el("div","tiles sm"+(q.lw.lg==="ar"?" ar":""));q.lw.tiles.forEach(ch=>b.append(el("span",null,ch)));box.append(b)}
     const qt=el("div","pq",qText(q,g.lg));qt.dir="auto";box.append(qt);
-    if(g.ph==="q"){const tb=el("div","ptimer"),i=el("i");i.style.width=Math.max(0,100*left/TQ_MS)+"%";tb.append(i);box.append(tb)}
+    if(g.ph==="q"){const tb=el("div","ptimer"),i=el("i");tb.id="trBar";i.style.width=Math.max(0,100*left/TQ_MS)+"%";tb.append(i);box.append(tb)}
     box.append(ansBtn(q,ord,g.lg,mineA?mineA[0]:null,g.ph==="rev"?num(g.cor):null));
     if(g.ph==="q"&&mineA)box.append(el("p","pbig",t("locked")));
     if(g.ph==="rev"){const right=mineA&&ord[mineA[0]]===0;box.append(el("p","pbig",!mineA?t("noAns"):right?t("rightA"):t("wrongA")))}
@@ -1467,12 +1478,13 @@ function drawPhGame(){
     if(g.ph==="load"){box.textContent="";box.append(el("div","pbig",t("get")));phKey="";return}
     if(myHg.r!==num(g.r))myHg={r:num(g.r),g:"",t:0};
     const s=hmState(g.w,myHg.g),left=g.ph==="play"?Math.max(0,num(g.end)-now):0,clue=g.ph==="play"&&now>=num(g.at)+HM_MS/2;
-    const key=[g.k,g.r,g.ph,myHg.g,lang,mine,clue,g.ph==="play"?Math.ceil(left/1000):""].join("|");if(key===phKey)return;phKey=key;box.textContent="";
+    const key=[g.k,g.r,g.ph,myHg.g,lang,mine,clue].join("|");
+    if(key===phKey){const b=$("#hmBar");if(b)b.firstChild.style.width=Math.max(0,100*left/HM_MS)+"%";return}phKey=key;box.textContent="";
     if(g.ph==="count"){box.append(el("div","pbig",t("get")),el("p","pnote",hmCatName(g.c)),scoreLine());return}
     box.append(el("p","pnote",hmCatName(g.c)));
     const wb=hmWordBox(g.w,g.lg,g.ph==="res",s.set);wb.classList.add("sm");box.append(wb);
     if(g.ph==="res"){const rp=gRoundPhone(tv)[Rush.uid];box.append(el("p","pbig",s.solved?t("hmSolved"):t("hmMissed")));if(rp!=null)box.append(el("p","pnote",t("thisRound",{p:rp})));box.append(scoreLine());return}
-    const tb=el("div","ptimer"),ti=el("i");ti.style.width=Math.max(0,100*left/HM_MS)+"%";tb.append(ti);box.append(tb);
+    const tb=el("div","ptimer"),ti=el("i");tb.id="hmBar";ti.style.width=Math.max(0,100*left/HM_MS)+"%";tb.append(ti);box.append(tb);
     box.append(el("p","pnote",t("hmMiss",{m:s.miss,x:HM_MISS})));
     if(clue)box.append(el("p","pnote",t("hmClue",{c:g.cl[lang==="ar"?1:0]})));
     if(s.solved||s.out){box.append(el("p","pbig",s.solved?t("hmSolved"):t("hmOut")),el("p","pnote",t("hmWait")));box.append(scoreLine());return}
@@ -1551,7 +1563,7 @@ function drawPhImp(box,tv,g,now,mine,scoreLine){
   const left=Math.max(0,num(g.end)-now),haveCard=myIm.r===r;
   // a clue still being typed when the time is nearly up goes in by itself
   if(writing&&imDraft.trim()&&left<1200)imSendClue(imDraft,g,g.ph==="all"?1:cr);
-  const key=["im",r,g.ph,cr,num(g.t),lang,mine,haveCard,imHidden,JSON.stringify(myIc.c),myIv.v,myIg.g,imMsg,JSON.stringify(cl),g.ca||"",g.go?1:0,JSON.stringify(g.vd||[])].join("|");
+  const key=["im",r,g.ph,cr,num(g.t),lang,mine,haveCard,imHidden,JSON.stringify(myIc.c),myIv.v,myIg.g,imMsg,g.ph==="all"?JSON.stringify(cl[me]||[]):JSON.stringify(cl),g.ca||"",g.go?1:0].join("|");
   if(key!==phKey){phKey=key;box.textContent="";
     const lg=g.lg==="ar"?1:0;
     if(!inRound){box.append(el("p","pbig",t("imNextRound")),el("p","pnote",t("lookTv")),scoreLine());return}
@@ -1635,8 +1647,10 @@ function audioCtx(fresh){
   if(actx&&(fresh||actx.state==="closed"||actx.state==="interrupted")){try{actx.close()}catch(e){}actx=null}
   if(!actx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;try{actx=new C()}catch(e){return null}}
   if(actx.state!=="running")actx.resume().catch(()=>{});return actx}
-["pointerdown","keydown","touchend"].forEach(ev=>document.addEventListener(ev,()=>{if(role==="tv"||role==="phone"){if(!recOn)setSession("playback");audioCtx()}},true));
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&actx&&actx.state!=="running")actx.resume().catch(()=>{})});
+// only during Backwards Rush (on the big screen when it's picked or playing; on a phone while it's playing)
+const bwSoundNeeded=()=>role==="tv"?(tvMode==="backwards"||(tvMode==="lobby"&&tvGame.g==="backwards")):role==="phone"?(()=>{const tv=tvPeer(),g=tv&&tv.presence.gm;return !!g&&g.k==="bw"})():false;
+["pointerdown","keydown","touchend"].forEach(ev=>document.addEventListener(ev,()=>{if(bwSoundNeeded()){if(!recOn)setSession("playback");audioCtx()}},true));
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&actx&&actx.state!=="running"&&bwSoundNeeded())actx.resume().catch(()=>{})});
 const audioOk=()=>!!actx&&actx.state==="running";
 function decodeAudio(ab){const c=audioCtx();if(!c)return Promise.reject(new Error("no audio"));return new Promise((res,rej)=>{try{const p=c.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)}catch(e){rej(e)}})}
 function flipBuf(b){const c=audioCtx(),o=c.createBuffer(b.numberOfChannels,b.length,b.sampleRate);for(let ch=0;ch<b.numberOfChannels;ch++){const s=b.getChannelData(ch),d=o.getChannelData(ch);for(let i=0,n=s.length;i<n;i++)d[i]=s[n-1-i]}return o}
@@ -2184,7 +2198,7 @@ function pzScan(){
 }
 // on the controller: the countdown to the next round, with pause and resume
 function drawAuto(P){
-  const b=$("#autoBar");if(!b)return;const a=P&&P.au&&typeof P.au==="object"?P.au:null;
+  const b=$("#autoBar");if(!b||tapping())return;const a=P&&P.au&&typeof P.au==="object"?P.au:null;
   if(!a){if(!b.hidden){b.hidden=true;b.textContent=""}return}
   const paused=num(a.pz)>0,key=paused+"|"+lang;
   if(b.dataset.key!==key||b.hidden){b.dataset.key=key;b.hidden=false;b.textContent="";
