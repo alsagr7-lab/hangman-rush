@@ -260,7 +260,7 @@
   }
   function connect() {
     ws = new WebSocket(wsUrl);
-    ws.onopen = () => { setOpen(true); setServer("up"); syncClock(); joined.forEach((s, name) => sendRaw({ t: "join", room: name, presence: s.presence })); };
+    ws.onopen = () => { setOpen(true); setServer("up"); syncClock(); joined.forEach((s, name) => sendRaw({ t: "join", room: name, presence: s.presence, d: 1 })); };
     ws.onclose = () => { setOpen(false); setTimeout(connect, 1200); };
     ws.onerror = () => {};
     ws.onmessage = ev => {
@@ -274,6 +274,17 @@
       }
       if (m.t === "error") { if (s.pending) { s.pending.reject({ code: m.code, message: "Room limit reached" }); s.pending = null; joined.delete(m.room); } return; }
       if (m.t === "msg") { s.msgs.forEach(f => { try { f(m.from, m.data); } catch (e) { console.error(e); } }); return; }
+      // one peer changed (we joined with d: 1): swap just that one in
+      if (m.t === "peer") {
+        const i = s.peers.findIndex(p => p.peer === m.peer); if (i < 0) return;
+        const old = s.peers[i], pres = m.presence || {};
+        if (JSON.stringify(old.presence) === JSON.stringify(pres)) return;
+        const upd = Object.freeze(Object.assign({}, old, { presence: Object.freeze(pres), updatedAt: Date.now() }));
+        const list = s.peers.slice(); list[i] = upd; s.peers = Object.freeze(list);
+        const change = { peers: s.peers, joined: [], left: [], updated: [upd] };
+        s.listeners.forEach(f => { try { f(change); } catch (e) { console.error(e); } });
+        return;
+      }
       if (m.t !== "peers") return;
       const now = Date.now(), prev = new Map(s.peers.map(p => [p.peer, p]));
       s.peers = Object.freeze(m.peers.map(p => {
@@ -317,7 +328,7 @@
       joined.set(name, s);
       return new Promise((resolve, reject) => {
         s.pending = { resolve, reject };
-        sendRaw({ t: "join", room: name, presence: s.presence });
+        sendRaw({ t: "join", room: name, presence: s.presence, d: 1 });
         // a sleeping server can take a minute to wake, so wait longer than a normal round trip
         setTimeout(() => { if (s.pending) { s.pending = null; joined.delete(name); reject({ code: "upstream_error", message: "Server didn't answer" }); } }, 75000);
       });

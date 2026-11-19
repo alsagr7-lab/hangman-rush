@@ -116,7 +116,7 @@ html.party,html.party body,:root.party[data-theme] body{background:var(--pv)!imp
 .stage{position:relative;flex:1;min-height:360px;border-radius:40px;background:var(--pv2);
   background-image:radial-gradient(rgba(255,255,255,.07) 2px,transparent 2.5px);background-size:34px 34px;box-shadow:inset 0 8px 0 rgba(0,0,0,.18);overflow:hidden}
 .stage .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;font-size:clamp(20px,2.2vw,30px);font-weight:700;color:var(--pmuted)}
-.chr{position:absolute;width:96px;margin-inline-start:-48px;margin-top:-118px;transition:left .22s linear,top .22s linear;display:grid;justify-items:center}
+.chr{position:absolute;left:0;top:0;width:96px;margin-inline-start:-48px;margin-top:-118px;transition:transform .22s linear;will-change:transform;display:grid;justify-items:center}
 .chr .tag{background:#fff;color:var(--pdark);font-weight:800;font-size:18px;border-radius:999px;padding:2px 14px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 0 rgba(0,0,0,.2);margin-bottom:6px}
 .chr .say{position:absolute;bottom:calc(100% + 6px);background:#fff;color:var(--pdark);font-weight:700;font-size:20px;line-height:1.25;border-radius:20px;padding:8px 14px;
   max-width:260px;width:max-content;text-align:center;box-shadow:0 5px 0 rgba(0,0,0,.2);animation:pop .25s cubic-bezier(.3,1.6,.6,1)}
@@ -348,6 +348,8 @@ if(!window.Rush||!window.RushRules||typeof qrcode!=="function"){document.addEven
 const R=RushRules,H=R.HARF,N=H.CATS.length,num=R.num,nm16=R.nm16;
 document.documentElement.classList.add("party");
 const $=s=>document.querySelector(s);
+// writes text only when it changed (rewriting the same text still replaces the node and makes the page redo work)
+const setTxt=(e,v)=>{v=String(v);if(e.textContent!==v)e.textContent=v};
 const el=(tg,c,txt)=>{const e=document.createElement(tg);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e};
 const view=$("#view");
 /* A party in a Discord call (site/discord/party/index.html): there's no TV. Every player's window holds this page
@@ -685,10 +687,10 @@ function topicGrp(lc,onPick,cur){loadOften();const g=el("div",lc==="lbl2"?"grp":
   if(often.length)grp(t("often"),often);grp(t("allTopics"),TOPICS);
   sl.value=TOPICS.includes(cur)?cur:"mix";sl.onchange=()=>onPick(sl.value);g.append(el("span",lc,t("topic")),sl);return g}
 function drawStage(){
-  const st=$("#stage");if(!st)return;const list=players(),now=Date.now();
-  const c=$("#tvCount");if(c)c.textContent=t("players",{n:list.length,m:MAX});
-  const hc=$("#tvCap");if(hc){const cp=list.find(p=>p.presence.u===cap);hc.textContent=cp?t("hostIs",{n:shownName(cp.presence.n)}):t("hostNone");hc.title=t("makeHostHelp")}
-  const go=$("#tvGo");if(go){go.disabled=!list.length||!pApi;go.textContent=list.length?t("start")+" · "+t(tvGame.g):t("start")}
+  const st=$("#stage");if(!st)return;const list=players(),now=Date.now(),W=st.clientWidth,H=st.clientHeight;
+  const c=$("#tvCount");if(c)setTxt(c,t("players",{n:list.length,m:MAX}));
+  const hc=$("#tvCap");if(hc){const cp=list.find(p=>p.presence.u===cap);setTxt(hc,cp?t("hostIs",{n:shownName(cp.presence.n)}):t("hostNone"));hc.title=t("makeHostHelp")}
+  const go=$("#tvGo");if(go){go.disabled=!list.length||!pApi;setTxt(go,list.length?t("start")+" · "+t(tvGame.g):t("start"))}
   let em=st.querySelector(".empty");
   if(!list.length){if(!em){em=el("div","empty",t("waiting"));st.append(em)}}else if(em)em.remove();
   const ids=new Set(list.map(p=>p.peer));
@@ -699,7 +701,8 @@ function drawStage(){
     const isCap=!!cap&&P.u===cap,key=shownName(P.n)+"|"+R.safeColor(P.c)+"|"+(isCap?1:0);
     if(!n||n.dataset.key!==key){if(n)n.remove();n=el("div","chr"+(isCap?" host":""));n.dataset.peer=p.peer;n.dataset.key=key;n.append(el("span","tag",(isCap?"👑 ":"")+shownName(P.n)),blob(P.c));
       n.title=t("makeHost");n.onclick=()=>{if(P.u)setCap(String(P.u))};st.append(n)}
-    n.style.left=(6+s.x*88)+"%";n.style.top=(16+s.y*76)+"%";n.style.zIndex=String(Math.round(s.y*100)+10);
+    // moved with transform (the graphics chip slides it) rather than left/top (the page re-lays itself out every frame)
+    n.style.transform="translate("+Math.round(W*(.06+s.x*.88))+"px,"+Math.round(H*(.16+s.y*.76))+"px)";n.style.zIndex=String(Math.round(s.y*100)+10);
     n.classList.toggle("walk",now<s.walkUntil);n.classList.toggle("left",s.dir<0);
     if(s.jumpAt&&now-s.jumpAt<600){if(!n.classList.contains("jump")){n.classList.add("jump");setTimeout(()=>n.classList.remove("jump"),560)}}
     let say=n.querySelector(".say");const show=s.msg&&now-s.mt<6000;
@@ -1256,7 +1259,7 @@ function drawGame(){
 }
 function rankRows(){return players().map(p=>({p,id:pid(p),n:shownName(p.presence.n),c:R.safeColor(p.presence.c),s:gTot[pid(p)]||0,rp:(gRound[pid(p)]||[]).reduce((a,b)=>a+(b||0),0)})).sort((a,b)=>b.s-a.s||a.n.localeCompare(b.n))}
 function tvTimer(center,left,total){const bar=el("div","tbar");bar.append(el("i"));bar.id="gBar";const s=el("div","secs");s.id="gSecs";center.append(bar,s);tvTimerSet(left,total)}
-function tvTimerSet(left,total){const b=$("#gBar"),s=$("#gSecs");if(b)b.firstChild.style.width=Math.max(0,Math.min(100,100*left/total))+"%";if(s)s.textContent=String(Math.max(0,Math.ceil(left/1000)))}
+function tvTimerSet(left,total){const b=$("#gBar"),s=$("#gSecs");if(b)b.firstChild.style.width=Math.max(0,Math.min(100,100*left/total))+"%";if(s)setTxt(s,String(Math.max(0,Math.ceil(left/1000))))}
 function answerTiles(q,ord,lg,opts){
   const g=el("div","agrid");
   ord.forEach((k,slot)=>{const tl=el("div","atile c"+slot);tl.append(el("span","ab","ABCD"[slot]));const tx=el("span",null,qAns(q,lg)[k]);tx.dir="auto";tl.append(tx);
@@ -1293,7 +1296,7 @@ function drawGameLive(){
     const lb=el("button","pbtn ghost",t("lobby"));lb.type="button";lb.onclick=backToLobby;foot.append(lb)}
 }
 function drawTrCenter(center,now,rows,rl){
-  if(rl)rl.textContent=tg?t("round",{r:tg.r})+" · "+tpName(tg.tp)+(tg.ph==="q"||tg.ph==="rev"?" · "+t("qn",{i:tg.i+1,n:tg.ids.length}):""):t("trivia");
+  if(rl)setTxt(rl,tg?t("round",{r:tg.r})+" · "+tpName(tg.tp)+(tg.ph==="q"||tg.ph==="rev"?" · "+t("qn",{i:tg.i+1,n:tg.ids.length}):""):t("trivia"));
   if(!tg){const key="load|"+lang;if(key!==gKey){gKey=key;center.textContent="";center.append(el("div","bigmsg",t("loadingQ")))}return}
   const q=qById(tg.ids[tg.i]),lg=tg.lg,ord=qOrder(tg.r,tg.i,tg.ids[tg.i]);
   const answered=players().filter(p=>trAns(p,tg.i)).length;
@@ -1316,12 +1319,12 @@ function drawTrCenter(center,now,rows,rl){
     }
   }
   if(tg.ph==="q")tvTimerSet(tg.end-now,TQ_MS);
-  else if(tg.ph==="count"){const s=$("#gSecs");if(s)s.textContent=String(Math.max(0,Math.ceil((tg.qAt-now)/1000)))}
+  else if(tg.ph==="count"){const s=$("#gSecs");if(s)setTxt(s,String(Math.max(0,Math.ceil((tg.qAt-now)/1000))))}
 }
 function hmCatName(c){return t("hc_"+c)}
 function hmWordBox(w,lg,showAll,set){const b=el("div","hmword"+(lg==="ar"?" ar":""));[...w].forEach(ch=>b.append(el("span",null,showAll||(set&&set.has(keyOf(ch)))?ch:"")));return b}
 function drawHmCenter(center,now,rows,rl){
-  if(rl)rl.textContent=hg?t("round",{r:hg.r}):t("hangman");
+  if(rl)setTxt(rl,hg?t("round",{r:hg.r}):t("hangman"));
   if(!hg)return;
   const act=players(),fin=act.filter(p=>{const s=hmPlayer(p);return s.solved||s.out}).length,clue=hg.ph==="play"&&now>=hg.at+HM_MS/2;
   const key=[hg.r,hg.ph,lang,hg.ph==="play"?fin+"/"+act.length+"|"+clue:"",hg.ph==="res"?JSON.stringify(rows.map(r=>[r.id,r.s,r.rp])):""].join("|");
@@ -1337,11 +1340,11 @@ function drawHmCenter(center,now,rows,rl){
       center.append(tb)}
   }
   if(hg.ph==="play")tvTimerSet(hg.end-now,HM_MS);
-  else if(hg.ph==="count"){const s=$("#gSecs");if(s)s.textContent=String(Math.max(0,Math.ceil((hg.at-now)/1000)))}
+  else if(hg.ph==="count"){const s=$("#gSecs");if(s)setTxt(s,String(Math.max(0,Math.ceil((hg.at-now)/1000))))}
 }
 
 function drawBlCenter(center,now,rows,rl){
-  if(rl)rl.textContent=bg?t("round",{r:bg.r})+(bg.ph!=="res"?" · "+t("qn",{i:bg.i+1,n:bg.ids.length}):""):t("bluff");
+  if(rl)setTxt(rl,bg?t("round",{r:bg.r})+(bg.ph!=="res"?" · "+t("qn",{i:bg.i+1,n:bg.ids.length}):""):t("bluff"));
   if(!bg){const key="load|"+lang;if(key!==gKey){gKey=key;center.textContent="";center.append(el("div","bigmsg",t("loadingQ")))}return}
   const q=blQ(bg.ids[bg.i]),act=players(),l=blL(bg.lg);
   const nIn=bg.ph==="write"?act.filter(p=>blFake(p)).length:bg.ph==="pick"?act.filter(p=>blPickOf(p)>=0).length:0;
@@ -1371,7 +1374,7 @@ function drawBlCenter(center,now,rows,rl){
   }
   if(bg.ph==="write")tvTimerSet(bg.end-now,BL.WRITE_MS);
   else if(bg.ph==="pick")tvTimerSet(bg.end-now,BL.PICK_MS);
-  else if(bg.ph==="count"){const s=$("#gSecs");if(s)s.textContent=String(Math.max(0,Math.ceil((bg.end-now)/1000)))}
+  else if(bg.ph==="count"){const s=$("#gSecs");if(s)setTxt(s,String(Math.max(0,Math.ceil((bg.end-now)/1000))))}
 }
 
 // the clue board: every player in turn order with their clues so far (hidden while everyone writes at once)
@@ -1388,7 +1391,7 @@ function imBoard(g,opt){
   return b;
 }
 function drawImCenter(center,now,rows,rl){
-  if(rl)rl.textContent=im?t("round",{r:im.r})+" · "+t("imposter"):t("imposter");
+  if(rl)setTxt(rl,im?t("round",{r:im.r})+" · "+t("imposter"):t("imposter"));
   if(!im){const key="load|"+lang;if(key!==gKey){gKey=key;center.textContent="";center.append(el("div","bigmsg",t("loadingQ")))}return}
   const g=imGm(),act=im.order.filter(id=>imP(id)),cat=wordIn(g.c,lang);
   const nDone=im.ph==="role"||im.ph==="all"||im.ph==="vote"?act.filter(id=>imDone(imP(id))).length:0;
@@ -1760,7 +1763,7 @@ const bwGm=()=>{if(!bw)return{k:"bw",ph:"load"};if(bw.ph==="res")return{k:"bw",r
     a:snd&&(bw.ph==="listen"||end)?bw.clip.a:null,o:snd&&end&&!bw.skip&&!bw.err?bw.clip.o:null,
     w:end?bw.q.w:null,pts:end?bw.pts:null,sk:end?(bw.skip||bw.err):0}};
 function drawBwCenter(center,now,rows,rl){
-  if(rl)rl.textContent=bw?t("round",{r:bw.r})+(bw.ph!=="res"&&bw.order?" · "+t("bwTurnN",{i:bw.t+1,n:bw.order.length}):"")+" · "+t("backwards"):t("backwards");
+  if(rl)setTxt(rl,bw?t("round",{r:bw.r})+(bw.ph!=="res"&&bw.order?" · "+t("bwTurnN",{i:bw.t+1,n:bw.order.length}):"")+" · "+t("backwards"):t("backwards"));
   if(!bw){const key="load|"+lang;if(key!==gKey){gKey=key;center.textContent="";center.append(el("div","bigmsg",t("loadingQ")))}return}
   const gs=bw.ph==="res"?[]:bwGuessers(),nGot=gs.filter(p=>bw.got[pid(p)]!=null).length,spn=bw.ph!=="res"?blName(bw.order[bw.t]):"";
   const key=[bw.r,bw.t,bw.ph,lang,nGot+"/"+gs.length,bw.pl,audioOk(),bw.ph==="res"?JSON.stringify(rows.map(r=>[r.id,r.s,r.rp])):""].join("|");
@@ -2075,7 +2078,7 @@ function drawHarfLive(){
   const center=$("#hfCenter");if(!center)return;
   const now=Rush.now(),P=hfPhase(now),rows=hfRows(),c=hfRound;
   const hfEl=center.closest(".hf");if(hfEl)hfEl.classList.toggle("many",rows.length>7);
-  const rl=$("#hfRound");if(rl)rl.textContent=c?t("round",{r:c.r}):t("harf");
+  const rl=$("#hfRound");if(rl)setTxt(rl,c?t("round",{r:c.r}):t("harf"));
   // centre
   let key=hfView+"|"+(c?c.r:0)+"|"+P.ph+"|"+(hs.sa?1:0);
   if(hfView==="results")key+="|"+JSON.stringify(rows.map(r=>[r.id,r.a,r.v,r.rp,r.s,r.apl]))+JSON.stringify(hs.ov)+JSON.stringify(hs.vr)+JSON.stringify(Object.keys(hs.vo).map(k=>[k,hfTally(k,hs.vo[k]),Math.ceil((hs.vo[k].at+VOTE_MS-now)/1000)]))+cap;

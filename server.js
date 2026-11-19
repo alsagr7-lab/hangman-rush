@@ -152,12 +152,22 @@ const rooms = new Map();
 const ROOM_RE = /^[a-z0-9][a-z0-9_.-]{0,47}$/;
 const MAX_PRESENCE = 4096;
 
-function broadcast(name) {
+// Tells everyone in a room who is there. When only one peer's presence changed (`only`), pages that joined with
+// d: 1 get just that peer ({t: "peer"}); the rest, and everyone on a join or leave, get the whole list. The list is
+// turned into JSON once, not once per page: in a busy party this runs many times a second.
+function broadcast(name, only) {
   const room = rooms.get(name);
   if (!room) return;
-  const peers = [...room.entries()].map(([peer, v]) => ({ peer, presence: v.presence }));
+  let whole = null, one = null;
   for (const [peer, v] of room) {
-    if (v.ws.readyState === 1) v.ws.send(JSON.stringify({ t: "peers", room: name, me: peer, peers }));
+    if (v.ws.readyState !== 1) continue;
+    if (only && v.delta && room.has(only)) {
+      if (one === null) one = JSON.stringify({ t: "peer", room: name, peer: only, presence: room.get(only).presence });
+      v.ws.send(one);
+    } else {
+      if (whole === null) whole = JSON.stringify([...room.entries()].map(([id, x]) => ({ peer: id, presence: x.presence })));
+      v.ws.send('{"t":"peers","room":' + JSON.stringify(name) + ',"me":' + JSON.stringify(peer) + ',"peers":' + whole + "}");
+    }
   }
 }
 
@@ -239,19 +249,20 @@ wss.on("connection", (ws, req) => {
         room.set(ws.peerId, { ws, presence: {} });
         ws.rooms.add(name);
       }
-      const p = msg.presence;
-      if (p && typeof p === "object" && !Array.isArray(p) && JSON.stringify(p).length <= maxPresence(name)) rooms.get(name).get(ws.peerId).presence = p;
+      const p = msg.presence, entry = rooms.get(name).get(ws.peerId);
+      if (p && typeof p === "object" && !Array.isArray(p) && JSON.stringify(p).length <= maxPresence(name)) entry.presence = p;
+      entry.delta = msg.d === 1; // this page understands one-peer updates
       dropOlder(name, ws);
       broadcast(name);
     } else if (msg.t === "presence") {
       const entry = rooms.get(name) && rooms.get(name).get(ws.peerId);
       if (!entry || !msg.patch || typeof msg.patch !== "object" || Array.isArray(msg.patch)) return;
-      const next = Object.assign({}, entry.presence);
+      const next = Object.assign({}, entry.presence), oldU = entry.presence.u;
       for (const [k, v] of Object.entries(msg.patch)) { if (v === null) delete next[k]; else next[k] = v; }
       if (JSON.stringify(next).length > maxPresence(name)) return;
       entry.presence = next;
-      if ("u" in msg.patch) dropOlder(name, ws);
-      broadcast(name);
+      // a new player id may push out this player's older place (a full list then); otherwise only this peer changed
+      if (next.u !== oldU) { dropOlder(name, ws); broadcast(name); } else broadcast(name, ws.peerId);
     } else if (msg.t === "to") {
       // a private message to one peer in the same room (the party TV telling each phone its secret role); the
       // server stamps who sent it, so it can't be faked, and nobody else in the room sees it
